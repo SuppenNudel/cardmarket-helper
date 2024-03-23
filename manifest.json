@@ -1,0 +1,82 @@
+{
+    "manifest_version": 2,
+    "name": "Cardmarket Helper",
+    "version": "1.0.2",
+    "browser_specific_settings": {
+        "gecko": {
+            "update_url": "bitbucket"
+        }
+    },
+    "description": "Description",
+    "background": {
+        "scripts": [
+            "background.js"
+        ],
+        "persistent": true
+    },
+    "browser_action": {
+        "default_icon": {
+            "32": "icons/geschaft-32.png"
+        },
+        "default_title": "Cardmarket Helper",
+        "default_popup": "popup.html"
+    },
+    "icons": {
+        "32": "icons/geschaft-32.png",
+        "16": "icons/geschaft.png"
+    },
+    "permissions": [
+        "storage",
+        "activeTab",
+        "webRequest",
+        "webRequestBlocking",
+        "webNavigation",
+        "https://api.scryfall.com/",
+        "https://mtgtop8.com/search"
+    ],
+    "web_accessible_resources": [
+        "scryfall_data.json"
+    ],
+    "content_security_policy": "script-src 'self'; object-src 'self'",
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.cardmarket.com/*/Magic/Users/*/Offers/Singles*"
+            ],
+            "js": [
+                "get-thumbnail.js",
+                "lib/papaparse.min.js",
+                "upload-csv.js",
+                "scryfall.js",
+                "defaults.js",
+                "offers-singles.js"
+            ]
+        },
+        {
+            "matches": [
+                "https://www.cardmarket.com/*/Magic/Products/*"
+            ],
+            "js": [
+                "get-thumbnail.js",
+                "lib/papaparse.min.js",
+                "upload-csv.js",
+                "scryfall.js",
+                "sell.js"
+            ]
+        },
+        {
+            "matches": [
+                "https://www.cardmarket.com/*"
+            ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Magic/Users/*/Offers/Singles*",
+                "https://www.cardmarket.com/*/Magic/Wants/ShoppingWizard/Results*"
+            ],
+            "js": [
+                "scryfall.js",
+                "get-thumbnail.js",
+                "show-thumbnail.js"
+            ]
+        }
+    ]
+}

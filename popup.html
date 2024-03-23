@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Toggle</title>
+    <link rel="stylesheet" href="popup.css">
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+
+    <script src="defaults.js"></script>
+    <script src="popup.js"></script>
+</head>
+
+<body>
+
+    <table>
+        <tr>
+            <th>Format</th>
+            <th>mtgtop8</th>
+            <th>Hide if not legal in any of</th>
+        </tr>
+        <tr>
+            <td>Standard</td>
+            <td>
+                <label class="switch">
+                    <input id="mtgtop8-standard" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+            <td>
+                <label class="switch">
+                    <input id="hide-standard" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+        </tr>
+        <tr>
+            <td>Pioneer</td>
+            <td>
+                <label class="switch">
+                    <input id="mtgtop8-pioneer" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+            <td>
+                <label class="switch">
+                    <input id="hide-pioneer" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+        </tr>
+        <tr>
+            <td>Modern</td>
+            <td>
+                <label class="switch">
+                    <input id="mtgtop8-modern" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+            <td>
+                <label class="switch">
+                    <input id="hide-modern" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+        </tr>
+        <tr>
+            <td>Legacy</td>
+            <td>
+                <label class="switch">
+                    <input id="mtgtop8-legacy" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+            <td>
+                <label class="switch">
+                    <input id="hide-legacy" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

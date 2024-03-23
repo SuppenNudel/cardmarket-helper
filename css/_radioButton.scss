@@ -1,0 +1,25 @@
+// =============================================================================
+// @copyright Copyright(c) 2019, Sammelkartenmarkt GmbH & Co.KG
+// @updated   Marius Zunker <marius@cardmarket.com> (02.11.2020)
+// =============================================================================
+
+.form-check {
+  .form-check-input ~ .form-check-label {
+    cursor: pointer;
+  }
+
+  .form-check-input:checked ~ .form-check-label {
+    &::after {
+      border-radius: $form-check-radio-border-radius;
+      background-color: var(--bs-primary);
+    }
+  }
+
+  .form-check-input:disabled ~ .form-check-label {
+    cursor: not-allowed;
+
+    &::before {
+      background-color: $gray-300;
+    }
+  }
+}
