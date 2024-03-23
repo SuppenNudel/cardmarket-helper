@@ -4,7 +4,7 @@
     "version": "1.0.2",
     "browser_specific_settings": {
         "gecko": {
-            "update_url": "bitbucket"
+            "update_url": "https://bitbucket.org/SuppenNudel93/cardmarket-helper/raw/3ec77aea0a43d9cf9c03120ce0dabb765c17788d/update.json"
         }
     },
     "description": "Description",
