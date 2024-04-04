@@ -1,13 +1,8 @@
 {
     "manifest_version": 2,
-    "name": "Cardmarket Helper",
-    "version": "1.0.2",
-    "browser_specific_settings": {
-        "gecko": {
-            "update_url": "https://bitbucket.org/SuppenNudel93/cardmarket-helper/raw/4f48a85c035a6525cf47ef980c84819b124a75d3/update.json"
-        }
-    },
-    "description": "Description",
+    "name": "Cardmarket Assistant",
+    "version": "1.0.3",
+    "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [
             "background.js"
@@ -18,7 +13,7 @@
         "default_icon": {
             "32": "icons/geschaft-32.png"
         },
-        "default_title": "Cardmarket Helper",
+        "default_title": "Cardmarket Assistant",
         "default_popup": "popup.html"
     },
     "icons": {
