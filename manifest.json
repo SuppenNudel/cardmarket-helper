@@ -52,7 +52,6 @@
                 "https://www.cardmarket.com/*/Magic/Products/*"
             ],
             "js": [
-                "get-thumbnail.js",
                 "lib/papaparse.min.js",
                 "upload-csv.js",
                 "scryfall.js",

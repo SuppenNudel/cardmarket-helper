@@ -1,3 +1,18 @@
+async function initStorage(storageKey, defaultValue) {
+    try {
+        let storageData = await browser.storage.local.get(storageKey);
+
+        // if key doesn't hold data yet
+        if(!storageData[storageKey] ||  Object.keys(storageData[storageKey]).length === 0) {
+            storageData[storageKey] = defaultValue;
+            await browser.storage.local.set({ storageKey: storageData[storageKey] });
+        }
+        return storageData[storageKey];
+    } catch (error) {
+        console.error(`Error when init control ${storageKey}:`, error);
+    }
+}
+
 async function initFormats() {
     try {
         // Retrieve the 'formats' object from storage.local
@@ -30,6 +45,33 @@ function setupHideToggle(format) {
     });
 }
 
+function setupControl(controlId, storageKey) {
+    document.getElementById(controlId).addEventListener("change", async (event) => {
+        const value = event.target.value;
+        await browser.storage.local.set({ storageKey: value });
+    });
+}
+
+function setupThumbnailSize() {
+    const slider = document.getElementById("myRange");
+    const output = document.getElementById("output");
+    browser.storage.local.get('settings').then(storageData => {
+        const value = storageData.settings;
+        if(value) {
+            output.innerHTML = value;
+            slider.value = value;
+        }
+    });
+
+    slider.oninput = async function() {
+        console.log(this.value);
+        output.innerHTML = this.value;
+        await browser.storage.local.set({ 'settings': this.value });
+        const storageData2 = await browser.storage.local.get('settings');
+        console.log(storageData2);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     initFormats().then(formats => {
         for(const [format, value] of Object.entries(formats)) {
@@ -42,4 +84,6 @@ document.addEventListener("DOMContentLoaded", function () {
         setupAnalyseToggle(format);
         setupHideToggle(format);
     }
+
+    setupThumbnailSize();
 });

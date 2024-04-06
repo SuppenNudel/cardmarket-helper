@@ -1,22 +1,27 @@
-console.log("get-thumbnail.js");
-
 rot90 = ["split"];
 rot270 = ["art_series"];
 
-function changePreviewImage(thumbnailIcon, imgTag) {
+async function changePreviewImage(thumbnailIcon, imgTag) {
     // Create a new DOMParser
     var parser = new DOMParser();
     // Parse the HTML string to create a Document
     var doc = parser.parseFromString(imgTag, 'text/html');
     // Access the created element
     var theImage = doc.body.firstChild;
-    theImage.height = 150;
 
-    const parent = thumbnailIcon.parentNode;
-
-    parent.innerHTML = '';
-    parent.appendChild(theImage);
-    parent.style.width = "10.0rem";
+    // Retrieve data from local storage
+    const result = await browser.storage.local.get(['settings']);
+    const settings = result.settings;
+    
+    if(settings != 0) {
+        theImage.height = settings;
+        
+        const parent = thumbnailIcon.parentNode;
+    
+        parent.innerHTML = '';
+        parent.appendChild(theImage);
+        parent.style.width = "10.0rem";
+    }
 
     return theImage;
 }
@@ -28,7 +33,7 @@ function* iterateThumbnails() {
     }
 }
 
-function showThumbnail(thumbnailIcon) {
+async function showThumbnail(thumbnailIcon) {
     let imgTag = thumbnailIcon.title;
     if(!imgTag) {
         imgTag = thumbnailIcon.ariaLabel;
@@ -37,7 +42,7 @@ function showThumbnail(thumbnailIcon) {
     if (matches) {
         var mkmId = matches[1];
     }
-    const theImage = changePreviewImage(thumbnailIcon, imgTag);
+    const theImage = await changePreviewImage(thumbnailIcon, imgTag);
     if(mkmId) {
         theImage.setAttribute("mkmId", mkmId);
     }
@@ -63,3 +68,8 @@ async function getScryfallCardFromImage(theImage) {
 
     return card;
 }
+
+
+(async function main() {
+    console.log("get-thumbnail.js");
+})();
