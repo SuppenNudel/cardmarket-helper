@@ -53,22 +53,28 @@ function setupControl(controlId, storageKey) {
 }
 
 function setupThumbnailSize() {
-    const slider = document.getElementById("myRange");
+    const thumbnailSwitch = document.getElementById("thumbnail-switch");
+    const slider = document.getElementById("thumbnail-range");
     const output = document.getElementById("output");
-    browser.storage.local.get('settings').then(storageData => {
-        const value = storageData.settings;
+    browser.storage.local.get('thumbnail').then(storageData => {
+        const value = storageData.thumbnail;
         if(value) {
             output.innerHTML = value;
             slider.value = value;
+            thumbnailSwitch.checked = true;
+        } else {
+            thumbnailSwitch.checked = false;
         }
     });
 
     slider.oninput = async function() {
-        console.log(this.value);
         output.innerHTML = this.value;
-        await browser.storage.local.set({ 'settings': this.value });
-        const storageData2 = await browser.storage.local.get('settings');
-        console.log(storageData2);
+        thumbnailSwitch.checked = true;
+        await browser.storage.local.set({ 'thumbnail': this.value });
+    }
+    thumbnailSwitch.onchange = async function(event) {
+        const checked = event.target.checked;
+        await browser.storage.local.set({ 'thumbnail': checked ? slider.value : 0 });
     }
 }
 

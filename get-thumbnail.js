@@ -10,11 +10,11 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     var theImage = doc.body.firstChild;
 
     // Retrieve data from local storage
-    const result = await browser.storage.local.get(['settings']);
-    const settings = result.settings;
+    const result = await browser.storage.local.get(['thumbnail']);
+    const thumbnail = result.thumbnail;
     
-    if(settings != 0) {
-        theImage.height = settings;
+    if(thumbnail) {
+        theImage.height = thumbnail;
         
         const parent = thumbnailIcon.parentNode;
     
