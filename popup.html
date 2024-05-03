@@ -29,7 +29,20 @@
 </head>
 
 <body>
-
+    <label for="thumbnail-range">Thumbnail size (height)</label>
+    <table>
+        <tr>
+            <td>
+                <label class="switch">
+                    <input id="thumbnail-switch" type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </td>
+            <td style="width: 50px;"><span id="output">150</span></td>
+            <td><input type="range" step="25" min="50" max="200" value="150" id="thumbnail-range"></td>
+        </tr>
+    </table>
+    <br>
     <table>
         <tr>
             <th>Format</th>

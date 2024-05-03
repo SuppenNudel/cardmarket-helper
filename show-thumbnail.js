@@ -6,7 +6,7 @@
         if(element.done) {
             break
         }
-        const image = showThumbnail(element.value);
+        const image = await showThumbnail(element.value);
         const scryfallCard = getScryfallCardFromImage(image);
     }
 })();

@@ -229,7 +229,7 @@ async function updateContentOfCard(articleRow, collection) {
     cardNameElement.style.display = "-webkit-box"; // enables line break
     
     const element = articleRow.querySelector("span.thumbnail-icon");
-    const image = showThumbnail(element);
+    const image = await showThumbnail(element);
     const cardObject = await getScryfallCardFromImage(image);
     const mkmId = parseInt(image.getAttribute("mkmId"));
 
