@@ -16,7 +16,3 @@ const formatsDefault = {
         'hideIfNotLegalIn': false
     }
 }
-
-function getFormatsDefault() {
-    return formatsDefault;
-}

@@ -25,7 +25,7 @@ async function initFormats() {
         }
         return storageData.formats;
     } catch (error) {
-        console.error('Error:', error);
+        console.error(`Error when init formats:`, error);
     }
 }
 
@@ -59,7 +59,7 @@ function setupThumbnailSize() {
     browser.storage.local.get('thumbnail').then(storageData => {
         const value = storageData.thumbnail;
         if(value) {
-            output.innerHTML = value;
+            output.innerText = value;
             slider.value = value;
             thumbnailSwitch.checked = true;
         } else {
@@ -68,7 +68,7 @@ function setupThumbnailSize() {
     });
 
     slider.oninput = async function() {
-        output.innerHTML = this.value;
+        output.innerText = this.value;
         thumbnailSwitch.checked = true;
         await browser.storage.local.set({ 'thumbnail': this.value });
     }
