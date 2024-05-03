@@ -1,0 +1,7 @@
+doc
+deploy.py
+.deployignore
+LICENSE
+readme.md
+.git
+*.zip
