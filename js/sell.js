@@ -154,32 +154,6 @@ function parseMkmIdFromImgSrc(imgSrc) {
     }
 }
 
-function searchCollectionForScryfallId(collection, scryfallId) {
-    const resultObjects = [];
-    for (const key in collection) {
-        const array = collection[key];
-        for (const obj of array) {
-            if (obj["Scryfall ID"] == scryfallId) {
-                resultObjects.push(obj);
-            }
-        }
-    }
-    return resultObjects.length > 0 ? resultObjects : null;
-}
-
-function searchCollectionForName(collection, cardName) {
-    const resultObjects = [];
-    for (const key in collection) {
-        const array = collection[key];
-        for (const obj of array) {
-            if (obj["Name"] === cardName) {
-                resultObjects.push(obj);
-            }
-        }
-    }
-    return resultObjects.length > 0 ? resultObjects : null;
-}
-
 const HEADERS = ["Fill / Go to", "Quantity", "Set code", "Collector number", "Foil", "Binder Name", "Purchase price", "Misprint", "Altered", "Condition", "Language"];
 
 // Get the current URL
@@ -408,10 +382,10 @@ function collectionLoaded(collection) {
         }
         var scryfallId = cardObject.id;
         scryfallRequest(cardObject.prints_search_uri).then(result => result.data).then(scryfallCards => 
-            scryfallCards.map(scryfallCard => searchCollectionForScryfallId(collection, scryfallCard.id))
-         ).then(cards => cards.flat().filter(item => item !== null)).then(async collectionCards => {
+            scryfallCards.map(scryfallCard => collection[scryfallCard.id])
+         ).then(cards => cards.filter(item => item !== undefined).flat()).then(async collectionCards => {
             var toAppend;
-            if (collectionCards == []) {
+            if (collectionCards.length == 0) {
                 toAppend = document.createElement('span');
                 toAppend.innerText = "You don't own any printing of this card.";
             } else {

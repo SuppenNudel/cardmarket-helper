@@ -10,18 +10,24 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     var theImage = doc.body.firstChild;
 
     // Retrieve data from local storage
-    const result = await browser.storage.local.get(['thumbnail']);
+    try {
+        var result = await browser.storage.local.get(['thumbnail']);
+        // Code to handle successful retrieval of data
+    } catch (error) {
+        // Code to handle any errors that occurred during the retrieval
+        console.error('Error:', error);
+    }
     const thumbnail = result.thumbnail;
-    
-    if(thumbnail != 0) {
-        if(!thumbnail) {
+
+    if (thumbnail != 0) {
+        if (!thumbnail) {
             theImage.height = 150;
         } else {
             theImage.height = thumbnail;
         }
-        
+
         const parent = thumbnailIcon.parentNode;
-    
+
         parent.innerHTML = '';
         parent.appendChild(theImage);
         parent.style.width = "10.0rem";
@@ -39,7 +45,7 @@ function* iterateThumbnails() {
 
 async function showThumbnail(thumbnailIcon) {
     let imgTag = thumbnailIcon.title;
-    if(!imgTag) {
+    if (!imgTag) {
         imgTag = thumbnailIcon.ariaLabel;
     }
     var matches = imgTag.match(/(\d+)\.jpg/);
@@ -47,7 +53,7 @@ async function showThumbnail(thumbnailIcon) {
         var mkmId = matches[1];
     }
     const theImage = await changePreviewImage(thumbnailIcon, imgTag);
-    if(mkmId) {
+    if (mkmId) {
         theImage.setAttribute("mkmId", mkmId);
     }
     return theImage;
@@ -55,18 +61,18 @@ async function showThumbnail(thumbnailIcon) {
 
 async function getScryfallCardFromImage(theImage) {
     const mkmId = theImage.getAttribute("mkmId");
-    if(!mkmId) {
+    if (!mkmId) {
         return null;
     }
     const card = await cardByMkmId(mkmId);
-    if(card.details) {
+    if (card.details) {
         console.log(card.details, mkmId);
         return;
     }
 
-    if(rot90.includes(card.layout) && !card.keywords.includes('Aftermath')) {
+    if (rot90.includes(card.layout) && !card.keywords.includes('Aftermath')) {
         theImage.style = "transform: rotate(90deg);";
-    } else if(rot270.includes(card.layout)) {
+    } else if (rot270.includes(card.layout)) {
         theImage.style = "transform: rotate(270deg);";
     }
 

@@ -1,10 +1,10 @@
-function mapDataToName(dataArray) {
+function mapDataTo(dataArray, key) {
     console.log("upload-csv.js - mapDataToName(dataArray)");
     const groupedData = {};
 
     dataArray.forEach(data => {
-        if ('Name' in data) {
-            const name = data.Name;
+        if (key in data) {
+            const name = data[key];
 
             // If the name doesn't exist in the groupedData, create an array
             if (!groupedData[name]) {
@@ -14,7 +14,7 @@ function mapDataToName(dataArray) {
             // Push the current data into the array under the name key
             groupedData[name].push(data);
         } else {
-            console.error("Invalid data format. Expected 'Name' property.");
+            console.error(`Invalid data format. Expected '${key}' property.`);
         }
     });
 
@@ -44,7 +44,7 @@ async function parseCsvAndSave(file, fileContent) {
     console.log(parsedData);
 
     // map csv to dict
-    const collection = mapDataToName(parsedData);
+    const collection = mapDataTo(parsedData, 'Scryfall ID');
     console.log(collection);
 
     // save collection dict to local storage

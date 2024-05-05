@@ -1,26 +1,3 @@
-function mapDataToName(dataArray) {
-    console.log("background - mapDataToName(dataArray)");
-    const groupedData = {};
-
-    dataArray.forEach(data => {
-        if ('Name' in data) {
-            const name = data.Name;
-
-            // If the name doesn't exist in the groupedData, create an array
-            if (!groupedData[name]) {
-                groupedData[name] = [];
-            }
-
-            // Push the current data into the array under the name key
-            groupedData[name].push(data);
-        } else {
-            console.error("Invalid data format. Expected 'Name' property.");
-        }
-    });
-
-    return groupedData;
-}
-
 async function loadCustomScryfallData() {
     console.log("background.js - loadCustomScryfallData");
     const customScryfall = await (await fetch(browser.runtime.getURL('data/scryfall_data.json'))).json();

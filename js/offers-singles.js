@@ -33,18 +33,18 @@ function parseHTML(html) {
     // Use DOMParser to parse the HTML string
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-  
+
     const wTitle = doc.querySelector('div.w_title');
     if (wTitle) {
         const titleText = wTitle.textContent.trim();
-    
+
         // Use regular expression to extract the number from the text
         const matches = titleText.match(/\d+/);
         if (matches) {
-          const numberOfDecks = parseInt(matches[0]);
-          return numberOfDecks;
+            const numberOfDecks = parseInt(matches[0]);
+            return numberOfDecks;
         }
-      }
+    }
     return null;
 }
 
@@ -53,21 +53,21 @@ mtgtop8_cache = {};
 async function mtgtop8(cardObject, format, mainboard, sideboard) {
     var cardname;
     cardname = cardObject.name;
-    if(cardObject.card_faces && cardObject.layout != 'split') {
+    if (cardObject.card_faces && cardObject.layout != 'split') {
         cardname = cardObject.card_faces[0].name;
     }
 
     const url = `https://mtgtop8.com/search?format=${format}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=18/09/2023&cards=${cardname}`;
-    if(url in mtgtop8_cache) {
+    if (url in mtgtop8_cache) {
         var decks_matching = mtgtop8_cache[url];
     } else {
         const response = await fetch(url);
         const html = await response.text();
-        if(html.includes('No match for ')) {
-            return 'No match for '+cardname;
+        if (html.includes('No match for ')) {
+            return 'No match for ' + cardname;
         }
-        if(html.includes('Too many cards for ')) {
-            return 'Too many cards for '+cardname;
+        if (html.includes('Too many cards for ')) {
+            return 'Too many cards for ' + cardname;
         }
         var decks_matching = parseHTML(html);
         mtgtop8_cache[url] = decks_matching;
@@ -80,9 +80,9 @@ function formatStaple(cardObject, formatName, mtgtop8Format) {
     formatElement.style = "display: flex";
     formatElement.innerText = `${formatName}:`;
     formatElement.innerHTML += '&nbsp;';
-    
+
     const legality = cardObject.legalities[formatName.toLowerCase()];
-    if(legality == 'legal') {
+    if (legality == 'legal') {
         const main = document.createElement('div');
         formatElement.appendChild(main);
         const divider = document.createElement('div');
@@ -174,30 +174,34 @@ const formatsMapping = {
     }
 };
 
-async function checkOwnership(collection, cardObject) {
+async function checkOwnership(collection, scryfallCard) {
     const element = document.createElement('div')
     element.style = "display: inline-block";
 
     const commander = document.createElement('div');
     commander.innerText = `EDHREC Rank: `;
     element.appendChild(commander);
-    if(cardObject.legalities.commander == 'legal') {
-        commander.innerText += ' ' + cardObject.edhrec_rank;
+    if (scryfallCard.legalities.commander == 'legal') {
+        commander.innerText += ' ' + scryfallCard.edhrec_rank;
     } else {
-        commander.innerText += cardObject.legalities.commander;
+        commander.innerText += scryfallCard.legalities.commander;
     }
 
     for (var format in formats) {
         const mtgtop8 = formats[format].mtgtop8;
-        if(mtgtop8) {
-            element.appendChild(formatStaple(cardObject, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
+        if (mtgtop8) {
+            element.appendChild(formatStaple(scryfallCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
         }
     }
 
     var str = '';
     if (collection) {
-        let collCards = collection[cardObject.name];
-        if (collCards) {
+        const collectionCards = await scryfallRequest(scryfallCard.prints_search_uri).then(result => result.data).then(scryfallCards =>
+            scryfallCards.map(scryfallCard => collection[scryfallCard.id])
+        ).then(cards => cards.filter(item => item !== undefined).flat());
+        if (collectionCards.length == 0) {
+            str += 'unowned';
+        } else {
             let sum = {
                 'de': 0,
                 'en': 0
@@ -208,16 +212,14 @@ async function checkOwnership(collection, cardObject) {
                 'en': 0
             }
 
-            for (let collCard of collCards) {
+            for (let collCard of collectionCards) {
                 sum[collCard.Language] += parseInt(collCard.Quantity);
-                if (collCard["Scryfall ID"] == cardObject.id) {
+                if (collCard["Scryfall ID"] == scryfallCard.id) {
                     sumPrinting[collCard.Language] += parseInt(collCard.Quantity);
                 }
             }
             str += `${sum.en + sum.de} (en: ${sum.en}, de: ${sum.de})`
                 + ` // printing: ${sumPrinting.en + sumPrinting.de} (en: ${sumPrinting.en}, de: ${sumPrinting.de})`;
-        } else {
-            str += 'unowned';
         }
     } else {
         str += '<collection not loaded>';
@@ -278,8 +280,8 @@ async function checkPrice(articleRow, cardObject) {
     if (price) {
         div.innerText = "↔️ " + price.toFixed(2) + " ⬇️ " + cheapest.toFixed(2);
         offerElement.classList.remove("color-primary");
-        
-        if(priceContainer.getElementsByClassName('extra-small').length > 0) {
+
+        if (priceContainer.getElementsByClassName('extra-small').length > 0) {
             offer = offer / 4;
         }
         color = getColorBasedOnPercentageRange(price, offer);
@@ -292,13 +294,13 @@ async function checkPrice(articleRow, cardObject) {
 async function updateContentOfCard(articleRow, collection) {
     let cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
     cardNameElement.style.display = "-webkit-box"; // enables line break
-    
+
     const element = articleRow.querySelector("span.thumbnail-icon");
     const image = await showThumbnail(element);
-    const cardObject = await getScryfallCardFromImage(image);
+    const scryfallCard = await getScryfallCardFromImage(image);
     const mkmId = parseInt(image.getAttribute("mkmId"));
 
-    if (cardObject == undefined) {
+    if (scryfallCard == undefined) {
         cardNameElement.append(document.createElement("br"));
         const errorElement = document.createElement("div")
         errorElement.style = "display: inline-block";
@@ -307,23 +309,23 @@ async function updateContentOfCard(articleRow, collection) {
     } else {
         var legalInAtLeastOne = false;
         var anySelected = true;
-        for(var format in formats) {
-            if(formats[format].hideIfNotLegalIn) {
+        for (var format in formats) {
+            if (formats[format].hideIfNotLegalIn) {
                 anySelected = false;
-                if(cardObject.legalities[format] == 'legal') {
+                if (scryfallCard.legalities[format] == 'legal') {
                     legalInAtLeastOne = true;
                     break;
                 }
             }
         }
-        if(anySelected || legalInAtLeastOne) {
-            checkOwnership(collection, cardObject)
-            .then(elements => {
-                cardNameElement.append(document.createElement("br"));
-                cardNameElement.append(elements);
-            });
-            
-            checkPrice(articleRow, cardObject);
+        if (anySelected || legalInAtLeastOne) {
+            checkOwnership(collection, scryfallCard)
+                .then(elements => {
+                    cardNameElement.append(document.createElement("br"));
+                    cardNameElement.append(elements);
+                });
+
+            checkPrice(articleRow, scryfallCard);
         } else {
             articleRow.style = "display: none";
         }
@@ -344,16 +346,16 @@ var formats = formatsDefault;
     console.log("offer-singles.js");
     // Retrieve data from local storage
     browser.storage.local.get(['collection', 'formats'])
-    .then((result) => {
-        const collection = result.collection;
-        console.log('Collection Data retreived');
-        if(result.formats) {
-            formats = result.formats;
-        }
-        console.log("formats", formats);
-        updateContent(collection);
-    })
-    .catch((error) => {
-        console.error('Error retrieving data:', error);
-    });
+        .then((result) => {
+            const collection = result.collection;
+            console.log('Collection Data retreived');
+            if (result.formats) {
+                formats = result.formats;
+            }
+            console.log("formats", formats);
+            updateContent(collection);
+        })
+        .catch((error) => {
+            console.error('Error retrieving data:', error);
+        });
 })();
