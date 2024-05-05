@@ -103,6 +103,77 @@ function formatStaple(cardObject, formatName, mtgtop8Format) {
     return formatElement;
 }
 
+const formatsMapping = {
+    'standard': {
+        'display': 'Standard',
+        'mtgtop8key': 'ST'
+    },
+    'alchemy': {
+        'display': 'Alchemy',
+        'mtgtop8key': 'ALCH'
+    },
+    'explorer': {
+        'display': 'Explorer',
+        'mtgtop8key': 'EXP'
+    },
+    'historic': {
+        'display': 'Historic',
+        'mtgtop8key': 'HI'
+    },
+    'pioneer': {
+        'display': 'Pioneer',
+        'mtgtop8key': 'PI'
+    },
+    'modern': {
+        'display': 'Modern',
+        'mtgtop8key': 'MO'
+    },
+    'premodern': {
+        'display': 'Premodern',
+        'mtgtop8key': 'PREM'
+    },
+    'legacy': {
+        'display': 'Legacy',
+        'mtgtop8key': 'LE'
+    },
+    'vintage': {
+        'display': 'Vintage',
+        'mtgtop8key': 'VI'
+    },
+    'cEDH': {
+        'display': 'cEDH',
+        'mtgtop8key': 'cEDH'
+    },
+    'duel': {
+        'display': 'Duel Commander',
+        'mtgtop8key': 'EDH'
+    },
+    'Block': {
+        'display': 'Block',
+        'mtgtop8key': 'BL'
+    },
+    'Extended': {
+        'display': 'Extended',
+        'mtgtop8key': 'EX'
+    },
+    'pauper': {
+        'display': 'Pauper',
+        'mtgtop8key': 'PAU'
+    },
+    'Peasant': {
+        'display': 'Peasant',
+        'mtgtop8key': 'PEA'
+    },
+    'Highlander': {
+        'display': 'Highlander',
+        'mtgtop8key': 'HIGH'
+    },
+    'Canadian Highlander': {
+        'display': 'Canadian Highlander',
+        'mtgtop8key': 'CHL'
+    }
+};
+
 async function checkOwnership(collection, cardObject) {
     const element = document.createElement('div')
     element.style = "display: inline-block";
@@ -116,17 +187,11 @@ async function checkOwnership(collection, cardObject) {
         commander.innerText += cardObject.legalities.commander;
     }
 
-    if(formats.standard.mtgtop8) {
-        element.appendChild(formatStaple(cardObject, 'Standard', 'ST'));
-    }
-    if(formats.pioneer.mtgtop8) {
-        element.appendChild(formatStaple(cardObject, 'Pioneer', 'PI'));
-    }
-    if(formats.modern.mtgtop8) {
-        element.appendChild(formatStaple(cardObject, 'Modern', 'MO'));
-    }
-    if(formats.legacy.mtgtop8) {
-        element.appendChild(formatStaple(cardObject, 'Legacy', 'LE'));
+    for (var format in formats) {
+        const mtgtop8 = formats[format].mtgtop8;
+        if(mtgtop8) {
+            element.appendChild(formatStaple(cardObject, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
+        }
     }
 
     var str = '';

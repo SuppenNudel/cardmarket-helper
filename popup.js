@@ -58,12 +58,12 @@ function setupThumbnailSize() {
     const output = document.getElementById("output");
     browser.storage.local.get('thumbnail').then(storageData => {
         const value = storageData.thumbnail;
-        if(value) {
-            output.innerText = value;
-            slider.value = value;
-            thumbnailSwitch.checked = true;
-        } else {
+        if(value == 0) {
             thumbnailSwitch.checked = false;
+        } else {
+            output.innerText = value ? value : 150;
+            slider.value = value ? value : 150;
+            thumbnailSwitch.checked = true;
         }
     });
 

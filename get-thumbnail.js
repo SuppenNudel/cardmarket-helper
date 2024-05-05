@@ -13,8 +13,12 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     const result = await browser.storage.local.get(['thumbnail']);
     const thumbnail = result.thumbnail;
     
-    if(thumbnail) {
-        theImage.height = thumbnail;
+    if(thumbnail != 0) {
+        if(!thumbnail) {
+            theImage.height = 150;
+        } else {
+            theImage.height = thumbnail;
+        }
         
         const parent = thumbnailIcon.parentNode;
     
