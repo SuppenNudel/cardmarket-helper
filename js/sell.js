@@ -154,12 +154,12 @@ function parseMkmIdFromImgSrc(imgSrc) {
     }
 }
 
-function searchCollectionForScryfallId(collection, targetScryfallId) {
+function searchCollectionForScryfallId(collection, scryfallId) {
     const resultObjects = [];
     for (const key in collection) {
         const array = collection[key];
         for (const obj of array) {
-            if (obj["Scryfall ID"] === targetScryfallId) {
+            if (obj["Scryfall ID"] == scryfallId) {
                 resultObjects.push(obj);
             }
         }
@@ -192,8 +192,6 @@ var pathname = url.pathname;
 var parts = pathname.split("/");
 // Extract language from parts
 var language = parts[1]; // Assuming "de" is at index 1
-console.log(language); // Output: de
-
 
 async function generateTable(cards, scryfallId) { // id of same printing
     const table = document.createElement('table');
@@ -409,21 +407,23 @@ function collectionLoaded(collection) {
             throw new Error(`Error when requesting cardmarket id ${mkmId}: ` + cardObject.details);
         }
         var scryfallId = cardObject.id;
-        // var samePrinting = searchCollectionForScryfallId(collection, scryfallId);
-        cardName = cardObject.name;
-        var cards = searchCollectionForName(collection, cardName);
-        var toAppend;
-        if (cards) {
-            toAppend = await generateTable(cards, scryfallId);
-        } else {
-            toAppend = document.createElement('span');
-            toAppend.innerText = "You don't own any printing of this card.";
-        }
-        div.appendChild(toAppend);
+        scryfallRequest(cardObject.prints_search_uri).then(result => result.data).then(scryfallCards => 
+            scryfallCards.map(scryfallCard => searchCollectionForScryfallId(collection, scryfallCard.id))
+         ).then(cards => cards.flat().filter(item => item !== null)).then(async collectionCards => {
+            var toAppend;
+            if (collectionCards == []) {
+                toAppend = document.createElement('span');
+                toAppend.innerText = "You don't own any printing of this card.";
+            } else {
+                toAppend = await generateTable(collectionCards, scryfallId);
+            }
+            div.appendChild(toAppend);
+        });
     });
 }
 
 (async function main() {
+    console.log("sell.js");
     // Retrieve data from local storage
     browser.storage.local.get('collection')
         .then((result) => {
