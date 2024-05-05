@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [
@@ -23,9 +23,6 @@
     "permissions": [
         "storage",
         "activeTab",
-        "webRequest",
-        "webRequestBlocking",
-        "webNavigation",
         "https://api.scryfall.com/",
         "https://mtgtop8.com/search"
     ],
