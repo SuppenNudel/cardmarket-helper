@@ -23,7 +23,7 @@ function mapDataToName(dataArray) {
 
 async function loadCustomScryfallData() {
     console.log("background.js - loadCustomScryfallData");
-    const customScryfall = await (await fetch(browser.runtime.getURL('scryfall_data.json'))).json();
+    const customScryfall = await (await fetch(browser.runtime.getURL('data/scryfall_data.json'))).json();
     console.log(customScryfall);
 
     browser.storage.local.set({ scryfall: customScryfall })

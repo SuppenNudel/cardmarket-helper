@@ -5,20 +5,20 @@
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [
-            "background.js"
+            "background_scripts/background.js"
         ],
         "persistent": true
     },
     "browser_action": {
         "default_icon": {
-            "32": "icons/geschaft-32.png"
+            "32": "images/geschaft-32.png"
         },
         "default_title": "Cardmarket Assistant",
-        "default_popup": "popup.html"
+        "default_popup": "html/popup.html"
     },
     "icons": {
-        "32": "icons/geschaft-32.png",
-        "16": "icons/geschaft.png"
+        "32": "images/geschaft-32.png",
+        "16": "images/geschaft.png"
     },
     "permissions": [
         "storage",
@@ -31,7 +31,7 @@
     ],
     "web_accessible_resources": [
         "scryfall_data.json",
-        "popup.html"
+        "html/popup.html"
     ],
     "content_security_policy": "script-src 'self'; object-src 'self'",
     "content_scripts": [
@@ -40,7 +40,7 @@
                 "https://www.cardmarket.com/*/Magic/Wants/*"
             ],
             "js": [
-                "wantslist_export.js"
+                "js/wantslist_export.js"
             ]
         },
         {
@@ -48,12 +48,12 @@
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
             ],
             "js": [
-                "get-thumbnail.js",
+                "js/get-thumbnail.js",
                 "lib/papaparse.min.js",
-                "upload-csv.js",
-                "scryfall.js",
-                "defaults.js",
-                "offers-singles.js"
+                "js/upload-csv.js",
+                "js/scryfall.js",
+                "js/defaults.js",
+                "js/offers-singles.js"
             ]
         },
         {
@@ -62,9 +62,9 @@
             ],
             "js": [
                 "lib/papaparse.min.js",
-                "upload-csv.js",
-                "scryfall.js",
-                "sell.js"
+                "js/upload-csv.js",
+                "js/scryfall.js",
+                "js/sell.js"
             ]
         },
         {
@@ -76,9 +76,9 @@
                 "https://www.cardmarket.com/*/Magic/Wants/ShoppingWizard/Results*"
             ],
             "js": [
-                "scryfall.js",
-                "get-thumbnail.js",
-                "show-thumbnail.js"
+                "js/scryfall.js",
+                "js/get-thumbnail.js",
+                "js/show-thumbnail.js"
             ]
         }
     ]

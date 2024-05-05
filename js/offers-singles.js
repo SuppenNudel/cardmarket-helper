@@ -340,7 +340,6 @@ function updateContent(collection) {
 
 var formats = formatsDefault;
 
-console.log("offer-singles.js");
 (async function main() {
     console.log("offer-singles.js");
     // Retrieve data from local storage
