@@ -26,10 +26,9 @@ function collectionLoaded(collection) {
                 return Promise.reject(new Error("Collection not loaded"));
             }
         }).then(scryfallCard => {
-
             const collectionCards = collection[scryfallCard.id];
             const collectionInfo = document.createElement("td"); // to append to
-            collectionInfo.style = "width: 250px";
+            collectionInfo.style = "width: 250px; text-align: left;";
             product.insertBefore(collectionInfo, product.querySelector("td.price"));
             
             if(!collectionCards) {
@@ -52,14 +51,13 @@ function collectionLoaded(collection) {
             }
 
             const foil = info.querySelector("div.col-extras span.icon span.icon") ? "foil" : "normal";
-            console.log(foil);
 
-            const filteredCards = collectionCards.filter(card => card['Language'] == lang).filter(card => card['Foil'] == foil);
+            const filteredCards = collectionCards.filter(card => card["Binder Type"] != "list").filter(card => card['Language'] == lang).filter(card => card['Foil'] == foil);
 
             for(const collectionCard of filteredCards) {
                 const collectionDiv = document.createElement("div");
                 collectionInfo.appendChild(collectionDiv)
-                collectionDiv.textContent = `${collectionCard["Quantity"]}x ${collectionCard["Binder Name"]}`;
+                collectionDiv.textContent = `${collectionCard["Quantity"]}x ${collectionCard["Binder Type"] == "deck" ? "Deck - " : ""}${collectionCard["Binder Name"]}`;
             }
         });
     }
@@ -72,7 +70,9 @@ function collectionLoaded(collection) {
         .then((result) => {
             const collection = result.collection;
             console.log('Retrieved collection data');
-            collectionLoaded(collection);
+            if(collection) {
+                collectionLoaded(collection);
+            }
         })
         .catch((error) => {
             console.error('Error retrieving data:', error);

@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [
@@ -37,6 +37,7 @@
                 "https://www.cardmarket.com/*/Magic/Orders/*"
             ],
             "js": [
+                "lib/papaparse.min.js",
                 "js/upload-csv.js",
                 "js/scryfall.js",
                 "js/get-thumbnail.js",
@@ -48,6 +49,7 @@
                 "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
             ],
             "js": [
+                "lib/papaparse.min.js",
                 "js/upload-csv.js",
                 "js/wantslist_import.js"
             ]
