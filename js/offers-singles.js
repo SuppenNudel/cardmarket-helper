@@ -298,14 +298,13 @@ async function updateContentOfCard(articleRow, collection) {
     const element = articleRow.querySelector("span.thumbnail-icon");
     const image = await showThumbnail(element);
     const scryfallCard = await getScryfallCardFromImage(image);
-    const mkmId = parseInt(image.getAttribute("mkmId"));
 
     if (scryfallCard == undefined) {
         cardNameElement.append(document.createElement("br"));
         const errorElement = document.createElement("div")
         errorElement.style = "display: inline-block";
         cardNameElement.append(errorElement);
-        errorElement.innerText = `cardmarket id ${mkmId} is not known on Scryfall`;
+        errorElement.innerText = `cardmarket id ${image.getAttribute("mkmId")} is not known on Scryfall`;
     } else {
         var legalInAtLeastOne = false;
         var anySelected = true;

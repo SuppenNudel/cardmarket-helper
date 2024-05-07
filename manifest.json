@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [
@@ -32,6 +32,16 @@
     ],
     "content_security_policy": "script-src 'self'; object-src 'self'",
     "content_scripts": [
+        {
+            "matches": [
+                "https://www.cardmarket.com/*/Magic/Orders/*"
+            ],
+            "js": [
+                "js/scryfall.js",
+                "js/get-thumbnail.js",
+                "js/orders.js"
+            ]
+        },
         {
             "matches": [
                 "https://www.cardmarket.com/*/Magic/Wants/*"
@@ -70,7 +80,8 @@
             ],
             "exclude_matches": [
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*",
-                "https://www.cardmarket.com/*/Magic/Wants/ShoppingWizard/Results*"
+                "https://www.cardmarket.com/*/Magic/Wants/ShoppingWizard/Results*",
+                "https://www.cardmarket.com/*/Magic/Orders/*"
             ],
             "js": [
                 "js/scryfall.js",
