@@ -73,6 +73,6 @@ async function loadCustomScryfallData() {
 }
 
 (async function main() {
-    console.log("loading scryfall.js");
+    console.log("scryfall.js");
     scryfall_data = await loadCustomScryfallData();
 })();

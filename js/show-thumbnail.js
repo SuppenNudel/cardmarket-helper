@@ -1,5 +1,5 @@
 (async function main() {
-    console.log("loading big-images.js");
+    console.log("show-thumbnail.js");
     const gen = iterateThumbnails();
     while(true) {
         const element = gen.next();

@@ -70,6 +70,8 @@ function createDownloadButton(wantsListTitle, csvText) {
     const exportButton = createDownloadButton(wantsListTitle, csvText);
     
     const sellersWithMost = document.querySelector("a.sellersWithMost-linkBtn");
-    const parent = sellersWithMost.parentNode;
-    parent.insertBefore(exportButton, sellersWithMost);
+    if(sellersWithMost) {
+        const parent = sellersWithMost.parentNode;
+        parent.insertBefore(exportButton, sellersWithMost);
+    }
 })();
