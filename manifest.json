@@ -37,6 +37,7 @@
                 "https://www.cardmarket.com/*/Magic/Orders/*"
             ],
             "js": [
+                "js/upload-csv.js",
                 "js/scryfall.js",
                 "js/get-thumbnail.js",
                 "js/orders.js"
@@ -44,7 +45,19 @@
         },
         {
             "matches": [
+                "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
+            ],
+            "js": [
+                "js/upload-csv.js",
+                "js/wantslist_import.js"
+            ]
+        },
+        {
+            "matches": [
                 "https://www.cardmarket.com/*/Magic/Wants/*"
+            ],
+            "exclude_matches":[
+                "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
             ],
             "js": [
                 "js/wantslist_export.js"

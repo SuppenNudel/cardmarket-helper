@@ -59,7 +59,7 @@ async function parseCsvAndSave(file, fileContent) {
 }
 
 (async function main() {
-    console.log("loading upload-csv.js");
+    console.log("upload-csv.js");
 
     var fileInput = document.createElement("input");
     fileInput.type = "file";
