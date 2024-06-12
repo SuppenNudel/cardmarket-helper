@@ -30,7 +30,7 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
 
         parent.innerHTML = '';
         parent.appendChild(theImage);
-        parent.style.width = "10.0rem";
+        parent.style.width = "10rem";
     }
 
     return theImage;

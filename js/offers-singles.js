@@ -198,7 +198,7 @@ async function checkOwnership(collection, scryfallCard) {
     if (collection) {
         const collectionCards = await scryfallRequest(scryfallCard.prints_search_uri).then(result => result.data).then(scryfallCards =>
             scryfallCards.map(scryfallCard => collection[scryfallCard.id])
-        ).then(cards => cards.filter(item => item !== undefined).flat());
+        ).then(cards => cards.filter(item => item !== undefined).flat().filter(card => card['Binder Type'] != 'list'));
         if (collectionCards.length == 0) {
             str += 'unowned';
         } else {
@@ -292,7 +292,7 @@ async function checkPrice(articleRow, cardObject) {
 }
 
 async function updateContentOfCard(articleRow, collection) {
-    let cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
+    const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
     cardNameElement.style.display = "-webkit-box"; // enables line break
 
     const element = articleRow.querySelector("span.thumbnail-icon");
@@ -332,9 +332,11 @@ async function updateContentOfCard(articleRow, collection) {
 }
 
 function updateContent(collection) {
-    let table = document.getElementById("UserOffersTable"); // div
-    let articleRows = table.getElementsByClassName("article-row");
-    for (let articleRow of articleRows) {
+    const table = document.getElementById("UserOffersTable"); // div
+    const articleRows = table.getElementsByClassName("article-row");
+    const thumbnailHeader = table.querySelector("div.table-header div.col-thumbnail");
+    thumbnailHeader.style.width = '10rem';
+    for (const articleRow of articleRows) {
         updateContentOfCard(articleRow, collection);
     }
 }
