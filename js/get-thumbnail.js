@@ -1,6 +1,3 @@
-rot90 = ["split"];
-rot270 = ["art_series"];
-
 async function changePreviewImage(thumbnailIcon, imgTag) {
     // Create a new DOMParser
     var parser = new DOMParser();
@@ -22,8 +19,10 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     if (thumbnail != 0) {
         if (!thumbnail) {
             theImage.height = 150;
+            theImage.width = 150 / 1.4;
         } else {
             theImage.height = thumbnail;
+            theImage.width = thumbnail / 1.4;
         }
 
         const parent = thumbnailIcon.parentNode;
@@ -58,27 +57,6 @@ async function showThumbnail(thumbnailIcon) {
     }
     return theImage;
 }
-
-async function getScryfallCardFromImage(theImage) {
-    const mkmId = theImage.getAttribute("mkmId");
-    if (!mkmId) {
-        return null;
-    }
-    const card = await cardByMkmId(mkmId);
-    if (card.details) {
-        console.log(card.details, mkmId);
-        return;
-    }
-
-    if (rot90.includes(card.layout) && !card.keywords.includes('Aftermath')) {
-        theImage.style = "transform: rotate(90deg);";
-    } else if (rot270.includes(card.layout)) {
-        theImage.style = "transform: rotate(270deg);";
-    }
-
-    return card;
-}
-
 
 (async function main() {
     console.log("get-thumbnail.js");

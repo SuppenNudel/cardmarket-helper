@@ -28,246 +28,23 @@ function getColorBasedOnPercentageRange(referencePrice, priceToCompare) {
     }
 }
 
-// Function to parse HTML and extract data
-function parseHTML(html) {
-    // Use DOMParser to parse the HTML string
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const wTitle = doc.querySelector('div.w_title');
-    if (wTitle) {
-        const titleText = wTitle.textContent.trim();
-
-        // Use regular expression to extract the number from the text
-        const matches = titleText.match(/\d+/);
-        if (matches) {
-            const numberOfDecks = parseInt(matches[0]);
-            return numberOfDecks;
-        }
+async function checkPriceWithCardmarket(articleRow, mkmid) {
+    var priceContainer = articleRow.getElementsByClassName("price-container")[0].getElementsByClassName("flex-column")[0];
+    if(!mkmid) {
+        const noMkmIdDiv = document.createElement("div");
+        priceContainer.appendChild(noMkmIdDiv);
+        noMkmIdDiv.innerText = "no mkm id";
     }
-    return null;
-}
-
-mtgtop8_cache = {};
-
-async function mtgtop8(cardObject, format, mainboard, sideboard) {
-    var cardname;
-    cardname = cardObject.name;
-    if (cardObject.card_faces && cardObject.layout != 'split') {
-        cardname = cardObject.card_faces[0].name;
-    }
-
-    const url = `https://mtgtop8.com/search?format=${format}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=18/09/2023&cards=${cardname}`;
-    if (url in mtgtop8_cache) {
-        var decks_matching = mtgtop8_cache[url];
-    } else {
-        const response = await fetch(url);
-        const html = await response.text();
-        if (html.includes('No match for ')) {
-            return 'No match for ' + cardname;
-        }
-        if (html.includes('Too many cards for ')) {
-            return 'Too many cards for ' + cardname;
-        }
-        var decks_matching = parseHTML(html);
-        mtgtop8_cache[url] = decks_matching;
-    }
-    return decks_matching;
-}
-
-function formatStaple(cardObject, formatName, mtgtop8Format) {
-    const formatElement = document.createElement('div');
-    formatElement.style = "display: flex";
-    formatElement.innerText = `${formatName}:`;
-    formatElement.innerHTML += '&nbsp;';
-
-    const legality = cardObject.legalities[formatName.toLowerCase()];
-    if (legality == 'legal') {
-        const main = document.createElement('div');
-        formatElement.appendChild(main);
-        const divider = document.createElement('div');
-        formatElement.appendChild(divider);
-        divider.innerHTML = "&nbsp;/&nbsp;";
-        const side = document.createElement('div');
-        formatElement.appendChild(side);
-
-        mtgtop8(cardObject, mtgtop8Format, 1, 0).then(decks_matching => {
-            main.innerText = decks_matching;
-        });
-        mtgtop8(cardObject, mtgtop8Format, 0, 1).then(decks_matching => {
-            side.innerText = decks_matching;
-        });
-    } else {
-        formatElement.innerText += legality;
-    }
-    return formatElement;
-}
-
-const formatsMapping = {
-    'standard': {
-        'display': 'Standard',
-        'mtgtop8key': 'ST'
-    },
-    'alchemy': {
-        'display': 'Alchemy',
-        'mtgtop8key': 'ALCH'
-    },
-    'explorer': {
-        'display': 'Explorer',
-        'mtgtop8key': 'EXP'
-    },
-    'historic': {
-        'display': 'Historic',
-        'mtgtop8key': 'HI'
-    },
-    'pioneer': {
-        'display': 'Pioneer',
-        'mtgtop8key': 'PI'
-    },
-    'modern': {
-        'display': 'Modern',
-        'mtgtop8key': 'MO'
-    },
-    'premodern': {
-        'display': 'Premodern',
-        'mtgtop8key': 'PREM'
-    },
-    'legacy': {
-        'display': 'Legacy',
-        'mtgtop8key': 'LE'
-    },
-    'vintage': {
-        'display': 'Vintage',
-        'mtgtop8key': 'VI'
-    },
-    'cEDH': {
-        'display': 'cEDH',
-        'mtgtop8key': 'cEDH'
-    },
-    'duel': {
-        'display': 'Duel Commander',
-        'mtgtop8key': 'EDH'
-    },
-    'Block': {
-        'display': 'Block',
-        'mtgtop8key': 'BL'
-    },
-    'Extended': {
-        'display': 'Extended',
-        'mtgtop8key': 'EX'
-    },
-    'pauper': {
-        'display': 'Pauper',
-        'mtgtop8key': 'PAU'
-    },
-    'Peasant': {
-        'display': 'Peasant',
-        'mtgtop8key': 'PEA'
-    },
-    'Highlander': {
-        'display': 'Highlander',
-        'mtgtop8key': 'HIGH'
-    },
-    'Canadian Highlander': {
-        'display': 'Canadian Highlander',
-        'mtgtop8key': 'CHL'
-    }
-};
-
-async function checkOwnership(collection, scryfallCard) {
-    const element = document.createElement('div')
-    element.style = "display: inline-block";
-
-    const commander = document.createElement('div');
-    commander.innerText = `EDHREC Rank: `;
-    element.appendChild(commander);
-    if (scryfallCard.legalities.commander == 'legal') {
-        commander.innerText += ' ' + scryfallCard.edhrec_rank;
-    } else {
-        commander.innerText += scryfallCard.legalities.commander;
-    }
-
-    for (var format in formats) {
-        const mtgtop8 = formats[format].mtgtop8;
-        if (mtgtop8) {
-            element.appendChild(formatStaple(scryfallCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
-        }
-    }
-
-    var str = '';
-    if (collection) {
-        const collectionCards = await scryfallRequest(scryfallCard.prints_search_uri).then(result => result.data).then(scryfallCards =>
-            scryfallCards.map(scryfallCard => collection[scryfallCard.id])
-        ).then(cards => cards.filter(item => item !== undefined).flat().filter(card => card['Binder Type'] != 'list'));
-        if (collectionCards.length == 0) {
-            str += 'unowned';
-        } else {
-            let sum = {
-                'de': 0,
-                'en': 0
-            }
-
-            let sumPrinting = {
-                'de': 0,
-                'en': 0
-            }
-
-            for (let collCard of collectionCards) {
-                sum[collCard.Language] += parseInt(collCard.Quantity);
-                if (collCard["Scryfall ID"] == scryfallCard.id) {
-                    sumPrinting[collCard.Language] += parseInt(collCard.Quantity);
-                }
-            }
-            str += `${sum.en + sum.de} (en: ${sum.en}, de: ${sum.de})`
-                + ` // printing: ${sumPrinting.en + sumPrinting.de} (en: ${sumPrinting.en}, de: ${sumPrinting.de})`;
-        }
-    } else {
-        str += '<collection not loaded>';
-    }
-    // return str;
-    txt = document.createElement('div');
-    txt.innerText = str;
-    element.appendChild(document.createElement('br'));
-    element.appendChild(txt);
-    return element;
-}
-
-async function checkPrice(articleRow, cardObject) {
-    const prices = cardObject.prices;
-
+    const prices = pricedata.priceGuides[mkmid];
+    
     var productAttributesElement = articleRow.querySelector('.product-attributes');
     var foilElement = productAttributesElement.querySelector('[aria-label="Foil"]');
-    var isFoil = false;
-    if (foilElement) {
-        isFoil = true;
-    }
-    const price = parseFloat(prices[isFoil ? "eur_foil" : "eur"]);
+    var holoElement = productAttributesElement.querySelector('[aria-label="Reverse Holo"]');
 
-    const oracleId = cardObject.oracle_id;
-    const cheapestUrl = `https://api.scryfall.com/cards/search?dir=asc&order=eur${isFoil ? "_foil" : ""}&q=oracleid:${oracleId} has:${isFoil ? "foil" : "non-foil"}&unique=prints`;
-    var response = await fetch(cheapestUrl);
-
-    const printingsJson = await response.json();
-    const printings = printingsJson.data;
-    if (!printings) {
-        throw new Error(`Failed to jsonize response for ${cardObject.name}.`);
-    }
-    var cheapest;
-    for (const card of printings) {
-        const cur = parseFloat(card.prices[isFoil ? "eur_foil" : "eur"]);
-        if (cheapest) {
-            if (!cur) {
-                continue;
-            }
-            if (cur < cheapest) {
-                cheapest = cur;
-            }
-        } else {
-            cheapest = cur;
-        }
-    }
-
-    var priceContainer = articleRow.getElementsByClassName("price-container")[0].getElementsByClassName("flex-column")[0];
+    const low = prices[`low${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+    const avg = prices[`avg${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+    const trend = prices[`trend${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+    
     priceContainer.getElementsByClassName("align-items-center")[0].classList.remove("d-flex");
     offerElement = priceContainer.getElementsByTagName("span")[0];
     currStr = offerElement.innerText;
@@ -277,86 +54,53 @@ async function checkPrice(articleRow, cardObject) {
     var div = document.createElement("div");
     priceContainer.appendChild(div);
 
-    if (price) {
-        div.innerText = "↔️ " + price.toFixed(2) + " ⬇️ " + cheapest.toFixed(2);
-        offerElement.classList.remove("color-primary");
+    // if playset
+    if (priceContainer.getElementsByClassName('extra-small').length > 0) {
+        offer = offer / 4;
+    }
 
-        if (priceContainer.getElementsByClassName('extra-small').length > 0) {
-            offer = offer / 4;
-        }
-        color = getColorBasedOnPercentageRange(price, offer);
-        offerElement.style.color = color;
-    } else {
-        div.innerText = "n/a";
+    if (low) {
+        const lowDiv = document.createElement("div");
+        priceContainer.appendChild(lowDiv);
+        lowDiv.innerText = "⬇️ " + low.toFixed(2);
+        const lowColor = getColorBasedOnPercentageRange(low, offer);
+        lowDiv.style.color = lowColor;
+    }
+    if (avg) {
+        const avgDiv = document.createElement("div");
+        priceContainer.appendChild(avgDiv);
+        avgDiv.innerText = " ↔️ " + avg.toFixed(2);
+        const avgColor = getColorBasedOnPercentageRange(avg, offer);
+        avgDiv.style.color = avgColor;
+    }
+    if (trend) {
+        const trendDiv = document.createElement("div");
+        priceContainer.appendChild(trendDiv);
+        trendDiv.innerText = " 📈 " + trend.toFixed(2);
+        const trendColor = getColorBasedOnPercentageRange(trend, offer);
+        trendDiv.style.color = trendColor;
     }
 }
 
-async function updateContentOfCard(articleRow, collection) {
-    const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
-    cardNameElement.style.display = "-webkit-box"; // enables line break
-
+async function updateContentOfCard(articleRow) {
     const element = articleRow.querySelector("span.thumbnail-icon");
     const image = await showThumbnail(element);
-    const scryfallCard = await getScryfallCardFromImage(image);
+    const mkmId = image.getAttribute("mkmId");
 
-    if (scryfallCard == undefined) {
-        cardNameElement.append(document.createElement("br"));
-        const errorElement = document.createElement("div")
-        errorElement.style = "display: inline-block";
-        cardNameElement.append(errorElement);
-        errorElement.innerText = `cardmarket id ${image.getAttribute("mkmId")} is not known on Scryfall`;
-    } else {
-        var legalInAtLeastOne = false;
-        var anySelected = true;
-        for (var format in formats) {
-            if (formats[format].hideIfNotLegalIn) {
-                anySelected = false;
-                if (scryfallCard.legalities[format] == 'legal') {
-                    legalInAtLeastOne = true;
-                    break;
-                }
-            }
-        }
-        if (anySelected || legalInAtLeastOne) {
-            checkOwnership(collection, scryfallCard)
-                .then(elements => {
-                    cardNameElement.append(document.createElement("br"));
-                    cardNameElement.append(elements);
-                });
-
-            checkPrice(articleRow, scryfallCard);
-        } else {
-            articleRow.style = "display: none";
-        }
-    }
+    checkPriceWithCardmarket(articleRow, mkmId);
 }
 
-function updateContent(collection) {
+function updateContent() {
     const table = document.getElementById("UserOffersTable"); // div
     const articleRows = table.getElementsByClassName("article-row");
     const thumbnailHeader = table.querySelector("div.table-header div.col-thumbnail");
     thumbnailHeader.style.width = '10rem';
     for (const articleRow of articleRows) {
-        updateContentOfCard(articleRow, collection);
+        updateContentOfCard(articleRow);
     }
 }
 
-var formats = formatsDefault;
-
 (async function main() {
-    console.log("offer-singles.js");
-    // Retrieve data from local storage
-    browser.storage.local.get(['collection', 'formats'])
-        .then((result) => {
-            const collection = result.collection;
-            console.log('Collection Data retreived');
-            if (result.formats) {
-                formats = result.formats;
-            }
-            console.log("formats", formats);
-            updateContent(collection);
-        })
-        .catch((error) => {
-            console.error('Error retrieving data:', error);
-        });
+    [pricedata, productdata] = await getCardmarketData();
+    updateContent();
 })();

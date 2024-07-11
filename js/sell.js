@@ -84,16 +84,16 @@ function calculateMedian(numbers) {
 
 
 function parseCurrencyStringToDouble(currencyString) {
-    // Remove non-numeric characters and the euro symbol
-    var cleanedString = currencyString.replace(/[^\d,]/g, '');
-
-    // Replace comma with a dot to make it a valid JavaScript number
-    var numberString = cleanedString.replace(',', '.');
-
-    // Parse the string to a floating-point number
-    var result = parseFloat(numberString);
-
-    return isNaN(result) ? null : result;
+    // Check if the value contains '\n(PPU: '
+    if (currencyString.includes('\n(PPU: ')) {
+        // Extract the PPU part
+        const ppuPart = currencyString.split('\n(PPU: ')[1];
+        // Remove the closing parenthesis and currency symbol, then convert to float
+        return parseFloat(ppuPart.replace(' €)', '').replace(',', '.'));
+    } else {
+        // For the simpler format, remove the currency symbol and convert to float
+        return parseFloat(currencyString.replace(' €', '').replace(',', '.'));
+    }
 }
 
 function createPriceDictionary(keys, values) {
@@ -109,38 +109,61 @@ function createPriceDictionary(keys, values) {
     return resultDictionary;
 }
 
-function calcMyPrice() {
-    // meta values
-    infoListContainer = document.getElementById("tabContent-info").getElementsByClassName("info-list-container")[0];
-    tableKeys = infoListContainer.getElementsByTagName("dt");
-    tableValues = infoListContainer.getElementsByTagName("dd");
-    map = createPriceDictionary(tableKeys, tableValues);
+function calcMyPrice(mkmid) {
+    let inclinePercentage = 0.15; // 15% relative incline threshold
+    let maxQuantityThreshold = 10;  // Example threshold for high quantity
 
     // offers
     articleRows = document.getElementById("table").getElementsByClassName("article-row");
-    var pricesList = [];
-    for (var i = 0; i < articleRows.length && pricesList.length < 10; i++) {
+    var rivalSellers = [];
+    for (var i = 0; i < articleRows.length && rivalSellers.length < 10; i++) {
         row = articleRows[i];
         sellerName = row.getElementsByClassName("seller-name")[0].innerText;
         if (sellerName == "NudelForce") {
             continue;
         }
-        price = parseCurrencyStringToDouble(row.getElementsByClassName("price-container")[0].innerText);
+        const priceContainer = row.getElementsByClassName("price-container")[0];
+        const price = parseCurrencyStringToDouble(priceContainer.innerText);
         quantity = row.getElementsByClassName("col-offer")[0].getElementsByClassName("item-count")[0].innerText;
 
-        for (var j = 0; j < quantity; j++) {
-            pricesList.push(price);
-        }
+        rivalSellers.push({ quantity: quantity, price: price });
     }
 
-    median = calculateMedian(pricesList) - 0.01;
-    console.log(`Median: ${median}`);
+    // Sort sellers by price in ascending order
+    rivalSellers.sort((a, b) => a.price - b.price);
 
-    max = Math.max(map[FROM[language]], map[PRICE_TREND[language]], map[AVG_30[language]], map[AVG_7[language]], median); //, map[AVG_1]
-    console.log(`Calculated max: ${max}`);
-    rounded = Math.ceil(max * 100) / 100;
-    console.log(`Rounded: ${rounded}`);
-    return rounded;
+    let desiredPrice = rivalSellers[0].price - 0.01; // Start just below the lowest price
+
+    for (let i = 0; i < rivalSellers.length - 1; i++) {
+        let currentSeller = rivalSellers[i];
+        let nextSeller = rivalSellers[i + 1];
+
+        // Check for high quantity sellers and set price below theirs
+        if (currentSeller.quantity > maxQuantityThreshold) {
+            desiredPrice = currentSeller.price;
+            break;
+        }
+
+        // Calculate relative incline
+        let relativeIncline = (nextSeller.price - currentSeller.price) / currentSeller.price;
+        if (relativeIncline >= inclinePercentage) {
+            desiredPrice = nextSeller.price;
+            break;
+        }
+    }
+    const prices = pricedata.priceGuides[mkmid];
+    var isFoil = url.searchParams.get('isFoil') == 'Y';
+    const holoElement = false;
+    const trend = prices[`trend${isFoil ? '-foil' : holoElement ? '-holo' : ''}`];
+
+    desiredPrice = (desiredPrice - 0.01);
+    if (desiredPrice < 0.05) {
+        desiredPrice = 0.05;
+    }
+    if (trend > desiredPrice) {
+        desiredPrice = trend;
+    }
+    return desiredPrice.toFixed(2);
 }
 
 function parseMkmIdFromImgSrc(imgSrc) {
@@ -167,7 +190,7 @@ var parts = pathname.split("/");
 // Extract language from parts
 var language = parts[1]; // Assuming "de" is at index 1
 
-async function generateTable(cards, scryfallId) { // id of same printing
+async function generateTable(cards) { // id of same printing
     const table = document.createElement('table');
 
     table.style.borderCollapse = 'collapse';
@@ -201,6 +224,7 @@ async function generateTable(cards, scryfallId) { // id of same printing
         }
         const row = document.createElement('tr');
         row.value = card;
+        row.style.cursor = 'pointer';
 
         // if (card['Scryfall ID'] == scryfallId && isFoilParam == (card.Foil == "foil")) {
         //     row.style.backgroundColor = 'lightgreen';
@@ -208,9 +232,12 @@ async function generateTable(cards, scryfallId) { // id of same printing
         for (const key of HEADERS) {
             const td = document.createElement('td');
             row.appendChild(td);
+            row.addEventListener("click", function () {
+                fillMetrics(card);
+            });
             if (key == "Fill / Go to") {
-                if (card['Scryfall ID'] == scryfallId) {
-                    if(isFoilParam == (card.Foil == "foil")) {
+                if (card['Scryfall ID'] == "NOT USING SCRYFALL ID") {
+                    if (isFoilParam == (card.Foil == "foil")) {
                         // Create a new button element
                         var button = document.createElement("button");
                         // Set button attributes and content
@@ -221,7 +248,7 @@ async function generateTable(cards, scryfallId) { // id of same printing
                         if (!document.querySelector(`[title="${SELL_BUTTON_TEXT[language]}"]`)) {
                             button.disabled = true;
                         } else {
-                            button.addEventListener("click", function() {
+                            button.addEventListener("click", function () {
                                 fillMetrics(card);
                             });
                         }
@@ -238,7 +265,7 @@ async function generateTable(cards, scryfallId) { // id of same printing
                     }
                 } else {
                     const newURL = await generateCardmarketUrl(card);
-                    if(newURL) {
+                    if (newURL) {
                         link = document.createElement("a");
                         link.innerText = "Go To";
                         // Get the current URL
@@ -308,7 +335,7 @@ async function generateTable(cards, scryfallId) { // id of same printing
                 }
                 if (key == "Purchase price") {
                     td.textContent = parseFloat(td.textContent).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-                    if (calcMyPrice() > value) {
+                    if (myPrice > value) {
                         td.textContent += " 📈";
                     } else {
                         td.textContent += " 📉";
@@ -327,7 +354,6 @@ async function generateTable(cards, scryfallId) { // id of same printing
 }
 
 function setValue(elementName, type, value) {
-    console.log(`set value of ${elementName} through ${type}: ${value}`);
     input = document.querySelector(`input[name="${elementName}"]`);
     input[type] = value;
 }
@@ -336,7 +362,7 @@ function fillMetrics(card) {
     var isFoil;
     if (card.Foil == "normal") { // foil
         isFoil = false;
-    } else if (card.Foil == "foil") {
+    } else if (card.Foil == "foil" || card.Foil == "etched") {
         isFoil = true;
     } else {
         throw new Error("Foil value is not valid: " + card.Foil);
@@ -359,9 +385,7 @@ function fillMetrics(card) {
 }
 
 function collectionLoaded(collection) {
-    var img = document.querySelector("#image img:not(.lazy)");
-    var src = img.src;
-    var mkmId = parseMkmIdFromImgSrc(src);
+    var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value; // parseMkmIdFromImgSrc(src);
 
     var div = document.createElement("div");
     var mainContent = document.getElementById("mainContent");
@@ -373,45 +397,44 @@ function collectionLoaded(collection) {
         div.appendChild(span);
         return;
     }
-    cardByMkmId(mkmId).then(async cardObject => {
-        if (cardObject.object == "error") {
-            const errorSpan = document.createElement('errorSpan');
-            errorSpan.innerText = `Error when requesting cardmarket id ${mkmId}: ` + cardObject.details;
-            div.appendChild(errorSpan);
-            throw new Error(`Error when requesting cardmarket id ${mkmId}: ` + cardObject.details);
-        }
-        var scryfallId = cardObject.id;
-        scryfallRequest(cardObject.prints_search_uri).then(result => result.data).then(scryfallCards => 
-            scryfallCards.map(scryfallCard => collection[scryfallCard.id])
-         ).then(cards => cards.filter(item => item !== undefined).flat()).then(async collectionCards => {
-            var toAppend;
-            if (collectionCards.length == 0) {
-                toAppend = document.createElement('span');
-                toAppend.innerText = "You don't own any printing of this card.";
-            } else {
-                toAppend = await generateTable(collectionCards, scryfallId);
+    const mkmProduct = productdata.products[mkmId];
+    const collectionCards = [];
+    for (const sameIdCards of Object.values(collection)) {
+        for (const collectionCard of sameIdCards) {
+            if (mkmProduct.name == collectionCard.Name) {
+                collectionCards.push(collectionCard);
             }
-            div.appendChild(toAppend);
+        }
+    }
+    if (collectionCards.length == 0) {
+        span = document.createElement('span');
+        span.innerText = "You don't own any printing of this card.";
+        div.appendChild(span);
+    } else {
+        generateTable(collectionCards).then(table => {
+            div.appendChild(table);
         });
-    });
+    }
 }
 
 (async function main() {
-    console.log("sell.js");
+    [pricedata, productdata] = await getCardmarketData();
+
+    const priceField = document.getElementById("price");
+    if (priceField) {
+        var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value; // parseMkmIdFromImgSrc(src);
+        myPrice = calcMyPrice(mkmId);
+        priceField.value = myPrice;
+    }
+
     // Retrieve data from local storage
-    browser.storage.local.get('collection')
+    browser.storage.local.get(['collection'])
         .then((result) => {
             const collection = result.collection;
-            console.log('Retrieved collection data');
             collectionLoaded(collection);
         })
         .catch((error) => {
             console.error('Error retrieving data:', error);
         });
 
-    let priceField = document.getElementById("price");
-    if (priceField) {
-        myPrice = calcMyPrice();
-        priceField.value = myPrice;
-    }
 })();

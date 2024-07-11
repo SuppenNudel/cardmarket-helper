@@ -1,3 +1,6 @@
+// - map cardmarket to manabox for ownership check
+// - check how to rotate the thumbnail
+/*
 async function cardByMkmId(mkmId) {
     if(!scryfall_data) {
         scryfall_data = await loadCustomScryfallData();
@@ -15,7 +18,36 @@ async function cardByMkmId(mkmId) {
     }
     return cardObject;
 }
+*/
 
+const rot90Layout = ["split"];
+const rot270Layout = ["art_series"];
+const notRotKeywords = ["Aftermath"];
+
+function rotateCard(theImage, scryfallCard) {
+    const containsAny = scryfallCard.keywords.some(item => notRotKeywords.includes(item));
+    if(!containsAny) {
+        if (rot90Layout.includes(scryfallCard.layout)) {
+            theImage.style = "transform: rotate(90deg);";
+        } else if (rot270Layout.includes(scryfallCard.layout)) {
+            theImage.style = "transform: rotate(270deg);";
+        }
+    }
+}
+
+async function getScryfallCardFromImage(theImage) {
+    const mkmId = theImage.getAttribute("mkmId");
+    if (!mkmId) {
+        return null;
+    }
+    const scryfallCard = await cardByMkmId(mkmId);
+    //rotateCard(theImage, scryfallCard);
+    if(scryfallCard.id) {
+        return scryfallCard;
+    }
+}
+
+// to get legality
 async function cardById(scryfallId) {
     return scryfallRequest(`https://api.scryfall.com/cards/${scryfallId}`);
 }
@@ -48,7 +80,15 @@ async function generateCardmarketUrl(manaBoxCard) {
     }
 
     const cardmarketUrl = scryfallCard['purchase_uris']['cardmarket'];
+
     var url = new URL(cardmarketUrl);
+    if(cardmarketUrl.includes('Search')) {
+        if(manaBoxCard['Set code'] == "GN3") {
+            url = new URL(`https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ','-')}`)
+        } else {
+            return null;
+        }
+    }
     
     var currentURL = new URL(window.location.href);
     currentURL.searchParams.forEach(function(value, key) {
@@ -56,11 +96,7 @@ async function generateCardmarketUrl(manaBoxCard) {
     });
     
     url.searchParams.set('isFoil', manaBoxCard.Foil == "foil" ? 'Y' : 'N');
-    console.log(cardmarketUrl);
 
-    if(cardmarketUrl.includes('Search')) {
-        return null;
-    }
     return url.toString();
 }
 
@@ -73,6 +109,5 @@ async function loadCustomScryfallData() {
 }
 
 (async function main() {
-    console.log("scryfall.js");
     scryfall_data = await loadCustomScryfallData();
 })();

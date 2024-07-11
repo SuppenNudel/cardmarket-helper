@@ -61,22 +61,26 @@ async function parseCsvAndSave(file, fileContent) {
 (async function main() {
     console.log("upload-csv.js");
 
+    const div = document.createElement("div");
+    
+    var filenameDiv = document.createElement('div');
+    filenameDiv.id = "manabox-file-name";
+    div.appendChild(filenameDiv);
+    
     var fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = ".csv";
+    div.appendChild(fileInput);
 
     const navElement = document.querySelector('nav[aria-label="breadcrumb"]')
-    navElement.insertAdjacentElement("afterend", fileInput);
+    navElement.insertAdjacentElement("afterend", div);
 
     // Retrieve data from local storage
     browser.storage.local.get('filename')
         .then((result) => {
             const filename = result.filename;
             console.log('Filename:', filename);
-
-            var filenameDiv = document.createElement('div');
             filenameDiv.textContent = filename;
-            navElement.insertAdjacentElement('afterend', filenameDiv);
         })
         .catch((error) => {
             console.error('Error retrieving filename:', error);
