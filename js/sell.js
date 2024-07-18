@@ -224,7 +224,12 @@ async function generateTable(cards) { // id of same printing
         }
         const row = document.createElement('tr');
         row.value = card;
-        row.style.cursor = 'pointer';
+        if(card['Condition'] != 'mint') {
+            row.addEventListener("click", function () {
+                row.style.cursor = 'pointer';
+                fillMetrics(card);
+            });
+        }
 
         // if (card['Scryfall ID'] == scryfallId && isFoilParam == (card.Foil == "foil")) {
         //     row.style.backgroundColor = 'lightgreen';
@@ -232,9 +237,6 @@ async function generateTable(cards) { // id of same printing
         for (const key of HEADERS) {
             const td = document.createElement('td');
             row.appendChild(td);
-            row.addEventListener("click", function () {
-                fillMetrics(card);
-            });
             if (key == "Fill / Go to") {
                 if (card['Scryfall ID'] == "NOT USING SCRYFALL ID") {
                     if (isFoilParam == (card.Foil == "foil")) {
@@ -418,6 +420,7 @@ function collectionLoaded(collection) {
 }
 
 (async function main() {
+    console.log("sell.js");
     [pricedata, productdata] = await getCardmarketData();
 
     const priceField = document.getElementById("price");
@@ -436,5 +439,4 @@ function collectionLoaded(collection) {
         .catch((error) => {
             console.error('Error retrieving data:', error);
         });
-
 })();

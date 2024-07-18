@@ -67,10 +67,6 @@ async function scryfallRequest(url) {
 }
 
 async function generateCardmarketUrl(manaBoxCard) {
-    var purchase_uri = scryfall_data['purchase_uris'][manaBoxCard['Scryfall ID']]
-    if(purchase_uri) {
-        return purchase_uri;
-    }
     var scryfallCard = await cardById(manaBoxCard['Scryfall ID']);
     
     if(['7ED'].includes(manaBoxCard['Set code'])) {
@@ -99,15 +95,3 @@ async function generateCardmarketUrl(manaBoxCard) {
 
     return url.toString();
 }
-
-var scryfall_data;
-
-async function loadCustomScryfallData() {
-    const result = await browser.storage.local.get('scryfall');
-    scryfall_data = result.scryfall;
-    return scryfall_data;
-}
-
-(async function main() {
-    scryfall_data = await loadCustomScryfallData();
-})();
