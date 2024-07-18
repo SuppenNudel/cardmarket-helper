@@ -224,12 +224,12 @@ async function generateTable(cards) { // id of same printing
         }
         const row = document.createElement('tr');
         row.value = card;
-        if(card['Condition'] != 'mint') {
-            row.addEventListener("click", function () {
-                row.style.cursor = 'pointer';
-                fillMetrics(card);
-            });
-        }
+        // if(card['Condition'] != 'mint') {
+        row.addEventListener("click", function () {
+            row.style.cursor = 'pointer';
+            fillMetrics(card);
+        });
+        // }
 
         // if (card['Scryfall ID'] == scryfallId && isFoilParam == (card.Foil == "foil")) {
         //     row.style.backgroundColor = 'lightgreen';
