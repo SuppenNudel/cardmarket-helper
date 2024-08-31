@@ -271,11 +271,12 @@ var formats = formatsDefault;
 (async function main() {
     const [pricedata, productdata] = await getCardmarketData();
 
-    const cache = await browser.storage.local.get(['collection', 'formats']);
+    const localCache = await browser.storage.local.get(['collection']);
+    const syncCache = await browser.storage.sync.get(['formats']);
     
-    const collection = cache.collection;
-    if (cache.formats) {
-        formats = cache.formats;
+    const collection = localCache.collection;
+    if (syncCache.formats) {
+        formats = syncCache.formats;
     }
     updateMagicContent(collection);
 })();

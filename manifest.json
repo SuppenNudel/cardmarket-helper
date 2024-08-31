@@ -1,11 +1,10 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.4.2",
+    "version": "1.5.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
-        "scripts": [
-        ],
+        "scripts": [],
         "persistent": true
     },
     "browser_action": {
@@ -19,6 +18,11 @@
         "32": "images/geschaft-32.png",
         "16": "images/geschaft.png"
     },
+    "applications": {
+        "gecko": {
+            "id": "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
+        }
+    },
     "permissions": [
         "storage",
         "activeTab",
@@ -27,7 +31,9 @@
         "https://downloads.s3.cardmarket.com/"
     ],
     "web_accessible_resources": [
-        "html/popup.html"
+        "html/popup.html",
+        "css/keyrune.min.css",
+        "fonts/*"
     ],
     "content_security_policy": "script-src 'self'; object-src 'self'",
     "content_scripts": [
@@ -68,9 +74,20 @@
             "matches": [
                 "https://www.cardmarket.com/*/Magic/Orders/*"
             ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Magic/Orders/Sales/Paid"
+            ],
             "js": [
                 "js/get-thumbnail.js",
                 "js/orders.js"
+            ]
+        },
+        {
+            "matches": [
+                "https://www.cardmarket.com/*/Magic/Orders/Sales/Paid"
+            ],
+            "js": [
+                "js/sales-paid.js"
             ]
         },
         {
@@ -115,6 +132,9 @@
             ],
             "js": [
                 "js/sell.js"
+            ],
+            "css": [
+                "css/keyrune.min.css"
             ]
         }
     ]

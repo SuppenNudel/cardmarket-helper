@@ -337,11 +337,30 @@ async function generateTable(cards) { // id of same printing
                 }
                 if (key == "Purchase price") {
                     td.textContent = parseFloat(td.textContent).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-                    if (myPrice > value) {
-                        td.textContent += " 📈";
+                    if (myPrice > value) {;
+                        td.textContent = "📈 " +td.textContent;
                     } else {
-                        td.textContent += " 📉";
+                        td.textContent = "📉 " +td.textContent;
                     }
+                }
+                if (key == "Set code") {
+                    td.textContent = " "+value;
+                    let setSymbol = document.createElement("i");
+                    const setCode = card['Set code'];
+                    let ssCode;
+                    if(setCode == 'PLST') {
+                        ssCode = card['Collector number'].split('-')[0].toLowerCase();
+                    } else if(['PPP1', 'PSS2', 'J14', 'PF19'].includes(setCode)) {
+                        ssCode = 'sld';
+                    } else if(setCode == '4BB') {
+                        ssCode = '4ed';
+                    } else if(setCode == 'PALP') {
+                        ssCode = 'papac';
+                    } else {
+                        ssCode = value.toLowerCase();
+                    }
+                    setSymbol.classList = `ss ss-${ssCode} ss-${card['Rarity']}`;
+                    td.prepend(setSymbol);
                 }
             }
             if (element) {
