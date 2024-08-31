@@ -176,8 +176,9 @@ function collectionLoaded(collection) {
         const orderId = document.querySelector("div.page-title-container h1").textContent.match(/#(\d+)/)[1];
         const order = orders[orderId];
         console.log(order);
-        addPackedButton(orderId, order.timestamp);
-        addToTimeline(order.timestamp);
+        const timestamp = order ? order.timestamp : null;
+        addPackedButton(orderId, timestamp);
+        addToTimeline(timestamp);
     }).then(() => {
         console.log('Object updated successfully');
     }).catch(error => {

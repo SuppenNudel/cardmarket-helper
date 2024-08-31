@@ -18,7 +18,7 @@
         "32": "images/geschaft-32.png",
         "16": "images/geschaft.png"
     },
-    "applications": {
+    "browser_specific_settings": {
         "gecko": {
             "id": "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
         }
