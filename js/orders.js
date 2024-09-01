@@ -48,6 +48,9 @@ function updateTimeline(timestamp, index) {
         textDiv.classList.add("text-muted");
         packedElement.classList.add("notYetStatus");
         packedElement.classList.remove("bg-primary", "text-inverted", "currentStatus");
+        const elements = document.querySelectorAll("#Timeline > div > .timeline-box.text-inverted");
+        const lastElement = elements[elements.length - 1];
+        lastElement.classList.add("currentStatus");
     }
 }
 
