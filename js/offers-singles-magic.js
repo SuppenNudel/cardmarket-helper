@@ -1,43 +1,44 @@
 
-async function updateContentOfMagicCard(articleRow, collection) {
+function updateContentOfMagicCard(articleRow, collection) {
     const image = articleRow.querySelector("div.col-thumbnail img");
     const mkmId = image.getAttribute("mkmId");
 
     const mkmProduct = productdata.products[mkmId];
     const cardname = mkmProduct.name;
-    const scryfallCard = await scryfallRequest(`https://api.scryfall.com/cards/named?exact=${mkmProduct.name}`); // await getScryfallCardFromImage(image);
-
     const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
     cardNameElement.style.display = "-webkit-box"; // enables line break
 
-    if (scryfallCard == undefined) {
-        cardNameElement.append(document.createElement("br"));
-        const errorElement = document.createElement("div")
-        errorElement.style = "display: inline-block";
-        cardNameElement.append(errorElement);
-        errorElement.innerText = `Card with name ${cardname} not found`;
-    } else {
-        var legalInAtLeastOne = false;
-        var anySelected = true;
-        for (var format in formats) {
-            if (formats[format].hideIfNotLegalIn) {
-                anySelected = false;
-                if (scryfallCard.legalities[format] == 'legal') {
-                    legalInAtLeastOne = true;
-                    break;
+    scryfallRequest(`https://api.scryfall.com/cards/named?exact=${mkmProduct.name}`).then(scryfallCard => {
+        if (scryfallCard == undefined) {
+            cardNameElement.append(document.createElement("br"));
+            const errorElement = document.createElement("div")
+            errorElement.style = "display: inline-block";
+            cardNameElement.append(errorElement);
+            errorElement.innerText = `Card with name ${cardname} not found`;
+        } else {
+            var legalInAtLeastOne = false;
+            var anySelected = true;
+            for (var format in formats) {
+                if (formats[format].hideIfNotLegalIn) {
+                    anySelected = false;
+                    if (scryfallCard.legalities[format] == 'legal') {
+                        legalInAtLeastOne = true;
+                        break;
+                    }
                 }
             }
+            if (anySelected || legalInAtLeastOne) {
+                checkOwnership(collection, scryfallCard)
+                    .then(elements => {
+                        cardNameElement.append(document.createElement("br"));
+                        cardNameElement.append(elements);
+                    });
+            } else {
+                articleRow.style = "display: none";
+            }
         }
-        if (anySelected || legalInAtLeastOne) {
-            checkOwnership(collection, scryfallCard)
-                .then(elements => {
-                    cardNameElement.append(document.createElement("br"));
-                    cardNameElement.append(elements);
-                });
-        } else {
-            articleRow.style = "display: none";
-        }
-    }
+    });
+
 }
 
 function updateMagicContent(collection) {
@@ -63,9 +64,25 @@ async function checkOwnership(collection, scryfallCard) {
     }
 
     for (var format in formats) {
+        const url = `https://mtgtop8.com/search?format=${formatsMapping[format].mtgtop8key}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&date_start=${getDateSixMonthsAgo()}`;
+        let decks_matching;
+        if (url in mtgtop8_cache) {
+            decks_matching = mtgtop8_cache[url];
+        } else {
+            const response = await fetch(url);
+            const html = await response.text();
+            if (html.includes('No match for ')) {
+                throw 'No match for ' + cardname;
+            }
+            if (html.includes('Too many cards for ')) {
+                throw 'Too many cards for ' + cardname;
+            }
+            decks_matching = parseDecksMatching(html);
+            mtgtop8_cache[url] = decks_matching;
+        }
         const mtgtop8 = formats[format].mtgtop8;
         if (mtgtop8) {
-            element.appendChild(formatStaple(scryfallCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
+            element.appendChild(formatStaple(scryfallCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key, decks_matching));
         }
     }
 
@@ -108,7 +125,7 @@ async function checkOwnership(collection, scryfallCard) {
 }
 
 // Function to parse HTML and extract data
-function parseHTML(html) {
+function parseDecksMatching(html) {
     // Use DOMParser to parse the HTML string
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -129,6 +146,18 @@ function parseHTML(html) {
 
 mtgtop8_cache = {};
 
+function getDateSixMonthsAgo() {
+    const today = new Date();
+    // Set the date to 6 months in the past
+    today.setMonth(today.getMonth() - 6);
+
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const year = today.getFullYear();
+
+    return `${day}/${month}/${year}`;
+}
+
 async function mtgtop8(cardObject, format, mainboard, sideboard) {
     var cardname;
     cardname = cardObject.name;
@@ -136,7 +165,7 @@ async function mtgtop8(cardObject, format, mainboard, sideboard) {
         cardname = cardObject.card_faces[0].name;
     }
 
-    const url = `https://mtgtop8.com/search?format=${format}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=18/09/2023&cards=${cardname}`;
+    const url = `https://mtgtop8.com/search?format=${format}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=${getDateSixMonthsAgo()}&cards=${cardname}`;
     if (url in mtgtop8_cache) {
         var decks_matching = mtgtop8_cache[url];
     } else {
@@ -148,13 +177,13 @@ async function mtgtop8(cardObject, format, mainboard, sideboard) {
         if (html.includes('Too many cards for ')) {
             return 'Too many cards for ' + cardname;
         }
-        var decks_matching = parseHTML(html);
+        var decks_matching = parseDecksMatching(html);
         mtgtop8_cache[url] = decks_matching;
     }
     return decks_matching;
 }
 
-function formatStaple(cardObject, formatName, mtgtop8Format) {
+function formatStaple(cardObject, formatName, mtgtop8Format, ofXDecks) {
     const formatElement = document.createElement('div');
     formatElement.style = "display: flex";
     formatElement.innerText = `${formatName}:`;
@@ -169,6 +198,10 @@ function formatStaple(cardObject, formatName, mtgtop8Format) {
         divider.innerHTML = "&nbsp;/&nbsp;";
         const side = document.createElement('div');
         formatElement.appendChild(side);
+        
+        const end = document.createElement('div');
+        end.innerHTML = `&nbsp;(${ofXDecks})`;
+        formatElement.appendChild(end);
 
         mtgtop8(cardObject, mtgtop8Format, 1, 0).then(decks_matching => {
             main.innerText = decks_matching;
@@ -179,13 +212,13 @@ function formatStaple(cardObject, formatName, mtgtop8Format) {
     } else {
         switch (legality) {
             case 'not_legal':
-                formatElement.innerText += 'not legal';
+                formatElement.innerText += '🛑 not legal';
                 break;
             case 'banned':
-                formatElement.innerText += '🛑';
+                formatElement.innerText += '🚫 banned';
                 break;
             case 'legal':
-                formatElement.innerText += '✅';
+                formatElement.innerText += '✅ legal';
                 break;
             default:
                 formatElement.innerText += legality;
@@ -269,9 +302,11 @@ var formats = formatsDefault;
 
 
 (async function main() {
+    console.log("offers-singles-magic.js");
     const [pricedata, productdata] = await getCardmarketData();
 
     const localCache = await browser.storage.local.get(['collection']);
+    // gets which formats should be analysed and shown
     const syncCache = await browser.storage.sync.get(['formats']);
     
     const collection = localCache.collection;

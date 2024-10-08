@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.5.1",
+    "version": "1.6.1",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [],
@@ -42,7 +42,8 @@
                 "https://www.cardmarket.com/*"
             ],
             "js": [
-                "js/load-price-data.js"
+                "js/load-price-data.js",
+                "js/pagination-control.js"
             ]
         },
         {
@@ -73,9 +74,6 @@
         {
             "matches": [
                 "https://www.cardmarket.com/*/Magic/Orders/*"
-            ],
-            "exclude_matches": [
-                "https://www.cardmarket.com/*/Magic/Orders/Sales/Paid"
             ],
             "js": [
                 "js/get-thumbnail.js",

@@ -190,6 +190,21 @@ var parts = pathname.split("/");
 // Extract language from parts
 var language = parts[1]; // Assuming "de" is at index 1
 
+function checkForRedirect(newURL) {
+    const newSplit = new URL(newURL).pathname.split("/");
+    for(idx in parts) {
+        if(idx != 1 && newSplit[idx] != parts[idx]) {
+            return true;
+        }
+    }
+    const currentIsFoil = url.searchParams.get('isFoil');
+    const newIsFoil = new URL(newURL).searchParams.get('isFoil');
+    if(currentIsFoil != newIsFoil) {
+        return true;
+    }
+    return false;
+}
+
 async function generateTable(cards) { // id of same printing
     const table = document.createElement('table');
 
@@ -223,12 +238,13 @@ async function generateTable(cards) { // id of same printing
             continue;
         }
         const row = document.createElement('tr');
-        row.value = card;
+
+        // row.value = card;
         // if(card['Condition'] != 'mint') {
-        row.addEventListener("click", function () {
-            row.style.cursor = 'pointer';
-            fillMetrics(card);
-        });
+        // row.addEventListener("click", function () {
+        //     row.style.cursor = 'pointer';
+        //     fillMetrics(card);
+        // });
         // }
 
         // if (card['Scryfall ID'] == scryfallId && isFoilParam == (card.Foil == "foil")) {
@@ -268,16 +284,41 @@ async function generateTable(cards) { // id of same printing
                 } else {
                     const newURL = await generateCardmarketUrl(card);
                     if (newURL) {
-                        link = document.createElement("a");
-                        link.innerText = "Go To";
-                        // Get the current URL
-                        // Create a URL object
-                        link.setAttribute("href", newURL);
+                        // compare new url to currentUrl
+                        const needRedirect = checkForRedirect(newURL);
+                        if(needRedirect) {
+                            link = document.createElement("a");
+                            link.innerText = "Go To";
+                            // Get the current URL
+                            // Create a URL object
+                            link.setAttribute("href", newURL);
+                            td.appendChild(link);
+                        } else {
+                            // card is same and can be filled
+
+                            // Create a new button element
+                            var button = document.createElement("button");
+                            // Set button attributes and content
+                            button.style.width = "70px";
+                            button.style.height = "25px";
+                            button.style.setProperty('--bs-btn-padding-x', 'initial');
+                            button.innerHTML = "Fill";
+                            if (!document.querySelector(`[title="${SELL_BUTTON_TEXT[language]}"]`)) {
+                                button.disabled = true;
+                            } else {
+                                button.addEventListener("click", function () {
+                                    fillMetrics(card);
+                                });
+                            }
+                            button.setAttribute("id", "myButton");
+                            button.setAttribute("class", "btn btn-outline-primary");
+                            td.appendChild(button);
+                        }
                     } else {
                         link = document.createElement("div");
                         link.innerText = "undefined";
+                        td.appendChild(link);
                     }
-                    td.appendChild(link);
                 }
                 continue;
             }
@@ -406,12 +447,15 @@ function fillMetrics(card) {
 }
 
 function collectionLoaded(collection) {
+    // get mkm id from document
     var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value; // parseMkmIdFromImgSrc(src);
+    document.getElementById("loading").remove();
 
     var div = document.createElement("div");
     var mainContent = document.getElementById("mainContent");
     mainContent.parentElement.insertBefore(div, mainContent);
 
+    // info if collection not loaded
     if (!collection) {
         const span = document.createElement('span');
         span.innerText = "Collection not loaded.";
@@ -448,6 +492,12 @@ function collectionLoaded(collection) {
         myPrice = calcMyPrice(mkmId);
         priceField.value = myPrice;
     }
+
+    var div = document.createElement("div");
+    var mainContent = document.getElementById("mainContent");
+    mainContent.parentElement.insertBefore(div, mainContent);
+    div.textContent = "loading collection..."
+    div.id = 'loading';
 
     // Retrieve data from local storage
     browser.storage.local.get(['collection'])

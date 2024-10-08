@@ -44,7 +44,7 @@ function collectionLoaded(collection) {
             const list = lists[selectedList];
             for(const card of list) {
                 console.log(card);
-                textArea.textContent += `${card.Quantity} ${card.Name} (${card["Set name"]})\n`;
+                textArea.textContent += `${card.Quantity} ${card.Name}`; // (${card["Set name"]})\n`;
             }
         }
     });

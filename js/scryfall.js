@@ -1,24 +1,27 @@
+const mkmToScryfallIds = {
+    '609877': '640be32d-dcc8-408a-b8a6-077472f1e70b'
+}
+
+const scryfallIdToUrls = {
+    '640be32d-dcc8-408a-b8a6-077472f1e70b': 'https://www.cardmarket.com/en/Magic/Products/Singles/Secret-Lair-Extra-Life-2021/Craterhoof-Behemoth-V2'
+}
+
 // - map cardmarket to manabox for ownership check
 // - check how to rotate the thumbnail
-/*
 async function cardByMkmId(mkmId) {
-    if(!scryfall_data) {
-        scryfall_data = await loadCustomScryfallData();
-    }
     var response;
-    if (mkmId in scryfall_data['scryfallids']) {
-        const scryfallId = scryfall_data['scryfallids'][mkmId]
+    if (mkmId in mkmToScryfallIds) {
+        const scryfallId = mkmToScryfallIds[mkmId]
         response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`);
     } else {
         response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`);
     }
     const cardObject = await response.json();
-    if (mkmId in scryfall_data['scryfallids'] && cardObject.object == "card" && cardObject.cardmarket_id) {
+    if (mkmId in mkmToScryfallIds && cardObject.object == "card" && cardObject.cardmarket_id) {
         console.log(`Unnecessary id in scryfall_data:`, mkmId);
     }
     return cardObject;
 }
-*/
 
 const rot90Layout = ["split"];
 const rot270Layout = ["art_series"];
@@ -75,16 +78,18 @@ async function generateCardmarketUrl(manaBoxCard) {
         scryfallCard = card['data'][0];
     }
 
-    const cardmarketUrl = scryfallCard['purchase_uris']['cardmarket'];
+    var cardmarketUrl = scryfallCard['purchase_uris']['cardmarket'];
 
-    var url = new URL(cardmarketUrl);
     if(cardmarketUrl.includes('Search')) {
-        if(manaBoxCard['Set code'] == "GN3") {
-            url = new URL(`https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ','-')}`)
+        if(scryfallIdToUrls[scryfallCard.id]) {
+            cardmarketUrl = scryfallIdToUrls[scryfallCard.id];
+        } else if(manaBoxCard['Set code'] == "GN3") {
+            cardmarketUrl = `https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ','-')}`;
         } else {
             return null;
         }
     }
+    var url = new URL(cardmarketUrl);
     
     var currentURL = new URL(window.location.href);
     currentURL.searchParams.forEach(function(value, key) {

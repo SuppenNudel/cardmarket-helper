@@ -46,7 +46,7 @@ async function checkPriceWithCardmarket(articleRow, mkmid) {
     const trend = prices[`trend${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
     
     priceContainer.getElementsByClassName("align-items-center")[0].classList.remove("d-flex");
-    offerElement = priceContainer.getElementsByTagName("span")[0];
+    offerElement = priceContainer.querySelector('span[class*="text-end"]');
     currStr = offerElement.innerText;
     offer = parseCurrencyStringToDouble(currStr);
 
@@ -55,7 +55,7 @@ async function checkPriceWithCardmarket(articleRow, mkmid) {
     priceContainer.appendChild(div);
 
     // if playset
-    if (priceContainer.getElementsByClassName('extra-small').length > 0) {
+    if (priceContainer.getElementsByClassName('fst-italic text-muted').length > 0) {
         offer = offer / 4;
     }
 
@@ -82,12 +82,12 @@ async function checkPriceWithCardmarket(articleRow, mkmid) {
     }
 }
 
-async function updateContentOfCard(articleRow) {
+function updateContentOfCard(articleRow) {
     const element = articleRow.querySelector("span.thumbnail-icon");
-    const image = await showThumbnail(element);
-    const mkmId = image.getAttribute("mkmId");
-
-    checkPriceWithCardmarket(articleRow, mkmId);
+    showThumbnail(element).then(image => {
+        const mkmId = image.getAttribute("mkmId");
+        checkPriceWithCardmarket(articleRow, mkmId);
+    });
 }
 
 function updateContent() {
@@ -101,6 +101,7 @@ function updateContent() {
 }
 
 (async function main() {
+    console.log("offers-singles.js");
     [pricedata, productdata] = await getCardmarketData();
     updateContent();
 })();

@@ -1,3 +1,14 @@
+function showThumbnails() {
+    const gen = iterateThumbnails();
+    while(true) {
+        const element = gen.next();
+        if(element.done) {
+            break
+        }
+        showThumbnail(element.value);
+    }
+}
+
 async function changePreviewImage(thumbnailIcon, imgTag) {
     // Create a new DOMParser
     var parser = new DOMParser();

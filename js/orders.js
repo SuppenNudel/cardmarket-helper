@@ -14,14 +14,14 @@ const LANG_POS_MAP = {
 
 function updateButton(orderId, timestamp) {
     const button = document.getElementById("packedButton");
-    if(timestamp) {
+    if (timestamp) {
         button.textContent = "Unpack";
-        button.onclick = function() {
+        button.onclick = function () {
             updateStorage(orderId, null);
         }
     } else {
         button.textContent = "Mark as Packed";
-        button.onclick = function() {
+        button.onclick = function () {
             updateStorage(orderId, Date.now());
         }
     }
@@ -30,17 +30,17 @@ function updateButton(orderId, timestamp) {
 function updateTimeline(timestamp, index) {
     const textDiv = document.getElementById("timelinePackedText");
     const packedElement = document.getElementById("timelinePackedElement");
-    if(timestamp) { 
-        textDiv.textContent = 'Packed: '+formatTimestamp(timestamp);
-        
+    if (timestamp) {
+        textDiv.textContent = 'Packed: ' + formatTimestamp(timestamp);
+
         packedElement.classList.remove("notYetStatus");
         packedElement.classList.add("bg-primary", "text-inverted");
         textDiv.classList.remove("text-muted");
         const currentStatusElement = document.getElementById("Timeline").querySelector(".currentStatus");
         const index = Array.from(currentStatusElement.parentNode.children).indexOf(currentStatusElement);
-        if(index < 2) {
+        if (index < 2) {
             currentStatusElement.classList.remove("currentStatus");
-            
+
             packedElement.classList.add("currentStatus");
         }
     } else {
@@ -135,15 +135,22 @@ function collectionLoaded(collection) {
                 return Promise.reject(new Error("Collection not loaded"));
             }
         }).then(scryfallCard => {
-            const collectionCards = collection[scryfallCard.id];
             const collectionInfo = document.createElement("td"); // to append to
             collectionInfo.style = "width: 250px; text-align: left;";
             product.insertBefore(collectionInfo, product.querySelector("td.price"));
 
+            if (!scryfallCard) {
+                const collectionDiv = document.createElement("div");
+                collectionDiv.textContent = "couldn't associate cardmarket card with scryfall card";
+                collectionInfo.appendChild(collectionDiv)
+                return;
+            }
+            const collectionCards = collection[scryfallCard.id];
+
             if (!collectionCards) {
                 const collectionDiv = document.createElement("div");
-                collectionDiv.textContent = " unowned";
-                collectionInfo.appendChild(collectionDiv)
+                collectionDiv.textContent = "unowned";
+                collectionInfo.appendChild(collectionDiv);
                 return;
             }
             const info = product.querySelector("td.info");
@@ -174,19 +181,23 @@ function collectionLoaded(collection) {
 
 (async function main() {
     console.log("orders.js");
-    browser.storage.sync.get('orders').then(result => {
-        let orders = result.orders || {}; // Get the current object or use an empty object if not found
-        const orderId = document.querySelector("div.page-title-container h1").textContent.match(/#(\d+)/)[1];
-        const order = orders[orderId];
-        console.log(order);
-        const timestamp = order ? order.timestamp : null;
-        addPackedButton(orderId, timestamp);
-        addToTimeline(timestamp);
-    }).then(() => {
-        console.log('Object updated successfully');
-    }).catch(error => {
-        console.error('Error updating object:', error);
-    });
+
+    const isSales = document.querySelector('a[href$="Orders/Sales"]') !== null;
+    if (isSales) {
+        browser.storage.sync.get('orders').then(result => {
+            let orders = result.orders || {}; // Get the current object or use an empty object if not found
+            const orderId = document.querySelector("div.page-title-container h1").textContent.match(/#(\d+)/)[1];
+            const order = orders[orderId];
+            console.log("order", order);
+            const timestamp = order ? order.timestamp : null;
+            addPackedButton(orderId, timestamp);
+            addToTimeline(timestamp);
+        }).then(() => {
+            console.log('Object updated successfully');
+        }).catch(error => {
+            console.error('Error updating object:', error);
+        });
+    }
 
     browser.storage.local.get('collection')
         .then((result) => {
@@ -194,6 +205,8 @@ function collectionLoaded(collection) {
             console.log('Retrieved collection data');
             if (collection) {
                 collectionLoaded(collection);
+            } else {
+                showThumbnails();
             }
         })
         .catch((error) => {
