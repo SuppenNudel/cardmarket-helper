@@ -42,6 +42,7 @@
                 "https://www.cardmarket.com/*"
             ],
             "js": [
+                "js/update-notification.js",
                 "js/load-price-data.js",
                 "js/pagination-control.js"
             ]
