@@ -1,43 +1,44 @@
 
-async function updateContentOfMagicCard(articleRow, collection) {
+function updateContentOfMagicCard(articleRow, collection) {
     const image = articleRow.querySelector("div.col-thumbnail img");
     const mkmId = image.getAttribute("mkmId");
 
     const mkmProduct = productdata.products[mkmId];
     const cardname = mkmProduct.name;
-    const scryfallCard = await scryfallRequest(`https://api.scryfall.com/cards/named?exact=${mkmProduct.name}`); // await getScryfallCardFromImage(image);
-
     const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
     cardNameElement.style.display = "-webkit-box"; // enables line break
 
-    if (scryfallCard == undefined) {
-        cardNameElement.append(document.createElement("br"));
-        const errorElement = document.createElement("div")
-        errorElement.style = "display: inline-block";
-        cardNameElement.append(errorElement);
-        errorElement.innerText = `Card with name ${cardname} not found`;
-    } else {
-        var legalInAtLeastOne = false;
-        var anySelected = true;
-        for (var format in formats) {
-            if (formats[format].hideIfNotLegalIn) {
-                anySelected = false;
-                if (scryfallCard.legalities[format] == 'legal') {
-                    legalInAtLeastOne = true;
-                    break;
+    scryfallRequest(`https://api.scryfall.com/cards/named?exact=${mkmProduct.name}`).then(scryfallCard => {
+        if (scryfallCard == undefined) {
+            cardNameElement.append(document.createElement("br"));
+            const errorElement = document.createElement("div")
+            errorElement.style = "display: inline-block";
+            cardNameElement.append(errorElement);
+            errorElement.innerText = `Card with name ${cardname} not found`;
+        } else {
+            var legalInAtLeastOne = false;
+            var anySelected = true;
+            for (var format in formats) {
+                if (formats[format].hideIfNotLegalIn) {
+                    anySelected = false;
+                    if (scryfallCard.legalities[format] == 'legal') {
+                        legalInAtLeastOne = true;
+                        break;
+                    }
                 }
             }
+            if (anySelected || legalInAtLeastOne) {
+                checkOwnership(collection, scryfallCard)
+                    .then(elements => {
+                        cardNameElement.append(document.createElement("br"));
+                        cardNameElement.append(elements);
+                    });
+            } else {
+                articleRow.style = "display: none";
+            }
         }
-        if (anySelected || legalInAtLeastOne) {
-            checkOwnership(collection, scryfallCard)
-                .then(elements => {
-                    cardNameElement.append(document.createElement("br"));
-                    cardNameElement.append(elements);
-                });
-        } else {
-            articleRow.style = "display: none";
-        }
-    }
+    });
+
 }
 
 function updateMagicContent(collection) {

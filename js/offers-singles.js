@@ -82,12 +82,12 @@ async function checkPriceWithCardmarket(articleRow, mkmid) {
     }
 }
 
-async function updateContentOfCard(articleRow) {
+function updateContentOfCard(articleRow) {
     const element = articleRow.querySelector("span.thumbnail-icon");
-    const image = await showThumbnail(element);
-    const mkmId = image.getAttribute("mkmId");
-
-    checkPriceWithCardmarket(articleRow, mkmId);
+    showThumbnail(element).then(image => {
+        const mkmId = image.getAttribute("mkmId");
+        checkPriceWithCardmarket(articleRow, mkmId);
+    });
 }
 
 function updateContent() {
