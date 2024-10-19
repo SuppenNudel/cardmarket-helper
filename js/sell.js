@@ -463,10 +463,12 @@ function collectionLoaded(collection) {
         return;
     }
     const mkmProduct = productdata.products[mkmId];
+    const productName = mkmProduct.name.replace(/ \/ /g, " // ");
+    // const productNameWithoutSlashes = productName.split(" /")[0];
     const collectionCards = [];
     for (const sameIdCards of Object.values(collection)) {
         for (const collectionCard of sameIdCards) {
-            if (mkmProduct.name == collectionCard.Name) {
+            if (productName === collectionCard.Name) {
                 collectionCards.push(collectionCard);
             }
         }
