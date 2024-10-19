@@ -66,6 +66,16 @@ const CONDITION_MAP = {
     "poor": "PO"
 }
 
+const CONDITION_MAP_ID = {
+    "mint": 1,
+    "near_mint": 2,
+    "excellent": 3,
+    "good": 4,
+    "light_played": 5,
+    "played": 6,
+    "poor": 7
+}
+
 function calculateMedian(numbers) {
     numbers.sort(function (a, b) {
         return a - b;
@@ -132,23 +142,26 @@ function calcMyPrice(mkmid) {
     // Sort sellers by price in ascending order
     rivalSellers.sort((a, b) => a.price - b.price);
 
-    let desiredPrice = rivalSellers[0].price - 0.01; // Start just below the lowest price
-
-    for (let i = 0; i < rivalSellers.length - 1; i++) {
-        let currentSeller = rivalSellers[i];
-        let nextSeller = rivalSellers[i + 1];
-
-        // Check for high quantity sellers and set price below theirs
-        if (currentSeller.quantity > maxQuantityThreshold) {
-            desiredPrice = currentSeller.price;
-            break;
-        }
-
-        // Calculate relative incline
-        let relativeIncline = (nextSeller.price - currentSeller.price) / currentSeller.price;
-        if (relativeIncline >= inclinePercentage) {
-            desiredPrice = nextSeller.price;
-            break;
+    let desiredPrice = 0;
+    if(rivalSellers.length > 0) {
+        desiredPrice = rivalSellers[0].price - 0.01; // Start just below the lowest price
+        
+        for (let i = 0; i < rivalSellers.length - 1; i++) {
+            let currentSeller = rivalSellers[i];
+            let nextSeller = rivalSellers[i + 1];
+            
+            // Check for high quantity sellers and set price below theirs
+            if (currentSeller.quantity > maxQuantityThreshold) {
+                desiredPrice = currentSeller.price;
+                break;
+            }
+            
+            // Calculate relative incline
+            let relativeIncline = (nextSeller.price - currentSeller.price) / currentSeller.price;
+            if (relativeIncline >= inclinePercentage) {
+                desiredPrice = nextSeller.price;
+                break;
+            }
         }
     }
     const prices = pricedata.priceGuides[mkmid];
@@ -432,8 +445,8 @@ function fillMetrics(card) {
     setValue("isFoil", "checked", isFoil);
     setValue("amount", "value", card.Quantity);
 
-    document.getElementById("language").value = LANG_MAP[card.Language];
-    document.getElementById("condition").value = CONDITION_MAP[card.Condition];
+    document.getElementById("idLanguage").value = LANG_MAP[card.Language];
+    document.getElementById("idCondition").value = CONDITION_MAP_ID[card.Condition];
 
     var isAltered;
     if (card.Altered == "false") { // altered
