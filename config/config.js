@@ -1,3 +1,7 @@
+document.getElementById('openConfig').addEventListener('click', () => {
+    browser.runtime.openOptionsPage();
+});
+
 async function initStorage(storageKey, defaultValue) {
     try {
         let storageData = await browser.storage.sync.get(storageKey);

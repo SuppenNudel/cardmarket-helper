@@ -12,7 +12,11 @@
             "32": "images/geschaft-32.png"
         },
         "default_title": "Cardmarket Assistant",
-        "default_popup": "html/popup.html"
+        "default_popup": "config/config.html"
+    },
+    "options_ui": {
+        "page": "config/config.html",
+        "open_in_tab": true
     },
     "icons": {
         "32": "images/geschaft-32.png",
@@ -25,7 +29,6 @@
     },
     "permissions": [
         "storage",
-        "activeTab",
         "https://api.scryfall.com/",
         "https://mtgtop8.com/search",
         "https://downloads.s3.cardmarket.com/"
