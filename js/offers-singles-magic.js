@@ -18,10 +18,10 @@ async function waitFor(searchElement, selector, attribute, interval = 100, timeo
     });
 }
 
-function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise) {
+function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise, ofXDecksPromise) {
     mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
         .then(image => image.getAttribute("mkmId"));
-    
+
     Promise.all([mkmIdPromise, pricePromise]).then(([mkmId, prices]) => {
         const [pricedata, productdata] = prices;
 
@@ -32,8 +32,6 @@ function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, f
 
         scryfallSearch(cardname).then(result => result.data)
             .then(scryfallCards => {
-                console.log(scryfallCards);
-
                 formatsPromise.then(formats => {
                     var legalInAtLeastOne = false;
                     var anySelected = true;
@@ -49,7 +47,7 @@ function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, f
 
                     if (anySelected || legalInAtLeastOne) {
                         collectionPromise.then(collection => {
-                            checkOwnership(collection, cardname, mkmId, scryfallCards, formats)
+                            checkOwnership(collection, cardname, mkmId, scryfallCards, formats, ofXDecksPromise)
                                 .then(elements => {
                                     cardNameElement.append(document.createElement("br"));
                                     cardNameElement.append(elements);
@@ -80,16 +78,48 @@ function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, f
 function updateMagicContent(pricePromise, collectionPromise, formatsPromise) {
     const table = document.getElementById("UserOffersTable"); // div
     const articleRows = table.getElementsByClassName("article-row");
+
+    ofXDecksPromise = formatsPromise.then(async formats => {
+        ofXDecks = {}
+        for (const format in formats) {
+            formatKey = formatsMapping[format].mtgtop8key;
+            deckCount = await getOfXDecks(formatKey);
+            ofXDecks[formatKey] = deckCount;
+        }
+        return ofXDecks;
+    });
+
+
     for (const articleRow of articleRows) {
         try {
-            updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise);
+            updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise, ofXDecksPromise);
         } catch (error) {
             console.error(error, articleRow);
         }
     }
 }
 
-async function checkOwnership(collection, cardname, mkmId, scryfallCards, formats) {
+async function getOfXDecks(formatKey) {
+    const url = `https://mtgtop8.com/search?format=${formatKey}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&date_start=${getDateSixMonthsAgo()}`;
+    let decks_matching;
+    if (url in mtgtop8_cache) {
+        decks_matching = mtgtop8_cache[url];
+    } else {
+        const response = await fetch(url);
+        const html = await response.text();
+        if (html.includes('No match for ')) {
+            throw 'No match for ' + cardname;
+        }
+        if (html.includes('Too many cards for ')) {
+            throw 'Too many cards for ' + cardname;
+        }
+        decks_matching = parseDecksMatching(html);
+        mtgtop8_cache[url] = decks_matching;
+    }
+    return decks_matching;
+}
+
+async function checkOwnership(collection, cardname, mkmId, scryfallCards, formats, ofXDecksPromise) {
     const element = document.createElement('div')
     element.style = "display: inline-block";
     element.style.fontSize = "12px";
@@ -108,7 +138,7 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards, format
     for (var format in formats) {
         const mtgtop8 = formats[format].mtgtop8;
         if (mtgtop8) {
-            element.appendChild(formatStaple(singleCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
+            element.appendChild(formatStaple(singleCard, format, ofXDecksPromise));
         }
     }
 
@@ -117,7 +147,7 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards, format
         const collectionCards = scryfallCards
             .map(scryfallCard => {
                 const collectionCard = collection[scryfallCard.id];
-                if(collectionCard) {
+                if (collectionCard) {
                     collectionCard.cardmarket_id = scryfallCard.cardmarket_id;
                 }
                 return collectionCard;
@@ -159,7 +189,7 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards, format
 }
 
 // Function to parse HTML and extract data
-function parseHTML(html) {
+function parseDecksMatching(html) {
     // Use DOMParser to parse the HTML string
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -180,14 +210,13 @@ function parseHTML(html) {
 
 mtgtop8_cache = {};
 
-async function mtgtop8(cardObject, format, mainboard, sideboard) {
+async function mtgtop8(cardObject, formatKey, mainboard, sideboard) {
     var cardname;
     cardname = cardObject.name;
     if (cardObject.card_faces && cardObject.layout != 'split') {
         cardname = cardObject.card_faces[0].name;
     }
-
-    const url = `https://mtgtop8.com/search?format=${format}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=18/09/2023&cards=${cardname}`;
+    const url = `https://mtgtop8.com/search?cards=${cardname}&format=${formatKey}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=${getDateSixMonthsAgo()}`;
     if (url in mtgtop8_cache) {
         var decks_matching = mtgtop8_cache[url];
     } else {
@@ -199,13 +228,28 @@ async function mtgtop8(cardObject, format, mainboard, sideboard) {
         if (html.includes('Too many cards for ')) {
             return 'Too many cards for ' + cardname;
         }
-        var decks_matching = parseHTML(html);
+        var decks_matching = parseDecksMatching(html);
         mtgtop8_cache[url] = decks_matching;
     }
     return decks_matching;
 }
 
-function formatStaple(cardObject, formatName, mtgtop8Format) {
+function getDateSixMonthsAgo() {
+    const today = new Date();
+    // Set the date to 6 months in the past
+    today.setMonth(today.getMonth() - 6);
+
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+    const year = today.getFullYear();
+
+    return `${day}/${month}/${year}`;
+}
+
+function formatStaple(cardObject, format, ofXDecksPromise) {
+    const formatName = formatsMapping[format].display
+    const formatKey = formatsMapping[format].mtgtop8key
+
     const formatElement = document.createElement('div');
     formatElement.style = "display: flex";
     formatElement.innerText = `${formatName}:`;
@@ -213,30 +257,38 @@ function formatStaple(cardObject, formatName, mtgtop8Format) {
 
     const legality = cardObject.legalities[formatName.toLowerCase()];
     if (legality == 'legal') {
+        const formatDecksCountElement = document.createElement('div');
         const main = document.createElement('div');
-        formatElement.appendChild(main);
         const divider = document.createElement('div');
-        formatElement.appendChild(divider);
         divider.innerHTML = "&nbsp;/&nbsp;";
         const side = document.createElement('div');
+        
+        formatElement.appendChild(main);
+        formatElement.appendChild(divider);
         formatElement.appendChild(side);
+        formatElement.appendChild(formatDecksCountElement);
 
-        mtgtop8(cardObject, mtgtop8Format, 1, 0).then(decks_matching => {
+
+        ofXDecksPromise.then(ofXDecks => {
+            formatDecksCountElement.innerHTML = `&nbsp;- ${ofXDecks[formatKey]}`;
+        });
+
+        mtgtop8(cardObject, formatKey, 1, 0).then(decks_matching => {
             main.innerText = decks_matching;
         });
-        mtgtop8(cardObject, mtgtop8Format, 0, 1).then(decks_matching => {
+        mtgtop8(cardObject, formatKey, 0, 1).then(decks_matching => {
             side.innerText = decks_matching;
         });
     } else {
         switch (legality) {
             case 'not_legal':
-                formatElement.innerText += 'not legal';
+                formatElement.innerText += '🛑 not legal';
                 break;
             case 'banned':
-                formatElement.innerText += '🛑';
+                formatElement.innerText += '🚫 banned';
                 break;
             case 'legal':
-                formatElement.innerText += '✅';
+                formatElement.innerText += '✅ legal';
                 break;
             default:
                 formatElement.innerText += legality;

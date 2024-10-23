@@ -60,7 +60,6 @@ async function scryfallSearch(query) {
 }
 
 async function scryfallRequest(path) {
-    console.trace("Fetch: ", path);
     const response = await fetch(`https://api.scryfall.com${path}`);
     const json = await response.json();
     if (response.ok) {
