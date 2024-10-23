@@ -266,15 +266,18 @@ function formatStaple(cardObject, format, ofXDecksPromise) {
         const divider = document.createElement('div');
         divider.innerHTML = "&nbsp;/&nbsp;";
         const side = document.createElement('div');
+        const divider2 = document.createElement('div');
+        divider2.innerHTML = "&nbsp;-&nbsp;";
 
         formatElement.appendChild(main);
         formatElement.appendChild(divider);
         formatElement.appendChild(side);
+        formatElement.appendChild(divider2);
         formatElement.appendChild(formatDecksCountElement);
 
 
         ofXDecksPromise.then(ofXDecks => {
-            formatDecksCountElement.innerHTML = `&nbsp;- ${ofXDecks[formatKey]}`;
+            formatDecksCountElement.innerText = ofXDecks[formatKey];
         });
 
         mtgtop8(cardObject, formatKey, 1, 0).then(decks_matching => {
