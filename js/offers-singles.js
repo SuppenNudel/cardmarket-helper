@@ -28,80 +28,87 @@ function getColorBasedOnPercentageRange(referencePrice, priceToCompare) {
     }
 }
 
-async function checkPriceWithCardmarket(articleRow, mkmid) {
-    var priceContainer = articleRow.getElementsByClassName("price-container")[0].getElementsByClassName("flex-column")[0];
+function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
+    var priceContainer = articleRow.querySelector(".price-container .flex-column");
     if(!mkmid) {
         const noMkmIdDiv = document.createElement("div");
         priceContainer.appendChild(noMkmIdDiv);
         noMkmIdDiv.innerText = "no mkm id";
+        return;
     }
-    const prices = pricedata.priceGuides[mkmid];
+    pricePromise.then(result => {
+        [pricedata, productdata] = result;
+        const prices = pricedata.priceGuides[mkmid];
+
+        var productAttributesElement = articleRow.querySelector('.product-attributes');
+        var foilElement = productAttributesElement.querySelector('[aria-label="Foil"]');
+        var holoElement = productAttributesElement.querySelector('[aria-label="Reverse Holo"]');
     
-    var productAttributesElement = articleRow.querySelector('.product-attributes');
-    var foilElement = productAttributesElement.querySelector('[aria-label="Foil"]');
-    var holoElement = productAttributesElement.querySelector('[aria-label="Reverse Holo"]');
-
-    const low = prices[`low${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
-    const avg = prices[`avg${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
-    const trend = prices[`trend${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+        const low = prices[`low${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+        const avg = prices[`avg${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+        const trend = prices[`trend${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
+        
+        priceContainer.querySelector(".align-items-center").classList.remove("d-flex");
+        offerElement = priceContainer.querySelector('span[class*="text-end"]');
+        currStr = offerElement.innerText;
+        offer = parseCurrencyStringToDouble(currStr);
     
-    priceContainer.getElementsByClassName("align-items-center")[0].classList.remove("d-flex");
-    offerElement = priceContainer.querySelector('span[class*="text-end"]');
-    currStr = offerElement.innerText;
-    offer = parseCurrencyStringToDouble(currStr);
-
-    priceContainer.appendChild(document.createElement("br"));
-    var div = document.createElement("div");
-    priceContainer.appendChild(div);
-
-    // if playset
-    if (priceContainer.getElementsByClassName('fst-italic text-muted').length > 0) {
-        offer = offer / 4;
-    }
-
-    if (low) {
-        const lowDiv = document.createElement("div");
-        priceContainer.appendChild(lowDiv);
-        lowDiv.innerText = "⬇️ " + low.toFixed(2);
-        const lowColor = getColorBasedOnPercentageRange(low, offer);
-        lowDiv.style.color = lowColor;
-    }
-    if (avg) {
-        const avgDiv = document.createElement("div");
-        priceContainer.appendChild(avgDiv);
-        avgDiv.innerText = " ↔️ " + avg.toFixed(2);
-        const avgColor = getColorBasedOnPercentageRange(avg, offer);
-        avgDiv.style.color = avgColor;
-    }
-    if (trend) {
-        const trendDiv = document.createElement("div");
-        priceContainer.appendChild(trendDiv);
-        trendDiv.innerText = " 📈 " + trend.toFixed(2);
-        const trendColor = getColorBasedOnPercentageRange(trend, offer);
-        trendDiv.style.color = trendColor;
-    }
+        priceContainer.appendChild(document.createElement("br"));
+        var div = document.createElement("div");
+        priceContainer.appendChild(div);
+    
+        // if playset - should be discontinued
+        if (priceContainer.getElementsByClassName('fst-italic text-muted').length > 0) {
+            offer = offer / 4;
+        }
+    
+        if (low) {
+            const lowDiv = document.createElement("div");
+            priceContainer.appendChild(lowDiv);
+            lowDiv.innerText = "⬇️ " + low.toFixed(2);
+            const lowColor = getColorBasedOnPercentageRange(low, offer);
+            lowDiv.style.color = lowColor;
+        }
+        if (avg) {
+            const avgDiv = document.createElement("div");
+            priceContainer.appendChild(avgDiv);
+            avgDiv.innerText = " ↔️ " + avg.toFixed(2);
+            const avgColor = getColorBasedOnPercentageRange(avg, offer);
+            avgDiv.style.color = avgColor;
+        }
+        if (trend) {
+            const trendDiv = document.createElement("div");
+            priceContainer.appendChild(trendDiv);
+            trendDiv.innerText = " 📈 " + trend.toFixed(2);
+            const trendColor = getColorBasedOnPercentageRange(trend, offer);
+            trendDiv.style.color = trendColor;
+        }
+    });
+    
 }
 
-function updateContentOfCard(articleRow) {
+function updateContentOfCard(articleRow, pricePromise) {
     const element = articleRow.querySelector("span.thumbnail-icon");
     showThumbnail(element).then(image => {
         const mkmId = image.getAttribute("mkmId");
-        checkPriceWithCardmarket(articleRow, mkmId);
+        checkPriceWithCardmarket(articleRow, mkmId, pricePromise);
     });
 }
 
 function updateContent() {
     const table = document.getElementById("UserOffersTable"); // div
-    const articleRows = table.getElementsByClassName("article-row");
     const thumbnailHeader = table.querySelector("div.table-header div.col-thumbnail");
     thumbnailHeader.style.width = '10rem';
+
+    pricePromise = getCardmarketData();
+
+    const articleRows = table.getElementsByClassName("article-row");
     for (const articleRow of articleRows) {
-        updateContentOfCard(articleRow);
+        updateContentOfCard(articleRow, pricePromise);
     }
 }
 
 (async function main() {
     console.log("offers-singles.js");
-    [pricedata, productdata] = await getCardmarketData();
     updateContent();
 })();
