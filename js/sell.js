@@ -120,23 +120,34 @@ function createPriceDictionary(keys, values) {
 }
 
 function calcMyPrice(mkmid) {
-    let inclinePercentage = 0.15; // 15% relative incline threshold
-    let maxQuantityThreshold = 10;  // Example threshold for high quantity
+    const inclinePercentage = 0.15; // 15% relative incline threshold
+    const maxQuantityThreshold = 10;  // Threshold for how high of a quantity of a rival seller you don't want to compete with
+    const rivalsToLookAt = 10;
+    const minRivalSales = 300;
+    const minRivalAvailableItems = 250;
 
     // offers
     articleRows = document.getElementById("table").getElementsByClassName("article-row");
     var rivalSellers = [];
-    for (var i = 0; i < articleRows.length && rivalSellers.length < 10; i++) {
+    for (var i = 0; i < articleRows.length && rivalSellers.length < rivalsToLookAt; i++) {
         row = articleRows[i];
-        sellerName = row.getElementsByClassName("seller-name")[0].innerText;
+        const sellerNameElement = row.querySelector(".seller-name a");
+        sellerName = sellerNameElement.innerText;
         if (sellerName == "NudelForce") {
             continue;
         }
         const priceContainer = row.getElementsByClassName("price-container")[0];
         const price = parseCurrencyStringToDouble(priceContainer.innerText);
-        quantity = row.getElementsByClassName("col-offer")[0].getElementsByClassName("item-count")[0].innerText;
+        const quantity = row.getElementsByClassName("col-offer")[0].getElementsByClassName("item-count")[0].innerText;
+        const sellCountElement = row.querySelector(".col-sellerProductInfo .seller-extended .sell-count");
+        const sellCountText = sellCountElement.getAttribute("data-bs-original-title");
+        const numbers = sellCountText.match(/\d+/g);
+        const [sales, availableItems] = numbers.map(Number);
 
-        rivalSellers.push({ quantity: quantity, price: price });
+        if(sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
+            rivalSellers.push({ quantity: quantity, price: price, sales: sales, availableItems: availableItems });
+            sellerNameElement.innerText = "🤺 " + sellerNameElement.innerText;
+        }
     }
 
     // Sort sellers by price in ascending order
