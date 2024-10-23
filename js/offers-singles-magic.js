@@ -1,80 +1,130 @@
+async function waitFor(searchElement, selector, attribute, interval = 100, timeout = 5000) {
+    const startTime = Date.now();
 
-function updateContentOfMagicCard(articleRow, collection) {
-    const image = articleRow.querySelector("div.col-thumbnail img");
-    const mkmId = image.getAttribute("mkmId");
-
-    const mkmProduct = productdata.products[mkmId];
-    const cardname = mkmProduct.name;
-    const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
-    cardNameElement.style.display = "-webkit-box"; // enables line break
-
-    scryfallRequest(`https://api.scryfall.com/cards/named?exact=${mkmProduct.name}`).then(scryfallCard => {
-        if (scryfallCard == undefined) {
-            cardNameElement.append(document.createElement("br"));
-            const errorElement = document.createElement("div")
-            errorElement.style = "display: inline-block";
-            cardNameElement.append(errorElement);
-            errorElement.innerText = `Card with name ${cardname} not found`;
-        } else {
-            var legalInAtLeastOne = false;
-            var anySelected = true;
-            for (var format in formats) {
-                if (formats[format].hideIfNotLegalIn) {
-                    anySelected = false;
-                    if (scryfallCard.legalities[format] == 'legal') {
-                        legalInAtLeastOne = true;
-                        break;
-                    }
-                }
+    return new Promise((resolve, reject) => {
+        const timer = setInterval(() => {
+            const element = searchElement.querySelector(selector);
+            if (element && element.hasAttribute(attribute)) {
+                clearInterval(timer); // Stop polling
+                resolve(element); // Resolve the promise with the found element
             }
-            if (anySelected || legalInAtLeastOne) {
-                checkOwnership(collection, scryfallCard)
-                    .then(elements => {
-                        cardNameElement.append(document.createElement("br"));
-                        cardNameElement.append(elements);
-                    });
-            } else {
-                articleRow.style = "display: none";
+
+            // Stop after a certain timeout
+            if (Date.now() - startTime > timeout) {
+                clearInterval(timer);
+                reject(new Error(`Attribute "${attribute}" not found on element "${selector}" within ${timeout}ms`));
             }
-        }
+        }, interval);
     });
-
 }
 
-function updateMagicContent(collection) {
+function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise) {
+    mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
+        .then(image => image.getAttribute("mkmId"));
+    
+    Promise.all([mkmIdPromise, pricePromise]).then(([mkmId, prices]) => {
+        const [pricedata, productdata] = prices;
+
+        const mkmProduct = productdata.products[mkmId];
+        const cardname = mkmProduct.name;
+        const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
+        cardNameElement.style.display = "-webkit-box"; // enables line break
+
+        scryfallSearch(cardname).then(result => result.data)
+            .then(scryfallCards => {
+                console.log(scryfallCards);
+
+                formatsPromise.then(formats => {
+                    var legalInAtLeastOne = false;
+                    var anySelected = true;
+                    for (var format in formats) {
+                        if (formats[format].hideIfNotLegalIn) {
+                            anySelected = false;
+                            if (scryfallCards[0].legalities[format] == 'legal') {
+                                legalInAtLeastOne = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (anySelected || legalInAtLeastOne) {
+                        collectionPromise.then(collection => {
+                            checkOwnership(collection, cardname, mkmId, scryfallCards, formats)
+                                .then(elements => {
+                                    cardNameElement.append(document.createElement("br"));
+                                    cardNameElement.append(elements);
+                                });
+                        })
+                    } else {
+                        articleRow.style = "display: none";
+                    }
+                });
+            })
+            .catch(error => {
+                cardNameElement.append(document.createElement("br"));
+                const errorElement = document.createElement("div")
+                errorElement.style = "display: inline-block";
+                cardNameElement.append(errorElement);
+                if (error.status == 404) {
+                    errorElement.innerText = `'${cardname}' not found on scryfall`;
+                } else {
+                    errorElement.innerText = error.details;
+                }
+                console.error(cardname, error);
+            });
+    });
+}
+
+
+
+function updateMagicContent(pricePromise, collectionPromise, formatsPromise) {
     const table = document.getElementById("UserOffersTable"); // div
     const articleRows = table.getElementsByClassName("article-row");
     for (const articleRow of articleRows) {
-        updateContentOfMagicCard(articleRow, collection);
+        try {
+            updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise);
+        } catch (error) {
+            console.error(error, articleRow);
+        }
     }
 }
 
-async function checkOwnership(collection, scryfallCard) {
+async function checkOwnership(collection, cardname, mkmId, scryfallCards, formats) {
     const element = document.createElement('div')
     element.style = "display: inline-block";
     element.style.fontSize = "12px";
 
+    const singleCard = scryfallCards[0];
+
     const commander = document.createElement('div');
     commander.innerText = `EDHREC Rank: `;
     element.appendChild(commander);
-    if (scryfallCard.legalities.commander == 'legal') {
-        commander.innerText += ' ' + scryfallCard.edhrec_rank;
+    if (singleCard.legalities.commander == 'legal') {
+        commander.innerText += ' ' + singleCard.edhrec_rank;
     } else {
-        commander.innerText += scryfallCard.legalities.commander;
+        commander.innerText += singleCard.legalities.commander;
     }
 
     for (var format in formats) {
         const mtgtop8 = formats[format].mtgtop8;
         if (mtgtop8) {
-            element.appendChild(formatStaple(scryfallCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
+            element.appendChild(formatStaple(singleCard, formatsMapping[format].display, formatsMapping[format].mtgtop8key));
         }
     }
 
     var str = '';
     if (collection) {
-        const collectionCards = await scryfallRequest(scryfallCard.prints_search_uri).then(result => result.data).then(scryfallCards =>
-            scryfallCards.map(scryfallCard => collection[scryfallCard.id])
-        ).then(cards => cards.filter(item => item !== undefined).flat().filter(card => card['Binder Type'] != 'list'));
+        const collectionCards = scryfallCards
+            .map(scryfallCard => {
+                const collectionCard = collection[scryfallCard.id];
+                if(collectionCard) {
+                    collectionCard.cardmarket_id = scryfallCard.cardmarket_id;
+                }
+                return collectionCard;
+            })
+            .filter(item => item)
+            .flat()
+            .filter(card => card['Binder Type'] != 'list');
         if (collectionCards.length == 0) {
             str += 'unowned';
         } else {
@@ -90,7 +140,7 @@ async function checkOwnership(collection, scryfallCard) {
 
             for (let collCard of collectionCards) {
                 sum[collCard.Language] += parseInt(collCard.Quantity);
-                if (collCard["Scryfall ID"] == scryfallCard.id) {
+                if (collCard.cardmarket_id == mkmId) {
                     sumPrinting[collCard.Language] += parseInt(collCard.Quantity);
                 }
             }
@@ -266,19 +316,27 @@ const formatsMapping = {
     }
 };
 
-var formats = formatsDefault;
-
+async function getCollection() {
+    const localCache = await browser.storage.local.get(['collection']);
+    return localCache.collection; // This directly returns the collection
+}
+async function getFormats() {
+    const syncCache = await browser.storage.sync.get(['formats']);
+    let formats;
+    if (syncCache.formats) {
+        formats = syncCache.formats;
+    } else {
+        formats = formatsDefault;
+    }
+    return formats;
+}
 
 (async function main() {
     console.log("offers-singles-magic.js");
-    const [pricedata, productdata] = await getCardmarketData();
+    // const [pricedata, productdata] = await getCardmarketData();
+    const pricePromise = getCardmarketData();
+    const collectionPromise = getCollection();
+    const formatsPromise = getFormats();
 
-    const localCache = await browser.storage.local.get(['collection']);
-    const syncCache = await browser.storage.sync.get(['formats']);
-    
-    const collection = localCache.collection;
-    if (syncCache.formats) {
-        formats = syncCache.formats;
-    }
-    updateMagicContent(collection);
+    updateMagicContent(pricePromise, collectionPromise, formatsPromise);
 })();

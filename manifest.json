@@ -86,7 +86,7 @@
         },
         {
             "matches": [
-                "https://www.cardmarket.com/*/Magic/Orders/Sales/Paid"
+                "https://www.cardmarket.com/*/Orders/Sales/Paid"
             ],
             "js": [
                 "js/sales-paid.js"

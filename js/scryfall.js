@@ -52,20 +52,21 @@ async function getScryfallCardFromImage(theImage) {
 
 // to get legality
 async function cardById(scryfallId) {
-    return scryfallRequest(`https://api.scryfall.com/cards/${scryfallId}`);
+    return scryfallRequest(`/cards/${scryfallId}`);
 }
 
-async function scryfallRequest(url) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Network response was not ok', response);
-        }
-        const scryfallCard = await response.json();
-        return scryfallCard;
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error; // Re-throw the error for handling at the caller's level
+async function scryfallSearch(query) {
+    return scryfallRequest(`/cards/search?unique=prints&q=${query}`);
+}
+
+async function scryfallRequest(path) {
+    console.trace("Fetch: ", path);
+    const response = await fetch(`https://api.scryfall.com${path}`);
+    const json = await response.json();
+    if (response.ok) {
+        return json; // aka scryfallCard
+    } else {
+        throw json;
     }
 }
 
@@ -74,7 +75,7 @@ async function generateCardmarketUrl(manaBoxCard) {
     
     if(['7ED'].includes(manaBoxCard['Set code'])) {
         // is:${manaBoxCard['Foil'] == 'normal' ? 'non-foil' : manaBoxCard['Foil']}
-        const card = await scryfallRequest(`https://api.scryfall.com/cards/search?q=s:${manaBoxCard['Set code']} cn:${manaBoxCard['Collector number'].replace('★', '')} is:non-foil`);
+        const card = await scryfallRequest(`/cards/search?q=s:${manaBoxCard['Set code']} cn:${manaBoxCard['Collector number'].replace('★', '')} is:non-foil`);
         scryfallCard = card['data'][0];
     }
 
