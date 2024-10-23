@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.6.4",
+    "version": "1.7.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [],
