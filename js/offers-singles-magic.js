@@ -18,6 +18,10 @@ async function waitFor(searchElement, selector, attribute, interval = 100, timeo
     });
 }
 
+function removeDiacritics(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise, ofXDecksPromise) {
     mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
         .then(image => image.getAttribute("mkmId"));
@@ -211,11 +215,11 @@ function parseDecksMatching(html) {
 mtgtop8_cache = {};
 
 async function mtgtop8(cardObject, formatKey, mainboard, sideboard) {
-    var cardname;
-    cardname = cardObject.name;
+    var cardname = cardObject.name;
     if (cardObject.card_faces && cardObject.layout != 'split') {
         cardname = cardObject.card_faces[0].name;
     }
+    cardname = removeDiacritics(cardname);
     const url = `https://mtgtop8.com/search?cards=${cardname}&format=${formatKey}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=${getDateSixMonthsAgo()}`;
     if (url in mtgtop8_cache) {
         var decks_matching = mtgtop8_cache[url];
@@ -262,7 +266,7 @@ function formatStaple(cardObject, format, ofXDecksPromise) {
         const divider = document.createElement('div');
         divider.innerHTML = "&nbsp;/&nbsp;";
         const side = document.createElement('div');
-        
+
         formatElement.appendChild(main);
         formatElement.appendChild(divider);
         formatElement.appendChild(side);
