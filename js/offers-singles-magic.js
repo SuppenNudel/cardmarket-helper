@@ -24,7 +24,7 @@ function removeDiacritics(str) {
 
 function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise, ofXDecksPromise) {
     mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
-        .then(image => image.getAttribute("mkmId"));
+        .then(image => Number(image.getAttribute("mkmId")));
 
     Promise.all([mkmIdPromise, pricePromise]).then(([mkmId, prices]) => {
         const [pricedata, productdata] = prices;
@@ -123,6 +123,28 @@ async function getOfXDecks(formatKey) {
     return decks_matching;
 }
 
+function sumUp(collectionCardList) {
+    let sum = {}
+
+    for (let collCard of collectionCardList) {
+        if (!(collCard.Language in sum)) {
+            sum[collCard.Language] = 0;
+        }
+        sum[collCard.Language] += parseInt(collCard.Quantity);
+    }
+    // Initialize a sum variable
+    let total = 0;
+
+    // Format as a string and sum the values simultaneously
+    const result = Object.entries(sum)
+        .map(([key, value]) => {
+            total += value; // Sum the values
+            return `${key}: ${value}`; // Format each entry
+        })
+        .join(', '); // Join them with commas
+    return `${result} => ${total}`;
+}
+
 async function checkOwnership(collection, cardname, mkmId, scryfallCards, formats, ofXDecksPromise) {
     const element = document.createElement('div')
     element.style = "display: inline-block";
@@ -148,41 +170,42 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards, format
 
     var str = '';
     if (collection) {
-        const collectionCards = scryfallCards
-            .map(scryfallCard => {
-                const collectionCard = collection[scryfallCard.id];
-                if (collectionCard) {
-                    collectionCard.cardmarket_id = scryfallCard.cardmarket_id;
+        const cardsWithThatNameOwned = []
+        let count = 0;
+        for (const collectionCardList of Object.values(collection)) {
+            for (const card of collectionCardList) {
+                const { Name, Quantity, "Binder Type": binderType } = card; // Destructuring for easier access
+
+                if (Name === cardname && binderType !== "list") {
+                    cardsWithThatNameOwned.push(card);
+                    count += Number(Quantity); // Using Number for better readability
                 }
-                return collectionCard;
-            })
-            .filter(item => item)
-            .flat()
-            .filter(card => card['Binder Type'] != 'list');
-        if (collectionCards.length == 0) {
-            str += 'unowned';
+            }
+        }
+
+        if (cardsWithThatNameOwned.length == 0) {
+            str = 'unowned';
         } else {
-            let sum = {
-                'de': 0,
-                'en': 0
-            }
+            const nameStr = sumUp(cardsWithThatNameOwned);
 
-            let sumPrinting = {
-                'de': 0,
-                'en': 0
-            }
-
-            for (let collCard of collectionCards) {
-                sum[collCard.Language] += parseInt(collCard.Quantity);
-                if (collCard.cardmarket_id == mkmId) {
-                    sumPrinting[collCard.Language] += parseInt(collCard.Quantity);
+            let printingStr = '...'
+            const scryfallCard = await cardByMkmId(mkmId);
+            if(scryfallCard && scryfallCard.object == "card") {
+                const collectionCards = collection[scryfallCard.id];
+                console.log(collectionCards)
+                if(collectionCards) {
+                    printingStr = sumUp(collectionCards);
+                } else {
+                    printingStr = 'unowned'
                 }
+            } else {
+                printingStr = scryfallCard.details;
             }
-            str += `${sum.en + sum.de} (en: ${sum.en}, de: ${sum.de})`
-                + ` // printing: ${sumPrinting.en + sumPrinting.de} (en: ${sumPrinting.en}, de: ${sumPrinting.de})`;
+            str = `all printings: ${nameStr}\nthis printing: ${printingStr}`;
+            // + ` // printing: ${sumPrinting.en + sumPrinting.de} (en: ${sumPrinting.en}, de: ${sumPrinting.de})`;
         }
     } else {
-        str += '<collection not loaded>';
+        str = '<collection not loaded>';
     }
     // return str;
     txt = document.createElement('div');

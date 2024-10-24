@@ -56,7 +56,7 @@ async function cardById(scryfallId) {
 }
 
 async function scryfallSearch(query) {
-    return scryfallRequest(`/cards/search?unique=prints&q=${query}`);
+    return scryfallRequest(`/cards/search?unique=prints&q=!"${query}"`);
 }
 
 async function scryfallRequest(path) {
@@ -100,3 +100,5 @@ async function generateCardmarketUrl(manaBoxCard) {
 
     return url.toString();
 }
+
+console.log("scryfall.js");
