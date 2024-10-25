@@ -77,7 +77,19 @@
         },
         {
             "matches": [
+                "https://www.cardmarket.com/*/*/Orders/*"
+            ],
+            "js": [
+                "lib/papaparse.min.js",
+                "js/export-articles.js"
+            ]
+        },
+        {
+            "matches": [
                 "https://www.cardmarket.com/*/Magic/Orders/*"
+            ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Orders/Sales/Paid"
             ],
             "js": [
                 "js/get-thumbnail.js",
