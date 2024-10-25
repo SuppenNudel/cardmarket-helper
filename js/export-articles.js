@@ -29,6 +29,10 @@ function modifyCsvData(csvContent) {
     return adjustedCsv;
 }
 
+function getSellerName() {
+    return document.querySelector("#SellerBuyerInfo span.seller-name").textContent;
+}
+
 function addExportButton() {
     // Create a new button for custom download
     const collapsibleExportElement = document.getElementById("collapsibleExport");
@@ -37,8 +41,9 @@ function addExportButton() {
     }
     const exportButton = document.createElement("input");
     exportButton.type = "submit";
-    exportButton.title = "Download Adjusted CSV";
-    exportButton.value = "Download Adjusted CSV";
+    const title = "Export Adjusted"
+    exportButton.title = title;
+    exportButton.value = title;
     exportButton.classList = "btn my-2 btn-sm btn-outline-primary";
     const containerDiv = document.createElement("div");
     containerDiv.classList = "d-grid";
@@ -76,7 +81,8 @@ function addExportButton() {
             // Create an invisible link, set the href to the blob, and trigger download
             const link = document.createElement("a");
             link.href = downloadUrl;
-            link.download = "adjusted_file.csv";
+            const sellerName = getSellerName();
+            link.download = `ArticlesFromShipment${idShipment}_from_${sellerName}.csv`;
             document.body.appendChild(link);
             link.click();
 
@@ -91,6 +97,7 @@ function addExportButton() {
 
 (async function main() {
     console.log("export-articles.js");
+    console.log(getSellerName());
 
     addExportButton();
 })();
