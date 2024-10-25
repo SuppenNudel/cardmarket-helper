@@ -55,8 +55,6 @@ function makeAnnouncement(text, version) {
     browser.storage.local.get(['lastAckedVersion'])
         .then((result) => {
             const lastAckedVersion = result.lastAckedVersion;
-            console.log('Last acknowledged version: ', lastAckedVersion);
-            console.log('Current version: ', version);
             if(!lastAckedVersion || lastAckedVersion != version) {
                 makeAnnouncement(`Cardmarket Assistant, new Version: ${version}`, version);
             }

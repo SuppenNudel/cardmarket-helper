@@ -69,7 +69,6 @@ function updateStorage(orderId, timestamp) {
         // Save the updated object back to storage
         return browser.storage.sync.set({ orders: orders });
     }).then(() => {
-        console.log('Object updated successfully');
         updateTimeline(timestamp);
         updateButton(orderId, timestamp);
     }).catch(error => {
@@ -188,12 +187,9 @@ function collectionLoaded(collection) {
             let orders = result.orders || {}; // Get the current object or use an empty object if not found
             const orderId = document.querySelector("div.page-title-container h1").textContent.match(/#(\d+)/)[1];
             const order = orders[orderId];
-            console.log("order", order);
             const timestamp = order ? order.timestamp : null;
             addPackedButton(orderId, timestamp);
             addToTimeline(timestamp);
-        }).then(() => {
-            console.log('Object updated successfully');
         }).catch(error => {
             console.error('Error updating object:', error);
         });
@@ -202,7 +198,6 @@ function collectionLoaded(collection) {
     browser.storage.local.get('collection')
         .then((result) => {
             const collection = result.collection;
-            console.log('Retrieved collection data');
             if (collection) {
                 collectionLoaded(collection);
             } else {

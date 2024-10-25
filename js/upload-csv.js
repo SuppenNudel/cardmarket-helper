@@ -79,7 +79,6 @@ async function parseCsvAndSave(file, fileContent) {
     browser.storage.local.get('filename')
         .then((result) => {
             const filename = result.filename;
-            console.log('Filename:', filename);
             filenameDiv.textContent = filename;
         })
         .catch((error) => {

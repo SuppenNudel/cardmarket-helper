@@ -17,10 +17,7 @@ function packedLoaded(orders) {
     console.log("sales-paid.js");
     browser.storage.sync.get('orders').then(result => {
         let orders = result.orders || {}; // Get the current object or use an empty object if not found
-        console.log('orders', orders);
         packedLoaded(orders);
-    }).then(() => {
-        console.log('Object updated successfully');
     }).catch(error => {
         console.error('Error updating object:', error);
     });
