@@ -76,6 +76,30 @@ const CONDITION_MAP_ID = {
     "poor": 7
 }
 
+function waitForAttribute(element, attributeName) {
+    return new Promise((resolve) => {
+        // Check if the attribute is already present
+        if (element.hasAttribute(attributeName)) {
+            resolve(element);
+            return;
+        }
+
+        // Set up the MutationObserver to watch for attribute changes
+        const observer = new MutationObserver((mutations) => {
+            for (let mutation of mutations) {
+                if (mutation.type === "attributes" && mutation.attributeName === attributeName) {
+                    observer.disconnect(); // Stop observing
+                    resolve(element); // Resolve the promise
+                    return;
+                }
+            }
+        });
+
+        // Start observing the target element for attribute changes
+        observer.observe(element, { attributes: true });
+    });
+}
+
 function calculateMedian(numbers) {
     numbers.sort(function (a, b) {
         return a - b;
@@ -140,13 +164,20 @@ function calcMyPrice(mkmid) {
         const price = parseCurrencyStringToDouble(priceContainer.innerText);
         const quantity = row.getElementsByClassName("col-offer")[0].getElementsByClassName("item-count")[0].innerText;
         const sellCountElement = row.querySelector(".col-sellerProductInfo .seller-extended .sell-count");
-        const sellCountText = sellCountElement.getAttribute("data-bs-original-title");
-        const numbers = sellCountText.match(/\d+/g);
-        const [sales, availableItems] = numbers.map(Number);
+        let sellCountText = sellCountElement.getAttribute("data-bs-original-title");
+        if (!sellCountText) {
+            sellCountText = sellCountElement.getAttribute("title");
+        }
+        if (sellCountText) {
+            const numbers = sellCountText.match(/\d+/g);
+            const [sales, availableItems] = numbers.map(Number);
 
-        if(sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
-            rivalSellers.push({ quantity: quantity, price: price, sales: sales, availableItems: availableItems });
-            sellerNameElement.innerText = "🤺 " + sellerNameElement.innerText;
+            if (sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
+                rivalSellers.push({ quantity: quantity, price: price, sales: sales, availableItems: availableItems });
+                sellerNameElement.innerText = "🤺 " + sellerNameElement.innerText;
+            }
+        } else {
+            console.log("couln't find sellCountData for ", sellerNameElement.textContent);
         }
     }
 
@@ -154,19 +185,19 @@ function calcMyPrice(mkmid) {
     rivalSellers.sort((a, b) => a.price - b.price);
 
     let desiredPrice = 0;
-    if(rivalSellers.length > 0) {
+    if (rivalSellers.length > 0) {
         desiredPrice = rivalSellers[0].price - 0.01; // Start just below the lowest price
-        
+
         for (let i = 0; i < rivalSellers.length - 1; i++) {
             let currentSeller = rivalSellers[i];
             let nextSeller = rivalSellers[i + 1];
-            
+
             // Check for high quantity sellers and set price below theirs
             if (currentSeller.quantity > maxQuantityThreshold) {
                 desiredPrice = currentSeller.price;
                 break;
             }
-            
+
             // Calculate relative incline
             let relativeIncline = (nextSeller.price - currentSeller.price) / currentSeller.price;
             if (relativeIncline >= inclinePercentage) {
@@ -216,14 +247,14 @@ var language = parts[1]; // Assuming "de" is at index 1
 
 function checkForRedirect(newURL) {
     const newSplit = new URL(newURL).pathname.split("/");
-    for(idx in parts) {
-        if(idx != 1 && newSplit[idx] != parts[idx]) {
+    for (idx in parts) {
+        if (idx != 1 && newSplit[idx] != parts[idx]) {
             return true;
         }
     }
     const currentIsFoil = url.searchParams.get('isFoil');
     const newIsFoil = new URL(newURL).searchParams.get('isFoil');
-    if(currentIsFoil != newIsFoil) {
+    if (currentIsFoil != newIsFoil) {
         return true;
     }
     return false;
@@ -310,7 +341,7 @@ async function generateTable(cards) { // id of same printing
                     if (newURL) {
                         // compare new url to currentUrl
                         const needRedirect = checkForRedirect(newURL);
-                        if(needRedirect) {
+                        if (needRedirect) {
                             link = document.createElement("a");
                             link.innerText = "Go To";
                             // Get the current URL
@@ -402,24 +433,25 @@ async function generateTable(cards) { // id of same printing
                 }
                 if (key == "Purchase price") {
                     td.textContent = parseFloat(td.textContent).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-                    if (myPrice > value) {;
-                        td.textContent = "📈 " +td.textContent;
+                    if (myPrice > value) {
+                        ;
+                        td.textContent = "📈 " + td.textContent;
                     } else {
-                        td.textContent = "📉 " +td.textContent;
+                        td.textContent = "📉 " + td.textContent;
                     }
                 }
                 if (key == "Set code") {
-                    td.textContent = " "+value;
+                    td.textContent = " " + value;
                     let setSymbol = document.createElement("i");
                     const setCode = card['Set code'];
                     let ssCode;
-                    if(setCode == 'PLST') {
+                    if (setCode == 'PLST') {
                         ssCode = card['Collector number'].split('-')[0].toLowerCase();
-                    } else if(['PPP1', 'PSS2', 'J14', 'PF19'].includes(setCode)) {
+                    } else if (['PPP1', 'PSS2', 'J14', 'PF19'].includes(setCode)) {
                         ssCode = 'sld';
-                    } else if(setCode == '4BB') {
+                    } else if (setCode == '4BB') {
                         ssCode = '4ed';
-                    } else if(setCode == 'PALP') {
+                    } else if (setCode == 'PALP') {
                         ssCode = 'papac';
                     } else {
                         ssCode = value.toLowerCase();

@@ -12,9 +12,25 @@ async function cardByMkmId(mkmId) {
     var response;
     if (mkmId in mkmToScryfallIds) {
         const scryfallId = mkmToScryfallIds[mkmId]
-        response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`);
+        response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
+                    'Accept': '*/*'
+                }
+            }
+        );
     } else {
-        response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`);
+        response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
+                    'Accept': '*/*'
+                }
+            }
+        );
     }
     const cardObject = await response.json();
     if (mkmId in mkmToScryfallIds && cardObject.object == "card" && cardObject.cardmarket_id) {
@@ -29,7 +45,7 @@ const notRotKeywords = ["Aftermath"];
 
 function rotateCard(theImage, scryfallCard) {
     const containsAny = scryfallCard.keywords.some(item => notRotKeywords.includes(item));
-    if(!containsAny) {
+    if (!containsAny) {
         if (rot90Layout.includes(scryfallCard.layout)) {
             theImage.style = "transform: rotate(90deg);";
         } else if (rot270Layout.includes(scryfallCard.layout)) {
@@ -45,7 +61,7 @@ async function getScryfallCardFromImage(theImage) {
     }
     const scryfallCard = await cardByMkmId(mkmId);
     //rotateCard(theImage, scryfallCard);
-    if(scryfallCard.id) {
+    if (scryfallCard.id) {
         return scryfallCard;
     }
 }
@@ -60,7 +76,15 @@ async function scryfallSearch(query) {
 }
 
 async function scryfallRequest(path) {
-    const response = await fetch(`https://api.scryfall.com${path}`);
+    const response = await fetch(`https://api.scryfall.com${path}`,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
+                'Accept': '*/*'
+            }
+        }
+    );
     const json = await response.json();
     if (response.ok) {
         return json; // aka scryfallCard
@@ -72,7 +96,7 @@ async function scryfallRequest(path) {
 async function generateCardmarketUrl(manaBoxCard) {
     var scryfallCard = await cardById(manaBoxCard['Scryfall ID']);
     
-    if(['7ED'].includes(manaBoxCard['Set code'])) {
+    if (['7ED'].includes(manaBoxCard['Set code'])) {
         // is:${manaBoxCard['Foil'] == 'normal' ? 'non-foil' : manaBoxCard['Foil']}
         const card = await scryfallRequest(`/cards/search?q=s:${manaBoxCard['Set code']} cn:${manaBoxCard['Collector number'].replace('★', '')} is:non-foil`);
         scryfallCard = card['data'][0];
@@ -80,11 +104,11 @@ async function generateCardmarketUrl(manaBoxCard) {
 
     var cardmarketUrl = scryfallCard['purchase_uris']['cardmarket'];
 
-    if(cardmarketUrl.includes('Search')) {
-        if(scryfallIdToUrls[scryfallCard.id]) {
+    if (cardmarketUrl.includes('Search')) {
+        if (scryfallIdToUrls[scryfallCard.id]) {
             cardmarketUrl = scryfallIdToUrls[scryfallCard.id];
-        } else if(manaBoxCard['Set code'] == "GN3") {
-            cardmarketUrl = `https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ','-')}`;
+        } else if (manaBoxCard['Set code'] == "GN3") {
+            cardmarketUrl = `https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ', '-')}`;
         } else {
             return null;
         }
@@ -92,7 +116,7 @@ async function generateCardmarketUrl(manaBoxCard) {
     var url = new URL(cardmarketUrl);
     
     var currentURL = new URL(window.location.href);
-    currentURL.searchParams.forEach(function(value, key) {
+    currentURL.searchParams.forEach(function (value, key) {
         url.searchParams.append(key, value);
     });
     

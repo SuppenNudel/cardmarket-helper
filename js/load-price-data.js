@@ -22,6 +22,7 @@ const cardGames = {
 
 const KEY_PRICEDATA = 'pricedata';
 const KEY_PRODUCTDATA = 'productdata';
+const KEY_NON_SINGLES = 'nonsingles';
 
 function getCardmarketDataUrl(key, gameId) {
     switch (key) {
@@ -29,6 +30,8 @@ function getCardmarketDataUrl(key, gameId) {
             return `https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_${gameId}.json`;
         case KEY_PRODUCTDATA:
             return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_${gameId}.json`;
+        case KEY_NON_SINGLES:
+            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_${gameId}.json`;
         default:
             break;
     }
