@@ -22,21 +22,21 @@ function removeDiacritics(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise, ofXDecksPromise) {
-    mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
-        .then(image => Number(image.getAttribute("mkmId")));
+function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise) {
+    return new Promise((resolve, reject) => {  // Return a Promise
+        mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
+            .then(image => Number(image.getAttribute("mkmId")));
 
-    Promise.all([mkmIdPromise, pricePromise]).then(([mkmId, prices]) => {
-        const [pricedata, productdata] = prices;
+        Promise.all([mkmIdPromise, pricePromise]).then(([mkmId, prices]) => {
+            const [pricedata, productdata] = prices;
 
-        const mkmProduct = productdata.products[mkmId];
-        const cardname = mkmProduct.name;
-        const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
-        cardNameElement.style.display = "-webkit-box"; // enables line break
+            const mkmProduct = productdata.products[mkmId];
+            const cardname = mkmProduct.name;
+            const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
+            cardNameElement.style.display = "-webkit-box"; // enables line break
 
-        scryfallSearch(cardname).then(result => result.data)
-            .then(scryfallCards => {
-                formatsPromise.then(formats => {
+            scryfallSearch(cardname).then(result => result.data)
+                .then(scryfallCards => {
                     var legalInAtLeastOne = false;
                     var anySelected = true;
                     for (var format in formats) {
@@ -51,76 +51,100 @@ function updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, f
 
                     if (anySelected || legalInAtLeastOne) {
                         collectionPromise.then(collection => {
-                            checkOwnership(collection, cardname, mkmId, scryfallCards, formats, ofXDecksPromise)
+                            checkOwnership(collection, cardname, mkmId, scryfallCards, formats)
                                 .then(elements => {
                                     cardNameElement.append(document.createElement("br"));
                                     cardNameElement.append(elements);
+                                    const createdElement = elements; // Store created element
+                                    resolve({ card: scryfallCards[0], createdElement }); // Resolve with both values
                                 });
-                        })
+                        });
                     } else {
                         articleRow.style = "display: none";
+                        resolve({ card: scryfallCards[0], createdElement: null }); // Return null for createdElement when row is hidden
                     }
+                })
+                .catch(error => {
+                    cardNameElement.append(document.createElement("br"));
+                    const errorElement = document.createElement("div")
+                    errorElement.style = "display: inline-block";
+                    cardNameElement.append(errorElement);
+                    if (error.status == 404) {
+                        errorElement.innerText = `'${cardname}' not found on scryfall`;
+                    } else {
+                        errorElement.innerText = error.details;
+                    }
+                    // console.error(cardname, error);
+                    reject(error); // Reject the promise if there's an error
                 });
-            })
-            .catch(error => {
-                cardNameElement.append(document.createElement("br"));
-                const errorElement = document.createElement("div")
-                errorElement.style = "display: inline-block";
-                cardNameElement.append(errorElement);
-                if (error.status == 404) {
-                    errorElement.innerText = `'${cardname}' not found on scryfall`;
-                } else {
-                    errorElement.innerText = error.details;
-                }
-                console.error(cardname, error);
-            });
+        });
     });
 }
 
+async function getOfXDecks(format) {
+    description = await fetchDatabaseDescription(format.formatPageId);
+    deckCount = parseDecksCount(description);
+    return deckCount;
+}
 
-
-function updateMagicContent(pricePromise, collectionPromise, formatsPromise) {
+async function updateMagicContent(pricePromise, collectionPromise) {
     const table = document.getElementById("UserOffersTable"); // div
     const articleRows = table.getElementsByClassName("article-row");
 
-    ofXDecksPromise = formatsPromise.then(async formats => {
-        ofXDecks = {}
-        for (const format in formats) {
-            formatKey = formatsMapping[format].mtgtop8key;
-            deckCount = await getOfXDecks(formatKey);
-            ofXDecks[formatKey] = deckCount;
-        }
-        return ofXDecks;
+    ofXDecks = {}
+    for (const format in formats) {
+        deckCount = await getOfXDecks(formats[format]);
+        ofXDecks[format] = deckCount;
+    }
+
+    const cardMap = new Map();  // Map to store card and createdElement mapped to each articleRow
+    const cardNamesSet = new Set();  // Set to store unique cardnames
+
+    const articleRowsArray = Array.from(articleRows);
+
+    const promises = articleRowsArray.map(articleRow => {
+        return updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, ofXDecks)
+            .then(({ card, createdElement }) => {
+                if (card && card.name) {
+                    cardNamesSet.add(card.name);  // Add the card name to the Set
+                }
+                cardMap.set(articleRow, { card, createdElement });  // Map articleRow to both card and createdElement
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
     });
 
+    Promise.all(promises)  // Wait for all promises to resolve
+        .then(async () => {
+            for (var format in formats) {
+                const formatObject = formats[format];
+                notionData = await fetchFilteredNotionData(formatObject.formatPageId, Array.from(cardNamesSet));
+                articleRowsArray.forEach(row => {
+                    const { card: scryfallCard, createdElement } = cardMap.get(row) || {};
+                    // const stapleDiv = createdElement.querySelector(".staple-info");
+                    // createdElement.appendChild(document.createElement("br"));
 
-    for (const articleRow of articleRows) {
-        try {
-            updateContentOfMagicCard(articleRow, pricePromise, collectionPromise, formatsPromise, ofXDecksPromise);
-        } catch (error) {
-            console.error(error, articleRow);
-        }
-    }
-}
-
-async function getOfXDecks(formatKey) {
-    const url = `https://mtgtop8.com/search?format=${formatKey}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&date_start=${getDateSixMonthsAgo()}`;
-    let decks_matching;
-    if (url in mtgtop8_cache) {
-        decks_matching = mtgtop8_cache[url];
-    } else {
-        const response = await fetch(url);
-        const html = await response.text();
-        if (html.includes('No match for ')) {
-            throw 'No match for ' + cardname;
-        }
-        if (html.includes('Too many cards for ')) {
-            throw 'Too many cards for ' + cardname;
-        }
-        decks_matching = parseDecksMatching(html);
-        mtgtop8_cache[url] = decks_matching;
-    }
-    return decks_matching;
+                    if (scryfallCard) {
+                        cardData = notionData[scryfallCard.name];
+                        createdElement.appendChild(formatStaple(scryfallCard, cardData, format, ofXDecks[format]));
+                    } else {
+                        div = document.createElement("div");
+                        div.textContent = "scryfall card couldn't be mapped";
+                        if (createdElement) {
+                            createdElement.appendChild(div);
+                        } else {
+                            console.error("Created Element should not be undefined")
+                        }
+                    }
+                    // console.log("Card:", card);
+                    // console.log("Created Element:", createdElement);
+                });
+            }
+        })
+        .catch(error => {
+            console.error("Error in processing article rows:", error);
+        });
 }
 
 function sumUp(collectionCardList) {
@@ -145,7 +169,7 @@ function sumUp(collectionCardList) {
     return `${result} => ${total}`;
 }
 
-async function checkOwnership(collection, cardname, mkmId, scryfallCards, formats, ofXDecksPromise) {
+async function checkOwnership(collection, cardname, mkmId, scryfallCards) {
     const element = document.createElement('div')
     element.style = "display: inline-block";
     element.style.fontSize = "12px";
@@ -159,13 +183,6 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards, format
         commander.innerText += ' ' + singleCard.edhrec_rank;
     } else {
         commander.innerText += singleCard.legalities.commander;
-    }
-
-    for (var format in formats) {
-        const mtgtop8 = formats[format].mtgtop8;
-        if (mtgtop8) {
-            element.appendChild(formatStaple(singleCard, format, ofXDecksPromise));
-        }
     }
 
     var str = '';
@@ -190,10 +207,9 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards, format
 
             let printingStr = '...'
             const scryfallCard = await cardByMkmId(mkmId);
-            if(scryfallCard && scryfallCard.object == "card") {
+            if (scryfallCard && scryfallCard.object == "card") {
                 const collectionCards = collection[scryfallCard.id];
-                console.log(collectionCards)
-                if(collectionCards) {
+                if (collectionCards) {
                     printingStr = sumUp(collectionCards);
                 } else {
                     printingStr = 'unowned'
@@ -235,32 +251,6 @@ function parseDecksMatching(html) {
     return null;
 }
 
-mtgtop8_cache = {};
-
-async function mtgtop8(cardObject, formatKey, mainboard, sideboard) {
-    var cardname = cardObject.name;
-    if (cardObject.card_faces && cardObject.layout != 'split') {
-        cardname = cardObject.card_faces[0].name;
-    }
-    cardname = removeDiacritics(cardname);
-    const url = `https://mtgtop8.com/search?cards=${cardname}&format=${formatKey}&compet_check[P]=1&compet_check[M]=1&compet_check[C]=1&MD_check=${mainboard}&SB_check=${sideboard}&date_start=${getDateSixMonthsAgo()}`;
-    if (url in mtgtop8_cache) {
-        var decks_matching = mtgtop8_cache[url];
-    } else {
-        const response = await fetch(url);
-        const html = await response.text();
-        if (html.includes('No match for ')) {
-            return 'No match for ' + cardname;
-        }
-        if (html.includes('Too many cards for ')) {
-            return 'Too many cards for ' + cardname;
-        }
-        var decks_matching = parseDecksMatching(html);
-        mtgtop8_cache[url] = decks_matching;
-    }
-    return decks_matching;
-}
-
 function getDateSixMonthsAgo() {
     const today = new Date();
     // Set the date to 6 months in the past
@@ -273,42 +263,36 @@ function getDateSixMonthsAgo() {
     return `${day}/${month}/${year}`;
 }
 
-function formatStaple(cardObject, format, ofXDecksPromise) {
-    const formatName = formatsMapping[format].display
-    const formatKey = formatsMapping[format].mtgtop8key
-
+function formatStaple(scryfallCard, cardData, format, ofXDecks) {
     const formatElement = document.createElement('div');
     formatElement.style = "display: flex";
-    formatElement.innerText = `${formatName}:`;
+    formatElement.innerText = `${format}:`;
     formatElement.innerHTML += '&nbsp;';
 
-    const legality = cardObject.legalities[formatName.toLowerCase()];
+    const legality = scryfallCard.legalities[format.toLowerCase()];
     if (legality == 'legal') {
-        const formatDecksCountElement = document.createElement('div');
         const main = document.createElement('div');
-        const divider = document.createElement('div');
-        divider.innerHTML = "&nbsp;/&nbsp;";
-        const side = document.createElement('div');
-        const divider2 = document.createElement('div');
-        divider2.innerHTML = "&nbsp;-&nbsp;";
-
         formatElement.appendChild(main);
-        formatElement.appendChild(divider);
-        formatElement.appendChild(side);
-        formatElement.appendChild(divider2);
-        formatElement.appendChild(formatDecksCountElement);
-
-
-        ofXDecksPromise.then(ofXDecks => {
-            formatDecksCountElement.innerText = ofXDecks[formatKey];
-        });
-
-        mtgtop8(cardObject, formatKey, 1, 0).then(decks_matching => {
-            main.innerText = decks_matching;
-        });
-        mtgtop8(cardObject, formatKey, 0, 1).then(decks_matching => {
-            side.innerText = decks_matching;
-        });
+        
+        if (ofXDecks) {
+            const divider = document.createElement('div');
+            divider.innerHTML = "&nbsp;/&nbsp;";
+            formatElement.appendChild(divider);
+            const side = document.createElement('div');
+            formatElement.appendChild(side);
+            const divider2 = document.createElement('div');
+            formatElement.appendChild(divider2);
+            divider2.innerHTML = "&nbsp;-&nbsp;";
+            const formatDecksCountElement = document.createElement('div');
+            formatElement.appendChild(formatDecksCountElement);
+    
+    
+            formatDecksCountElement.innerText = ofXDecks;
+            main.innerText = cardData ? cardData.occ_main : 0;
+            side.innerText = cardData ? cardData.occ_side : 0;
+        } else {
+            main.innerText = "?";
+        }
     } else {
         switch (legality) {
             case 'not_legal':
@@ -327,98 +311,62 @@ function formatStaple(cardObject, format, ofXDecksPromise) {
     return formatElement;
 }
 
-const formatsMapping = {
-    'standard': {
-        'display': 'Standard',
-        'mtgtop8key': 'ST'
-    },
-    'alchemy': {
-        'display': 'Alchemy',
-        'mtgtop8key': 'ALCH'
-    },
-    'explorer': {
-        'display': 'Explorer',
-        'mtgtop8key': 'EXP'
-    },
-    'historic': {
-        'display': 'Historic',
-        'mtgtop8key': 'HI'
-    },
-    'pioneer': {
-        'display': 'Pioneer',
-        'mtgtop8key': 'PI'
-    },
-    'modern': {
-        'display': 'Modern',
-        'mtgtop8key': 'MO'
-    },
-    'premodern': {
-        'display': 'Premodern',
-        'mtgtop8key': 'PREM'
-    },
-    'legacy': {
-        'display': 'Legacy',
-        'mtgtop8key': 'LE'
-    },
-    'vintage': {
-        'display': 'Vintage',
-        'mtgtop8key': 'VI'
-    },
-    'cEDH': {
-        'display': 'cEDH',
-        'mtgtop8key': 'cEDH'
-    },
-    'duel': {
-        'display': 'Duel Commander',
-        'mtgtop8key': 'EDH'
-    },
-    'Block': {
-        'display': 'Block',
-        'mtgtop8key': 'BL'
-    },
-    'Extended': {
-        'display': 'Extended',
-        'mtgtop8key': 'EX'
-    },
-    'pauper': {
-        'display': 'Pauper',
-        'mtgtop8key': 'PAU'
-    },
-    'Peasant': {
-        'display': 'Peasant',
-        'mtgtop8key': 'PEA'
-    },
-    'Highlander': {
-        'display': 'Highlander',
-        'mtgtop8key': 'HIGH'
-    },
-    'Canadian Highlander': {
-        'display': 'Canadian Highlander',
-        'mtgtop8key': 'CHL'
-    }
-};
-
 async function getCollection() {
     const localCache = await browser.storage.local.get(['collection']);
     return localCache.collection; // This directly returns the collection
 }
-async function getFormats() {
-    const syncCache = await browser.storage.sync.get(['formats']);
-    let formats;
-    if (syncCache.formats) {
-        formats = syncCache.formats;
-    } else {
-        formats = formatsDefault;
+
+async function getHtml(path) {
+    try {
+        const htmlFilePath = browser.runtime.getURL(path);
+        // Fetch the HTML content
+        const response = await fetch(htmlFilePath);
+        if (!response.ok) {
+            throw new Error(`Failed to load HTML file: ${response.statusText}`);
+        }
+        const htmlContent = await response.text();
+
+        return htmlContent;
+    } catch (error) {
+        console.error("Error loading HTML content:", error);
     }
-    return formats;
 }
+
+async function addFilters() {
+    const filterWrapper = document.querySelector("#FilterOffersFormWrapper");
+    const div = document.createElement("div");
+
+    const htmlContent = await getHtml("resources/table.html");
+
+    // Create a container to hold the imported HTML
+    div.innerHTML = htmlContent;
+
+    filterWrapper.append(div);
+
+    const filterTable = document.querySelector("#format-filter-table");
+
+    const template = await getHtml("resources/table-filter-tr-template.html");
+    for ([formatName, format] of Object.entries(formats)) {
+        const replaced = template.replaceAll("{{format-name}}", formatName);
+        const tr = document.createElement("tr");
+        tr.innerHTML = replaced;
+        filterTable.append(tr);
+    }
+}
+
+var formats;
+var config;
 
 (async function main() {
     console.log("offers-singles-magic.js");
+    formats = await fetchNotionDb(formatsDbId);
+    config = await browser.storage.sync.get(['config']).config;
+
+    addFilters();
+
     // const [pricedata, productdata] = await getCardmarketData();
     const pricePromise = getCardmarketData();
     const collectionPromise = getCollection();
-    const formatsPromise = getFormats();
 
-    updateMagicContent(pricePromise, collectionPromise, formatsPromise);
+    updateMagicContent(pricePromise, collectionPromise);
 })();

@@ -31,7 +31,8 @@
         "storage",
         "https://api.scryfall.com/",
         "https://mtgtop8.com/search",
-        "https://downloads.s3.cardmarket.com/"
+        "https://downloads.s3.cardmarket.com/",
+        "https://api.notion.com/"
     ],
     "web_accessible_resources": [
         "html/popup.html",
@@ -69,7 +70,6 @@
                 "https://www.cardmarket.com/*/Magic/*"
             ],
             "js": [
-                "js/defaults.js",
                 "js/scryfall.js",
                 "lib/papaparse.min.js",
                 "js/upload-csv.js"
@@ -129,6 +129,7 @@
             ],
             "js": [
                 "js/get-thumbnail.js",
+                "js/notion.js",
                 "js/offers-singles.js"
             ]
         },
@@ -138,6 +139,9 @@
             ],
             "js": [
                 "js/offers-singles-magic.js"
+            ],
+            "css": [
+                "css/popup.css"
             ]
         },
         {

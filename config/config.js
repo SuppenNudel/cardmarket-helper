@@ -25,7 +25,7 @@ async function initFormats() {
         // If 'formats' object doesn't exist yet or is empty, initialize it with default values
         if (!storageData.formats || Object.keys(storageData.formats).length === 0) {
             storageData.formats = formatsDefault;
-            await browser.storage.sync.set({ 'formats': storageData.formats });
+            // await browser.storage.sync.set({ 'formats': storageData.formats });
         }
         return storageData.formats;
     } catch (error) {
@@ -83,6 +83,7 @@ function setupThumbnailSize() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    result = fetchNotionDb(formatsDbId);
     initFormats().then(formats => {
         for(const [format, value] of Object.entries(formats)) {
             document.getElementById('mtgtop8-'+format).checked = value.mtgtop8;

@@ -18,7 +18,8 @@ async function cardByMkmId(mkmId) {
                     'Content-Type': 'application/json',
                     'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
                     'Accept': '*/*'
-                }
+                },
+                mode: 'cors'
             }
         );
     } else {
@@ -28,7 +29,8 @@ async function cardByMkmId(mkmId) {
                     'Content-Type': 'application/json',
                     'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
                     'Accept': '*/*'
-                }
+                },
+                mode: 'cors'
             }
         );
     }
@@ -82,7 +84,8 @@ async function scryfallRequest(path) {
                 'Content-Type': 'application/json',
                 'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
                 'Accept': '*/*'
-            }
+            },
+            mode: 'cors'
         }
     );
     const json = await response.json();
