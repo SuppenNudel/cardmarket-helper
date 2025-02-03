@@ -77,6 +77,56 @@ async function scryfallSearch(query) {
     return scryfallRequest(`/cards/search?unique=prints&q=!"${query}"`);
 }
 
+async function scryfallCardsCollection(cardNames) {
+    const url = "https://api.scryfall.com/cards/collection";
+    const headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
+        'Accept': '*/*',
+            mode: 'cors'
+    };
+
+    // Convert the Set of card names into an array
+    const cardNameArray = Array.from(cardNames);
+
+    // Split the card names into batches of 75
+    const batches = [];
+    while (cardNameArray.length > 0) {
+        batches.push(cardNameArray.splice(0, 75));
+    }
+
+    // Function to fetch a single batch of cards
+    const fetchBatch = async (batch) => {
+        const body = JSON.stringify({
+            identifiers: batch.map(name => ({ name })),
+        });
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: headers,
+            body: body
+        });
+
+        if (!response.ok) {
+            const errorDetails = await response.json();
+            console.error("Error Details:", errorDetails);
+            throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        }
+
+        return response.json();
+    };
+
+    // Fetch all batches and combine the results
+    const allResults = [];
+    for (const batch of batches) {
+        const result = await fetchBatch(batch);
+        allResults.push(...result.data); // `data` contains the fetched card information
+    }
+
+    return allResults;
+}
+
+
 async function scryfallRequest(path) {
     const response = await fetch(`https://api.scryfall.com${path}`,
         {
@@ -98,7 +148,7 @@ async function scryfallRequest(path) {
 
 async function generateCardmarketUrl(manaBoxCard) {
     var scryfallCard = await cardById(manaBoxCard['Scryfall ID']);
-    
+
     if (['7ED'].includes(manaBoxCard['Set code'])) {
         // is:${manaBoxCard['Foil'] == 'normal' ? 'non-foil' : manaBoxCard['Foil']}
         const card = await scryfallRequest(`/cards/search?q=s:${manaBoxCard['Set code']} cn:${manaBoxCard['Collector number'].replace('★', '')} is:non-foil`);
@@ -117,12 +167,12 @@ async function generateCardmarketUrl(manaBoxCard) {
         }
     }
     var url = new URL(cardmarketUrl);
-    
+
     var currentURL = new URL(window.location.href);
     currentURL.searchParams.forEach(function (value, key) {
         url.searchParams.append(key, value);
     });
-    
+
     url.searchParams.set('isFoil', manaBoxCard.Foil == "foil" ? 'Y' : 'N');
 
     return url.toString();
