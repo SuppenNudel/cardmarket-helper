@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "background": {
         "scripts": [],
@@ -133,6 +133,7 @@
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
             ],
             "js": [
+                "js/cardmarket-util.js",
                 "js/offers-singles-magic.js"
             ],
             "css": [

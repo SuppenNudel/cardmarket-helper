@@ -88,9 +88,10 @@ function sumUp(collectionCardList) {
 
     // Format as a string and sum the values simultaneously
     const result = Object.entries(sum)
-        .map(([key, value]) => {
+        .map(([lang, value]) => {
             total += value; // Sum the values
-            return `<li>${key}: ${value}</li>`; // Format each entry
+            const icon = createLanguageIcon(lang);
+            return `<li>${value}x ${icon.outerHTML}</li>`; // Format each entry
         })
         .join('\n'); // Join them with commas
     return `${total}<ul>${result}</ul>`;
