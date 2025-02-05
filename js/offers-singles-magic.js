@@ -45,15 +45,17 @@ async function initFields(productDataPromise) {
         cardNameElement.append(document.createElement("br"));
         cardNameElement.append(document.createElement("br"));
         const formatInfoDiv = document.createElement("div");
-        formatInfoDiv.style = "display: inline-block";
+        formatInfoDiv.style.display = "inline-block";
+        formatInfoDiv.style.verticalAlign = "top";
         formatInfoDiv.style.fontSize = "12px";
         cardNameElement.append(formatInfoDiv);
 
-        cardNameElement.append(document.createElement("br"));
-        cardNameElement.append(document.createElement("br"));
         const collectionDiv = document.createElement("div");
-        collectionDiv.style = "display: inline-block";
+        // collectionDiv.style.display = "inline-block";
+        collectionDiv.style.verticalAlign = "top";
+        collectionDiv.style.paddingLeft = "20px";
         collectionDiv.style.fontSize = "12px";
+        collectionDiv.classList.add("flex-grow-1");
         cardNameElement.append(collectionDiv);
 
         // Store the result in the articles object
@@ -72,119 +74,6 @@ async function initFields(productDataPromise) {
     return articles;
 }
 
-
-function updateContentOfMagicCard(articleRow, collectionPromise) {
-    return new Promise((resolve, reject) => {  // Return a Promise
-        mkmIdPromise = waitFor(articleRow, "div.col-thumbnail img", "mkmId")
-            .then(image => Number(image.getAttribute("mkmId")));
-
-        Promise.all([mkmIdPromise]).then(([mkmId, prices]) => {
-            const [pricedata, productdata] = prices;
-
-            const mkmProduct = productdata.products[mkmId];
-            const cardname = mkmProduct.name;
-            const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
-            cardNameElement.style.display = "-webkit-box"; // enables line break
-
-            scryfallSearch(cardname).then(result => result.data)
-                .then(scryfallCards => {
-                    var legalInAtLeastOne = false;
-                    var anySelected = true;
-                    for (const format of formats) {
-                        if (formats.hideIfNotLegalIn) {
-                            anySelected = false;
-                            if (scryfallCards[0].legalities[format] == 'legal') {
-                                legalInAtLeastOne = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (anySelected || legalInAtLeastOne) {
-                        collectionPromise.then(collection => {
-                            checkOwnership(collection, cardname, mkmId, scryfallCards, formats)
-                                .then(elements => {
-                                    cardNameElement.append(document.createElement("br"));
-                                    cardNameElement.append(elements);
-                                    const createdElement = elements; // Store created element
-                                    resolve({ card: scryfallCards[0], createdElement }); // Resolve with both values
-                                });
-                        });
-                    } else {
-                        articleRow.style = "display: none";
-                        resolve({ card: scryfallCards[0], createdElement: null }); // Return null for createdElement when row is hidden
-                    }
-                })
-                .catch(error => {
-                    cardNameElement.append(document.createElement("br"));
-                    const errorElement = document.createElement("div")
-                    errorElement.style = "display: inline-block";
-                    cardNameElement.append(errorElement);
-                    if (error.status == 404) {
-                        errorElement.innerText = `'${cardname}' not found on scryfall`;
-                    } else {
-                        errorElement.innerText = error.details;
-                    }
-                    // console.error(cardname, error);
-                    reject(error); // Reject the promise if there's an error
-                });
-        });
-    });
-}
-
-async function updateMagicContent(collectionPromise) {
-    const table = document.getElementById("UserOffersTable"); // div
-    const articleRows = table.getElementsByClassName("article-row");
-
-    const cardMap = new Map();  // Map to store card and createdElement mapped to each articleRow
-    const cardNamesSet = new Set();  // Set to store unique cardnames
-
-    const articleRowsArray = Array.from(articleRows);
-
-    const promises = articleRowsArray.map(articleRow => {
-        return updateContentOfMagicCard(articleRow, collectionPromise)
-            .then(({ card, createdElement }) => {
-                if (card && card.name) {
-                    cardNamesSet.add(card.name);  // Add the card name to the Set
-                }
-                cardMap.set(articleRow, { card, createdElement });  // Map articleRow to both card and createdElement
-            })
-            .catch(error => {
-                console.error("Error:", error);
-            });
-    });
-
-    Promise.all(promises)  // Wait for all promises to resolve
-        .then(async () => {
-            for (const format of formats) {
-                notionData = await fetchFilteredNotionData(format.formatPageId, Array.from(cardNamesSet));
-                articleRowsArray.forEach(row => {
-                    const { card: scryfallCard, createdElement } = cardMap.get(row) || {};
-                    // const stapleDiv = createdElement.querySelector(".staple-info");
-                    // createdElement.appendChild(document.createElement("br"));
-
-                    if (scryfallCard) {
-                        cardData = notionData[scryfallCard.name];
-                        createdElement.appendChild(formatStaple(scryfallCard, cardData, format.name));
-                    } else {
-                        div = document.createElement("div");
-                        div.textContent = "scryfall card couldn't be mapped";
-                        if (createdElement) {
-                            createdElement.appendChild(div);
-                        } else {
-                            console.error("Created Element should not be undefined")
-                        }
-                    }
-                    // console.log("Card:", card);
-                    // console.log("Created Element:", createdElement);
-                });
-            }
-        })
-        .catch(error => {
-            console.error("Error in processing article rows:", error);
-        });
-}
-
 function sumUp(collectionCardList) {
     let sum = {}
 
@@ -201,30 +90,18 @@ function sumUp(collectionCardList) {
     const result = Object.entries(sum)
         .map(([key, value]) => {
             total += value; // Sum the values
-            return `${key}: ${value}`; // Format each entry
+            return `<li>${key}: ${value}</li>`; // Format each entry
         })
-        .join(', '); // Join them with commas
-    return `${result} => ${total}`;
+        .join('\n'); // Join them with commas
+    return `${total}<ul>${result}</ul>`;
 }
 
-async function checkOwnership(collection, cardname, mkmId, scryfallCards) {
-    const element = document.createElement('div')
-    element.style = "display: inline-block";
-    element.style.fontSize = "12px";
-
-    const singleCard = scryfallCards[0];
-
-    const commander = document.createElement('div');
-    commander.innerText = `EDHREC Rank: `;
-    element.appendChild(commander);
-    if (singleCard.legalities.commander == 'legal') {
-        commander.innerText += ' ' + singleCard.edhrec_rank;
-    } else {
-        commander.innerText += singleCard.legalities.commander;
-    }
-
+function checkOwnership(collection, scryfallCard, cardname=null) {
     var str = '';
     if (collection) {
+        if (!cardname) {
+            cardname = scryfallCard.name;
+        }
         const cardsWithThatNameOwned = []
         let count = 0;
         for (const collectionCardList of Object.values(collection)) {
@@ -239,34 +116,32 @@ async function checkOwnership(collection, cardname, mkmId, scryfallCards) {
         }
 
         if (cardsWithThatNameOwned.length == 0) {
-            str = 'unowned';
+            str = 'not owned';
         } else {
             const nameStr = sumUp(cardsWithThatNameOwned);
 
             let printingStr = '...'
-            const scryfallCard = await cardByMkmId(mkmId);
             if (scryfallCard && scryfallCard.object == "card") {
                 const collectionCards = collection[scryfallCard.id];
                 if (collectionCards) {
                     printingStr = sumUp(collectionCards);
                 } else {
-                    printingStr = 'unowned'
+                    printingStr = 'not owned'
                 }
             } else {
-                printingStr = scryfallCard.details;
+                if(scryfallCard.code == "not_found") {
+                    printingStr = "couldn't find scryfall card with cardmarket id";
+                } else {
+                    printingStr = scryfallCard.details;
+                }
             }
-            str = `all printings: ${nameStr}\nthis printing: ${printingStr}`;
+            str = `all printings: ${nameStr}this printing: ${printingStr}`;
             // + ` // printing: ${sumPrinting.en + sumPrinting.de} (en: ${sumPrinting.en}, de: ${sumPrinting.de})`;
         }
     } else {
         str = '<collection not loaded>';
     }
-    // return str;
-    txt = document.createElement('div');
-    txt.innerText = str;
-    element.appendChild(document.createElement('br'));
-    element.appendChild(txt);
-    return element;
+    return str;
 }
 
 function initFormatInfoFields(fields, formats, config) {
@@ -325,13 +200,16 @@ function initFormatInfoFields(fields, formats, config) {
     }
 }
 
-async function fillFormatInfoFields(fields, formats) {
-    const cardNamesSet = new Set(
-        Object.values(fields).flatMap(field => [field.cardname.replace("//", "/"), field.cardname.split(/ \/?\/ /)[0]])
-    );
+function initCollectionInfoFields(fields) {
+    // for (const field of Object.values(fields)) {
+    //     const collectionElement = document.createElement('div');
+    //     const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
+        // collectionElement.classList.add('coll', classCardName);
+        // field.collectionDiv.append(collectionElement);
+    // }
+}
 
-    // show card not legal in format as soon as possible
-    var scryfallCards = await scryfallCardsCollection(cardNamesSet);
+async function fillFormatInfoFields(formats, cardNamesSet, scryfallCards) {
     for (var scryfallCard of scryfallCards) {
         for (const format of formats) {
             formatLegality(scryfallCard, format);
@@ -351,6 +229,19 @@ async function fillFormatInfoFields(fields, formats) {
                 }
             }
         });
+    }
+}
+
+async function fillCollectionInfoFields(fields, collection) {
+    for(const field of Object.values(fields)) {        
+        const scryfallCard = await cardByMkmId(field.mkmId);
+        if(scryfallCard.object == "card") {
+            const result = checkOwnership(collection, scryfallCard);
+            field.collectionDiv.innerHTML = result;
+        } else {
+            const result = checkOwnership(collection, scryfallCard, field.cardname);
+            field.collectionDiv.innerHTML = result;
+        }
     }
 }
 
@@ -472,25 +363,27 @@ async function addFilters(formats) {
     const formats = await fetchNotionDb(formatsDbId);
     const config = await browser.storage.sync.get(['config']).config;
 
-    addFilters(formats);
+    // addFilters(formats);
 
     const productDataPromise = getCachedCardmarketData(KEY_PRODUCTDATA);
     const fieldsPromise = initFields(productDataPromise);
     const collectionPromise = getCollection();
 
     fieldsPromise.then(fields => {
-        initFormatInfoFields(fields, formats, config);
-        fillFormatInfoFields(fields, formats);
+        const cardNamesSet = new Set(
+            Object.values(fields).flatMap(field => [field.cardname.replace("//", "/"), field.cardname.split(/ \/?\/ /)[0]])
+        );
+        var scryfallCards = scryfallCardsCollection(cardNamesSet);
+        
+        scryfallCards.then(scryfallCards => {
+            initFormatInfoFields(fields, formats, config);
+            fillFormatInfoFields(formats, cardNamesSet, scryfallCards);
+        });
+        
+        initCollectionInfoFields(fields);
+        collectionPromise.then(collection => {
+            fillCollectionInfoFields(fields, collection);
+        });
     });
 
-    fieldsPromise.then(fields => {
-        // initCollectionInfoFields();
-        collectionPromise.then(collection => {
-            // fillCollectionInfoFields(fields, collection);
-        });
-        for (const field of Object.values(fields)) {
-            field.collectionDiv.textContent = "Collection Info hier";
-        }
-        // updateCollectionContent(collectionPromise);
-    });
 })();
