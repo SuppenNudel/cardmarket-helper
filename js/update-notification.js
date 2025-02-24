@@ -30,9 +30,9 @@ function createAlert(text, version) {
     h4.textContent = text;
 
     const a = document.createElement("a");
-    a.href = "https://nudelforce.notion.site/Changelog-119f020626c2802883eededd33cc5fab";
+    a.href = "https://nudelforce.notion.site/e9ed9bd81c684952ade7985944f87f17";
     a.target = "_blank";
-    a.textContent = "Check out the Changelog";
+    a.textContent = "Check out the Homepage for Changelogs";
 
     divContent.append(h4, a);
 
