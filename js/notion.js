@@ -1,5 +1,5 @@
 const apiKey = "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";
-const formatsDbId = "17af020626c280ac8a46c3de06fc9305";
+const formatsDbId = "1a4f020626c280b785d8f2265c7d3eaf";
 
 async function fetchNotionDb(db_id) {
     const url = `https://api.notion.com/v1/databases/${db_id}/query`;
@@ -29,8 +29,9 @@ async function fetchNotionDb(db_id) {
             const formatPageId = mention[mention['type']].id;
             const mtgtop8key = page.properties["mtgtop8_key"].rich_text[0].plain_text;
             const scryfallkey = page.properties["scryfall_key"].rich_text[0].plain_text;
-            const order = page.properties["order"].number; // Fetching the "order" property
-            resultArray.push({ name, formatPageId, mtgtop8key, scryfallkey, order });
+            const order = page.properties["order"].number;
+            const lastUpdated = page.properties["Last Updated"].date.start;
+            resultArray.push({ name, formatPageId, mtgtop8key, scryfallkey, order, lastUpdated });
         });
 
         resultArray.sort((a, b) => a.order - b.order);
@@ -55,17 +56,29 @@ async function fetchNotionDb(db_id) {
 }
 
 
-async function fetchFilteredNotionData(db_id, card_names) {
+async function fetchFilteredNotionData(format, card_names) {
+    const db_id = format.formatPageId;
+    const lastUpdated = format.lastUpdated;
     const url = `https://api.notion.com/v1/databases/${db_id}/query`;
 
     // Create an "or" filter to match any of the provided card names
     const filter = {
-        or: card_names.map(name => ({
-            property: "Card Name", // Replace with your property name
-            rich_text: {
-                equals: name
+        and: [
+            {
+                or: card_names.map(name => ({
+                    property: "Card Name", // Replace with your actual property name
+                    rich_text: {
+                        equals: name
+                    }
+                }))
+            },
+            {
+                property: "Last Updated Page", // Replace with the actual property name
+                date: {
+                    after: lastUpdated
+                }
             }
-        }))
+        ]
     };
 
     try {
@@ -86,19 +99,23 @@ async function fetchFilteredNotionData(db_id, card_names) {
         }
 
         const data = await response.json();
-
-        // Create a map where "card name" is the key
+        
         const resultMap = {};
 
+        // Create a map where "card name" is the key
         data.results.forEach(page => {
             const cardName = page.properties["Card Name"].title[0]?.plain_text || "No Card Name";
-            const decksMain = page.properties["Decks Main"].number || 0;
-            const avgMain = page.properties["Avg Main"].number || 0;
-            const decksSide = page.properties["Decks Side"].number || 0;
-            const avgSide = page.properties["Avg Side"].number || 0;
-
-            // Use "card name" as the key and store the other properties as value
-            resultMap[cardName] = { decksMain: decksMain, avgMain: avgMain, decksSide: decksSide, avgSide: avgSide };
+            const decks = page.properties["Decks"].number || 0;
+            const avg = page.properties["Avg"].number || 0;
+            const mainboard = page.properties["Mainboard"].checkbox;
+        
+            // Ensure cardName exists in resultMap
+            if (!resultMap[cardName]) {
+                resultMap[cardName] = {};
+            }
+        
+            // Assign data to the mainboard key
+            resultMap[cardName][mainboard] = { decks: decks, avg: avg };
         });
 
         return resultMap;

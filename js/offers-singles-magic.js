@@ -218,7 +218,7 @@ async function fillFormatInfoFields(formats, cardNamesSet, scryfallCards) {
     }
 
     for (const format of formats) {
-        fetchFilteredNotionData(format.formatPageId, Array.from(cardNamesSet)).then(notionData => {
+        fetchFilteredNotionData(format, Array.from(cardNamesSet)).then(notionData => {
             for (const scryfallCard of scryfallCards) {
                 mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
                 cardData = notionData[mtgtop8Name];
@@ -286,32 +286,35 @@ function scryfallCardToMtgtop8Name(scryfallCard) {
 }
 
 function formatStaple(scryfallCard, notionData, format) {
-    cardname = scryfallCard.name;
-    mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
-    cardData = notionData[mtgtop8Name];
+    const cardname = scryfallCard.name;
+    const mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
+    const cardData = notionData[mtgtop8Name];
 
     const classCardName = cardname.replaceAll(" // ", "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
 
     const legality = scryfallCard.legalities[format.scryfallkey];
     if (legality == 'legal') {
+        mainData = cardData[true];
         const allMain = document.querySelectorAll(`.main.decks.${format.name}.${classCardName}`);
         for (main of allMain) {
-            main.innerText = cardData ? (cardData.decksMain*100).toFixed(1) +"%" : "?";
+            main.innerText = mainData ? (mainData.decks*100).toFixed(1) +"%" : "-";
         }
 
-        const allSide = document.querySelectorAll(`.side.decks.${format.name}.${classCardName}`);
-        for (side of allSide) {
-            side.innerText = cardData ? (cardData.decksSide*100).toFixed(1) +"%" : "?";
-        }
-        
         const allMainAvg = document.querySelectorAll(`.main.avg.${format.name}.${classCardName}`);
         for (main of allMainAvg) {
-            main.innerText = cardData ? cardData.avgMain : "?";
+            main.innerText = mainData ? mainData.avg : "-";
         }
+
+        sideData = cardData[false];
+        const allSide = document.querySelectorAll(`.side.decks.${format.name}.${classCardName}`);
+        for (side of allSide) {
+            side.innerText = sideData ? (sideData.decks*100).toFixed(1) +"%" : "-";
+        }
+        
 
         const allSideAvg = document.querySelectorAll(`.side.avg.${format.name}.${classCardName}`);
         for (side of allSideAvg) {
-            side.innerText = cardData ? cardData.avgSide : "?";
+            side.innerText = sideData ? sideData.avg : "-";
         }
     }
 }
