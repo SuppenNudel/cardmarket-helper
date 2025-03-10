@@ -387,7 +387,7 @@ async function addFilters(formats) {
         
         scryfallCards.then(scryfallCards => {
             initFormatInfoFields(fields, formats, config);
-            fillFormatInfoFields(formats, cardNamesSet, scryfallCards);
+            fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards);
         });
         
         initCollectionInfoFields(fields);
