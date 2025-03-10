@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.9.5",
+    "version": "1.9.6",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "browser_action": {
         "default_icon": {
