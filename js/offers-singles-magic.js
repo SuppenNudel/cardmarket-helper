@@ -145,7 +145,7 @@ function checkOwnership(collection, scryfallCard, cardname=null) {
     return str;
 }
 
-function initFormatInfoFields(fields, formats, config) {
+function initFormatInfoFields(fields, formats) {
     for (const field of Object.values(fields)) {
         for (const format of formats) {
             const formatElement = document.createElement('div');
@@ -228,13 +228,25 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
             for (const scryfallCard of scryfallCards) {
                 mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
                 cardData = notionData[mtgtop8Name];
+
+                for(const field in fields) {
+                    const cardname = fields[field].cardname;
+                    if (cardname == scryfallCard.name) {
+                        if(!fields[field]['playrate']) {
+                            fields[field]['playrate'] = {}
+                        }
+                        fields[field]['playrate'][format.name] = cardData;
+                    }
+                }
+                
                 if (cardData) {
-                    formatStaple(scryfallCard, notionData, format);
+                    formatStaple(scryfallCard, cardData, format);
                 } else {
                     // if cards in given format are not analysed, force show legality
                     formatLegality(scryfallCard, format, showLegality = true);
                 }
             }
+            updateHideOrShow(fields, formats);
         });
     }
 }
@@ -291,10 +303,10 @@ function scryfallCardToMtgtop8Name(scryfallCard) {
     return scryfallCard.name.replace("//", "/");
 }
 
-function formatStaple(scryfallCard, notionData, format) {
+function formatStaple(scryfallCard, cardData, format) {
     const cardname = scryfallCard.name;
-    const mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
-    const cardData = notionData[mtgtop8Name];
+    // const mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
+    // const cardData = notionData[mtgtop8Name];
 
     const classCardName = cardname.replaceAll(" // ", "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
 
@@ -316,7 +328,6 @@ function formatStaple(scryfallCard, notionData, format) {
         for (side of allSide) {
             side.innerText = sideData ? (sideData.decks*100).toFixed(1) +"%" : "-";
         }
-        
 
         const allSideAvg = document.querySelectorAll(`.side.avg.${format.name}.${classCardName}`);
         for (side of allSideAvg) {
@@ -346,6 +357,18 @@ async function getHtml(path) {
     }
 }
 
+function toggleFormatFilter(toggleButton, what, elementToToggle) {
+    hidden = elementToToggle.style.display === 'none';
+    toggleButton.querySelector(".chevron").classList.toggle('fonticon-chevron-up');
+    toggleButton.querySelector(".chevron").classList.toggle('fonticon-chevron-down');
+    toggleButton.querySelector("span").innerText = (hidden ? "Hide" : "Show") + " " + what;
+    if (hidden) {
+        elementToToggle.style.display = 'block';
+    } else {
+        elementToToggle.style.display = 'none';
+    }
+}
+
 async function addFilters(formats) {
     const filterWrapper = document.querySelector("#FilterOffersFormWrapper");
     const div = document.createElement("div");
@@ -365,19 +388,170 @@ async function addFilters(formats) {
         const tr = document.createElement("tr");
         tr.innerHTML = replaced;
         filterTable.append(tr);
+        setupHideToggle(format.name);
+        setupUsageThreshold(format.name);
+    }
+
+    const toggleButton = document.getElementById("format-filter-table-toggle");
+    toggleButton.onclick = function() {
+        toggleFormatFilter(toggleButton, "Format Filter", document.getElementById("format-filter-table"));
     }
 }
+
+async function initFormatConfig(formatName) {
+    if (config.formats == undefined) {
+        config['formats'] = {};
+    }
+    if(config.formats[formatName] == undefined) {
+        config.formats[formatName] = {};
+    }
+    return config.formats[formatName];
+}
+
+function setupHideToggle(formatName) {
+    initFormatConfig(formatName).then(formatConfig => {
+        document.getElementById('hide-'+formatName).checked = formatConfig.showOnlyLegalIn;
+    });
+    document.getElementById('hide-'+formatName).addEventListener("change", async (event) => {
+        const formatConfig = await initFormatConfig(formatName);
+        const value = event.target.checked;
+        formatConfig.showOnlyLegalIn = value;
+    });
+}
+
+function setupUsageThreshold(formatName) {
+    initFormatConfig(formatName).then(formatConfig => {
+        document.getElementById('mtgtop8-'+formatName).value = formatConfig.usageThreshold;
+    });
+    document.getElementById('mtgtop8-'+formatName).addEventListener("change", async (event) => {
+        const formatConfig = await initFormatConfig(formatName);
+        const value = Number(event.target.value)
+        formatConfig.usageThreshold = value;
+    });
+}
+
+function createDeepProxy(obj, onChange) {
+    return new Proxy(obj, {
+        get(target, key) {
+            const value = target[key];
+
+            // If the value is an object, wrap it in another proxy
+            if (typeof value === "object" && value !== null) {
+                return createDeepProxy(value, onChange);
+            }
+
+            return value;
+        },
+        set(target, key, value) {
+            console.log(`${key} changed from`, target[key], "to", value);
+
+            // If assigning an object, wrap it in a new proxy
+            if (typeof value === "object" && value !== null) {
+                value = createDeepProxy(value, onChange);
+            }
+
+            target[key] = value;
+            onChange(target, key, value);
+            return true;
+        }
+    });
+}
+
+const hitsCol = document.querySelector(".total-count").closest("div");
+let colClass = [...hitsCol.classList].find(cls => cls.startsWith('col-')); // Find the class that starts with 'col-'
+if (colClass) {
+    hitsCol.classList.replace(colClass, 'col-1'); // Replace it with 'col-1'
+}
+
+let clonedElement = hitsCol.cloneNode(false); // Clone the element (true means deep clone, including child nodes)
+hitsCol.parentNode.insertBefore(clonedElement, hitsCol.nextSibling);
+clonedElement.innerHTML = "<span>Hiding </span><span id='hidden-articles'>X</span><span> of </span><span id='total-articles'>Y</span><span> articles</span>";
+let clonedClass = [...clonedElement.classList].find(cls => cls.startsWith('col-')); // Find the class that starts with 'col-'
+if (clonedClass) {
+    clonedElement.classList.replace(clonedClass, 'col-2'); // Replace it with 'col-1'
+}
+
+function updateHideOrShow(fields, formats) {
+    let selectedFormats = new Set();
+    let playrateThresholds = {};
+
+    // Iterate through formats and populate selectedFormats and playrateThresholds
+    for (const format of formats) {
+        if (config.formats[format.name].showOnlyLegalIn) {
+            selectedFormats.add(format.scryfallkey);
+        }
+        // Convert the usage threshold to a percentage by dividing by 100
+        playrateThresholds[format.name] = config.formats[format.name].usageThreshold / 100;
+    }
+
+    for (const fieldKey in fields) {
+        const field = fields[fieldKey];
+        let isAbovePlayRate = false;
+
+        // Check the playrate for each format
+        for (const format of formats) {
+            let playrate = field.playrate[format.name];
+
+            // If playrate is undefined, assume it's 0% (not played)
+            if (playrate === undefined) {
+                playrate = 0;
+            }
+
+            // Convert playrate to percentage (divide by 100)
+            playrate = playrate / 100;
+
+            // Check if the playrate is above the threshold
+            if (playrate >= playrateThresholds[format.name]) {
+                isAbovePlayRate = true;
+                break; // No need to check further formats once a condition is met
+            }
+        }
+
+        // If the playrate is below the threshold, hide the card
+        if (!isAbovePlayRate) {
+            field.row.style.display = "none";
+        } else {
+            // If playrate is above the threshold, check legality
+            if (selectedFormats.size === 0) {
+                // No filters active, show all cards
+                field.row.style.display = "flex";
+            } else {
+                const legalities = field.legalities;
+                // Show card if it is legal in any selected format and meets playrate criteria
+                const isLegal = [...selectedFormats].some(format => legalities[format] === "legal");
+                field.row.style.display = isLegal ? "flex" : "none";
+            }
+        }
+    }
+
+    // Count the number of hidden cards
+    let hiddenCount = Object.values(fields).filter(field => field.row.style.display === "none").length;
+    document.getElementById("hidden-articles").innerText = hiddenCount;
+    document.getElementById("total-articles").innerText = Object.keys(fields).length;
+}
+
+
+let config;
 
 (async function main() {
     console.log("offers-singles-magic.js");
     const formats = await fetchNotionDb(formatsDbId);
-    const config = await browser.storage.sync.get(['config']).config;
+    const configData = await initConfig();
+    console.log("config", configData);
 
-    // addFilters(formats);
-
+    
+    addFilters(formats);
+    
     const productDataPromise = getCachedCardmarketData(KEY_PRODUCTDATA);
     const fieldsPromise = initFields(productDataPromise);
     const collectionPromise = getCollection();
+    
+    config = createDeepProxy(configData, async () => {
+        await saveConfig(config);
+        fieldsPromise.then(fields => {
+            updateHideOrShow(fields, formats);
+        })
+    });
 
     fieldsPromise.then(fields => {
         const cardNamesSet = new Set(
@@ -386,8 +560,8 @@ async function addFilters(formats) {
         var scryfallCards = scryfallCardsCollection(cardNamesSet);
         
         scryfallCards.then(scryfallCards => {
-            initFormatInfoFields(fields, formats, config);
-            fillFormatInfoFields(formats, cardNamesSet, scryfallCards);
+            initFormatInfoFields(fields, formats);
+            fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards);
         });
         
         initCollectionInfoFields(fields);
