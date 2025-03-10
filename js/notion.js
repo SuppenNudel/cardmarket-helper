@@ -75,7 +75,8 @@ async function fetchFilteredNotionData(format, card_names) {
             {
                 property: "Last Updated Page", // Replace with the actual property name
                 date: {
-                    after: lastUpdated
+                    after: lastUpdated,
+                    before: new Date(new Date(lastUpdated).setDate(new Date(lastUpdated).getDate() + 1))
                 }
             }
         ]

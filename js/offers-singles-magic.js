@@ -202,18 +202,24 @@ function initFormatInfoFields(fields, formats, config) {
 }
 
 function initCollectionInfoFields(fields) {
-    // for (const field of Object.values(fields)) {
-    //     const collectionElement = document.createElement('div');
-    //     const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
-        // collectionElement.classList.add('coll', classCardName);
-        // field.collectionDiv.append(collectionElement);
-    // }
+    for (const field of Object.values(fields)) {
+        const collectionElement = document.createElement('div');
+        const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
+        collectionElement.classList.add('coll', classCardName);
+        field.collectionDiv.append(collectionElement);
+    }
 }
 
-async function fillFormatInfoFields(formats, cardNamesSet, scryfallCards) {
+async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards) {
     for (var scryfallCard of scryfallCards) {
-        for (const format of formats) {
-            formatLegality(scryfallCard, format);
+        for(const field in fields) {
+            const cardname = fields[field].cardname;
+            if (cardname == scryfallCard.name) {
+                fields[field]['legalities'] = scryfallCard['legalities'];
+            }
+            for (const format of formats) {
+                formatLegality(scryfallCard, format);
+            }
         }
     }
 
