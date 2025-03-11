@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.9.6",
+    "version": "1.10.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "browser_action": {
         "default_icon": {
@@ -37,6 +37,7 @@
                 "https://www.cardmarket.com/*"
             ],
             "js": [
+                "js/config.js",
                 "js/expansion-symbol-fix.js",
                 "js/update-notification.js",
                 "js/load-price-data.js",

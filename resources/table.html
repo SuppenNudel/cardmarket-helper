@@ -3,7 +3,7 @@
     <style>
         table {
             border-collapse: collapse;
-            width: 100%;
+            /* width: 100%; */
         }
 
         th,
@@ -13,11 +13,19 @@
         }
     </style>
 </head>
+<div class="label custom-collapse-label">
+    <div class="d-grid">
+        <button type="button" id="format-filter-table-toggle" class="d-flex align-items-center px-0 btn btn-sm btn-link btn-slim">
+            <span>Hide Format Filter</span>
+            <span class="chevron fonticon-chevron-up small ms-1"></span>
+        </button>
+    </div>
+</div>
 
 <table id="format-filter-table">
     <tr>
         <th>Format</th>
-        <th>Card Usage</th>
-        <th>Show only legal in ~</th>
+        <th>Min Card Usage</th>
+        <th>Show only if legal in ~</th>
     </tr>
 </table>
