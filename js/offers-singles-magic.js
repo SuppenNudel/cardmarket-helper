@@ -499,7 +499,7 @@ function updateHideOrShow(fields, formats) {
     const playrateThresholdInUse = Object.values(playrateThresholds).some(value => value);
     for (const fieldKey in fields) {
         const field = fields[fieldKey];
-        let isAbovePlayRate = !playrateThresholdInUse || !field.playrate || false;
+        let isAbovePlayRate = !playrateThresholdInUse || false;
 
         // Check the playrate for each format
         for (const format of formats) {
@@ -512,13 +512,18 @@ function updateHideOrShow(fields, formats) {
             }
             let mainPlayrate = 0;
             let sidePlayrate = 0;
-            if (field.playrate[format.name]) {
-                if (field.playrate[format.name][true]) {
-                    mainPlayrate = field.playrate[format.name][true].decks;
+            if (field.playrate) {
+                if (field.playrate[format.name]) {
+                    if (field.playrate[format.name][true]) {
+                        mainPlayrate = field.playrate[format.name][true].decks;
+                    }
+                    if (field.playrate[format.name][false]) {
+                        sidePlayrate = field.playrate[format.name][false].decks;
+                    }  
                 }
-                if (field.playrate[format.name][false]) {
-                    sidePlayrate = field.playrate[format.name][false].decks;
-                }  
+            } else {
+                mainPlayrate = 1;
+                sidePlayrate = 1;
             }
 
             // Check if the playrate is above the threshold
