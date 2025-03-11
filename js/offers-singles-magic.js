@@ -223,8 +223,9 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
         }
     }
 
+    const promises = [];
     for (const format of formats) {
-        fetchFilteredNotionData(format, Array.from(cardNamesSet)).then(notionData => {
+        const promise = fetchFilteredNotionData(format, Array.from(cardNamesSet)).then(notionData => {
             for (const scryfallCard of scryfallCards) {
                 mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
                 cardData = notionData[mtgtop8Name];
@@ -246,9 +247,13 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
                     formatLegality(scryfallCard, format, showLegality = true);
                 }
             }
-            updateHideOrShow(fields, formats);
         });
+        promises.push(promise);
     }
+    // Wait for all fetchFilteredNotionData calls to complete
+    Promise.all(promises).then(() => {
+        updateHideOrShow(fields, formats);
+    });
 }
 
 async function fillCollectionInfoFields(fields, collection) {
