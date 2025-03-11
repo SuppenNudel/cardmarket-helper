@@ -154,7 +154,7 @@ function initFormatInfoFields(fields, formats) {
             formatElement.innerText = `${format.name}:`;
             formatElement.innerHTML += '&nbsp;';
 
-            const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
+            const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
             // const classCardNameSpllit = field.cardname.split(" // ")[0].replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
 
             const initFormatInfoFields = document.createElement('div');
@@ -204,7 +204,7 @@ function initFormatInfoFields(fields, formats) {
 function initCollectionInfoFields(fields) {
     for (const field of Object.values(fields)) {
         const collectionElement = document.createElement('div');
-        const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
+        const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
         collectionElement.classList.add('coll', classCardName);
         field.collectionDiv.append(collectionElement);
     }
@@ -271,7 +271,7 @@ async function fillCollectionInfoFields(fields, collection) {
 
 function formatLegality(scryfallCard, format, showLegality = false) {
     cardname = scryfallCard.name;
-    const classCardName = cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
+    const classCardName = cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
     const legality = scryfallCard.legalities[format.scryfallkey];
     const allFormat = document.querySelectorAll(`.format.${format.name}.${classCardName}`);
     var legalInfo = null;
@@ -313,7 +313,7 @@ function formatStaple(scryfallCard, cardData, format) {
     // const mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
     // const cardData = notionData[mtgtop8Name];
 
-    const classCardName = cardname.replaceAll(" // ", "-").replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
+    const classCardName = cardname.replaceAll(" // ", "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
 
     const legality = scryfallCard.legalities[format.scryfallkey];
     if (legality == 'legal') {
