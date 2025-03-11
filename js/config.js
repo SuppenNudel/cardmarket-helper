@@ -2,7 +2,6 @@ const STORAGE_KEY = 'config';
 
 async function initConfig() {
     defaultValue = {};
-    // await browser.storage.sync.clear();
     try {
         let storageData = await browser.storage.sync.get(STORAGE_KEY);
 
