@@ -499,10 +499,13 @@ function updateHideOrShow(fields, formats) {
     const playrateThresholdInUse = Object.values(playrateThresholds).some(value => value);
     for (const fieldKey in fields) {
         const field = fields[fieldKey];
-        let isAbovePlayRate = !playrateThresholdInUse || false;
+        let isAbovePlayRate = !playrateThresholdInUse || !field.playrate || false;
 
         // Check the playrate for each format
         for (const format of formats) {
+            if(isAbovePlayRate) {
+                break;
+            }
             const threshold = playrateThresholds[format.name];
             if(!threshold) {
                 continue;
