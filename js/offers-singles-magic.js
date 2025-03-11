@@ -425,7 +425,12 @@ function setupUsageThreshold(formatName) {
     });
     document.getElementById('mtgtop8-'+formatName).addEventListener("change", async (event) => {
         const formatConfig = await initFormatConfig(formatName);
-        const value = Number(event.target.value)
+        let value = event.target.value;
+        if (value) {
+            value = Number(value)
+        } else {
+            value = null;
+        }
         formatConfig.usageThreshold = value;
     });
 }
@@ -443,8 +448,6 @@ function createDeepProxy(obj, onChange) {
             return value;
         },
         set(target, key, value) {
-            console.log(`${key} changed from`, target[key], "to", value);
-
             // If assigning an object, wrap it in a new proxy
             if (typeof value === "object" && value !== null) {
                 value = createDeepProxy(value, onChange);
@@ -481,27 +484,37 @@ function updateHideOrShow(fields, formats) {
             selectedFormats.add(format.scryfallkey);
         }
         // Convert the usage threshold to a percentage by dividing by 100
-        playrateThresholds[format.name] = config.formats[format.name].usageThreshold / 100;
+        let usageThreshold = config.formats[format.name].usageThreshold;
+        if (usageThreshold) {
+            usageThreshold = usageThreshold / 100;
+        }
+        playrateThresholds[format.name] = usageThreshold;
     }
 
+    const playrateThresholdInUse = Object.values(playrateThresholds).some(value => value);
     for (const fieldKey in fields) {
         const field = fields[fieldKey];
-        let isAbovePlayRate = false;
+        let isAbovePlayRate = !playrateThresholdInUse || false;
 
         // Check the playrate for each format
         for (const format of formats) {
-            let playrate = field.playrate[format.name];
-
-            // If playrate is undefined, assume it's 0% (not played)
-            if (playrate === undefined) {
-                playrate = 0;
+            const threshold = playrateThresholds[format.name];
+            if(!threshold) {
+                continue;
+            }
+            let mainPlayrate = 0;
+            let sidePlayrate = 0;
+            if (field.playrate[format.name]) {
+                if (field.playrate[format.name][true]) {
+                    mainPlayrate = field.playrate[format.name][true].decks;
+                }
+                if (field.playrate[format.name][false]) {
+                    sidePlayrate = field.playrate[format.name][false].decks;
+                }  
             }
 
-            // Convert playrate to percentage (divide by 100)
-            playrate = playrate / 100;
-
             // Check if the playrate is above the threshold
-            if (playrate >= playrateThresholds[format.name]) {
+            if (mainPlayrate >= threshold ||sidePlayrate >= threshold) {
                 isAbovePlayRate = true;
                 break; // No need to check further formats once a condition is met
             }
@@ -517,8 +530,11 @@ function updateHideOrShow(fields, formats) {
                 field.row.style.display = "flex";
             } else {
                 const legalities = field.legalities;
-                // Show card if it is legal in any selected format and meets playrate criteria
-                const isLegal = [...selectedFormats].some(format => legalities[format] === "legal");
+                let isLegal = true;
+                if(legalities) {
+                    // Show card if it is legal in any selected format and meets playrate criteria
+                    isLegal = [...selectedFormats].some(format => legalities[format] === "legal");
+                }
                 field.row.style.display = isLegal ? "flex" : "none";
             }
         }
@@ -537,9 +553,7 @@ let config;
     console.log("offers-singles-magic.js");
     const formats = await fetchNotionDb(formatsDbId);
     const configData = await initConfig();
-    console.log("config", configData);
 
-    
     addFilters(formats);
     
     const productDataPromise = getCachedCardmarketData(KEY_PRODUCTDATA);

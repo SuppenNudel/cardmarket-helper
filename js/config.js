@@ -20,9 +20,7 @@ async function initConfig() {
 async function saveConfig(value) {
     try {
         plainConfig = JSON.parse(JSON.stringify(value));
-        console.log("Plain config:", plainConfig);
         await browser.storage.sync.set({ [STORAGE_KEY]: plainConfig });
-        console.log("Saved browser.storage.sync: ", await browser.storage.sync.get());
     } catch (error) {
         console.error(`Error when saving control ${STORAGE_KEY}:`, error);
     }
