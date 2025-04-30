@@ -58,6 +58,9 @@ async function showThumbnail(thumbnailIcon) {
     if (!imgTag) {
         imgTag = thumbnailIcon.ariaLabel;
     }
+    if (!imgTag) {
+        imgTag = thumbnailIcon.getAttribute("data-bs-title");
+    }
     var matches = imgTag.match(/(\d+)\.jpg/);
     if (matches) {
         var mkmId = matches[1];
