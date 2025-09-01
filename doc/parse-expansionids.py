@@ -1,6 +1,13 @@
 import re
 import json
 
+##################################################################
+# 
+# Reads the dom part of cardmarkets html for Expansion options
+# and puts it into a dict for javascript
+# 
+##################################################################
+
 # Read the HTML content from options.txt
 with open('options.txt', 'r') as file:
     html_text = file.read()

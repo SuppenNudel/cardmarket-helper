@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Assistant",
-    "version": "1.10.3",
+    "version": "1.11.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "browser_action": {
         "default_icon": {
@@ -86,6 +86,7 @@
             ],
             "js": [
                 "js/get-thumbnail.js",
+                "js/cardmarket-util.js",
                 "js/orders.js"
             ]
         },

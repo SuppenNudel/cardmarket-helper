@@ -28,3 +28,37 @@ function createLanguageIcon(lang) {
     icon.style.verticalAlign = "middle";
     return icon
 }
+
+const CONDITION_SHORT_MAP_ID = {
+    "MT": 1,
+    "NM": 2,
+    "EX": 3,
+    "GD": 4,
+    "LP": 5,
+    "PL": 6,
+    "PO": 7
+}
+
+const CONDITION_MAP_ID = {
+    "mint": 1,
+    "near_mint": 2,
+    "excellent": 3,
+    "good": 4,
+    "light_played": 5,
+    "played": 6,
+    "poor": 7
+}
+
+const LANG_MAP = {
+    "en": 1,
+    "fr": 2,
+    "de": 3,
+    "sp": 4,
+    "it": 5,
+    "zh_CN": 6,
+    "ja": 7,
+    "pt": 8,
+    "ru": 9,
+    "ko": 10,
+    "zh_TW": 11
+}

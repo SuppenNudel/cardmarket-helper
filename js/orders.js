@@ -1,17 +1,3 @@
-const LANG_POS_MAP = {
-    "en": "-16px 0px",
-    "fr": "-48px 0px",
-    "de": "-80px 0px",
-    "sp": "-112px 0px",
-    "it": "-144px 0px",
-    "zh_CN": "-176px 0px",
-    "ja": "-208px 0px",
-    "pt": "-240px 0px",
-    "ru": "-272px 0px",
-    "ko": "-304px 0px",
-    "zh_TW": "-336px 0px"
-}
-
 function updateButton(orderId, timestamp) {
     const button = document.getElementById("packedButton");
     if (timestamp) {
@@ -120,6 +106,19 @@ function addToTimeline(timestamp) {
     updateTimeline(timestamp);
 }
 
+function parseCurrencyStringToDouble(currencyString) {
+    // Check if the value contains '\n(PPU: '
+    if (currencyString.includes('\n(PPU: ')) {
+        // Extract the PPU part
+        const ppuPart = currencyString.split('\n(PPU: ')[1];
+        // Remove the closing parenthesis and currency symbol, then convert to float
+        return parseFloat(ppuPart.replace(' €)', '').replace(',', '.'));
+    } else {
+        // For the simpler format, remove the currency symbol and convert to float
+        return parseFloat(currencyString.replace(' €', '').replace(',', '.'));
+    }
+}
+
 function collectionLoaded(collection) {
     const products = document.querySelectorAll("table.product-table tbody tr");
     const locationHeader = document.createElement("th");
@@ -145,7 +144,6 @@ function collectionLoaded(collection) {
                 return;
             }
             const collectionCards = collection[scryfallCard.id];
-
             if (!collectionCards) {
                 const collectionDiv = document.createElement("div");
                 collectionDiv.textContent = "unowned";
@@ -153,9 +151,9 @@ function collectionLoaded(collection) {
                 return;
             }
             const info = product.querySelector("td.info");
-
             const langIcon = info.querySelector("div.col-icon span span.icon");
             const backgroundPosition = langIcon.style.backgroundPosition;
+
             var lang;
             for (const posLang in LANG_POS_MAP) {
                 const pos = LANG_POS_MAP[posLang];
@@ -178,6 +176,160 @@ function collectionLoaded(collection) {
     }
 }
 
+function scrapeArticles() {
+    const articleTable = document.querySelector('table[id^="ArticleTable"]');
+    if (!articleTable) {
+        console.error("Article table not found");
+        return;
+    }
+
+    const rows = articleTable.querySelectorAll("tr");
+    const articles = [];
+
+    rows.forEach(row => {
+        const previewCell = row.querySelector("td.preview");
+        if (previewCell) {
+            const img = previewCell.querySelector("img");
+            const amountCell = row.querySelector("td.amount");
+            const infoTd = row.querySelector("td.info");
+            const conditionCell = infoTd.querySelector("a.article-condition");
+            const condition = conditionCell ? conditionCell.textContent.trim() : null;
+            const conditionId = CONDITION_SHORT_MAP_ID[condition]
+
+            const langSpan = infoTd.querySelector("span.is-24x24 > span.icon");
+            const backgroundPosition = langSpan ? langSpan.style.backgroundPosition : null;
+
+            let lang = null;
+            if (backgroundPosition) {
+                for (const [key, value] of Object.entries(LANG_POS_MAP)) {
+                    if (value === backgroundPosition) {
+                        lang = key;
+                        break;
+                    }
+                }
+            }
+            const langId = LANG_MAP[lang];
+
+            const extrasSpan = row.querySelector("span.extras");
+            const foilElement = extrasSpan.querySelector("span.icon[aria-label='Foil']")
+            let isFoil = null
+            if(foilElement) {
+                isFoil = foilElement.getAttribute("data-bs-html") === "true";
+            }
+
+            const priceElement = row.querySelector("td.price");
+            const priceStr = priceElement ? priceElement.textContent.trim() : null;
+            const price = parseCurrencyStringToDouble(priceStr)
+
+            const dataAmount = amountCell ? amountCell.getAttribute("data-amount") : null;
+            const mkmid = img.getAttribute("mkmid");
+            articles.push({
+                mkmid: mkmid,
+                amount: dataAmount,
+                conditionId: conditionId,
+                langId: langId,
+                isFoil: isFoil,
+                price: price
+            });
+        }
+    });
+
+    return articles;
+}
+
+function putArticlesInCsv(articles) {
+    const headers = [
+        "idProduct",
+        "groupCount",
+        "price",
+        "idLanguage",
+        "condition",
+        "isFoil",
+        "isSigned",
+        "isAltered",
+        "isPlayset",
+        "isReverseHolo",
+        "isFirstEd",
+        "isFullArt",
+        "isUberRare",
+        "isWithDie"
+    ];
+
+    const rows = articles.map(article => [
+        article.mkmid || "",
+        article.amount || "",
+        article.price || "", // price placeholder
+        article.langId || "",
+        article.conditionId || "",
+        article.isFoil ? 1 : "",
+        "", // isSigned placeholder
+        "", // isAltered placeholder
+        "", // isPlayset placeholder
+        "", // isReverseHolo placeholder
+        "", // isFirstEd placeholder
+        "", // isFullArt placeholder
+        "", // isUberRare placeholder
+        ""  // isWithDie placeholder
+    ]);
+
+    const csvContent = [headers.join(";"), ...rows.map(row => row.join(";"))].join("\n");
+    return csvContent;
+}
+
+function addExportButton() {
+    // Create a new button for custom download
+    const collapsibleExportElement = document.getElementById("collapsibleExport");
+    const printShipmentPageElement = document.getElementById("collapsiblePrintShipment");
+    if(!printShipmentPageElement) {
+        return;
+    }
+    const formElement = printShipmentPageElement.querySelector("form");
+    const actionBarElement = printShipmentPageElement.closest(".action-bar");
+
+    // button optic
+    const exportButton = document.createElement("input");
+    exportButton.type = "submit";
+    const title = "Export Articles"
+    exportButton.title = title;
+    exportButton.value = title;
+    exportButton.classList = "btn my-2 btn-sm btn-outline-primary";
+    const containerDiv = document.createElement("div");
+    containerDiv.classList = "d-grid";
+    containerDiv.appendChild(exportButton);
+    const divider = document.createElement("hr");
+    divider.className = "my-3";
+    actionBarElement.appendChild(divider);
+    actionBarElement.appendChild(containerDiv);
+
+    // Attach event listener to custom button
+    exportButton.addEventListener("click", async () => {
+        // TODO get articles from page
+        const idShipment = formElement.querySelector('input[name="idShipment"]').value;
+        try {
+            const articles = scrapeArticles();
+            let csvContent = putArticlesInCsv(articles)
+
+            // Trigger download of the modified CSV file
+            const blob = new Blob([csvContent], { type: "text/csv" });
+            const downloadUrl = URL.createObjectURL(blob);
+
+            // Create an invisible link, set the href to the blob, and trigger download
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            const sellerName = getSellerName();
+            link.download = `ArticlesFromShipment${idShipment}_from_${sellerName}.csv`;
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error("Error downloading CSV:", error);
+        }
+    });
+}
+
 (async function main() {
     console.log("orders.js");
 
@@ -190,6 +342,7 @@ function collectionLoaded(collection) {
             const timestamp = order ? order.timestamp : null;
             addPackedButton(orderId, timestamp);
             addToTimeline(timestamp);
+            addExportButton()
         }).catch(error => {
             console.error('Error updating object:', error);
         });
