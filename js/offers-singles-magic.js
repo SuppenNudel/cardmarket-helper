@@ -125,7 +125,13 @@ function checkOwnership(collection, scryfallCard, cardname=null) {
             if (scryfallCard && scryfallCard.object == "card") {
                 const collectionCards = collection[scryfallCard.id];
                 if (collectionCards) {
-                    printingStr = sumUp(collectionCards);
+                    // Remove cards with binderType "list"
+                    const filteredCollectionCards = collectionCards.filter(card => card["Binder Type"] !== "list");
+                    if (filteredCollectionCards.length > 0) {
+                        printingStr = sumUp(filteredCollectionCards);
+                    } else {
+                        printingStr = 'not owned';
+                    }
                 } else {
                     printingStr = 'not owned'
                 }
