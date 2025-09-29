@@ -36,7 +36,6 @@
                 "https://www.cardmarket.com/*"
             ],
             "js": [
-                "js/streamer-mode",
                 "js/config.js",
                 "js/expansion-symbol-fix.js",
                 "js/update-notification.js",
@@ -124,7 +123,6 @@
             "js": [
                 "js/get-thumbnail.js",
                 "js/notion.js",
-                "js/load-price-data.js",
                 "js/offers-singles.js"
             ]
         },
@@ -133,7 +131,6 @@
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
             ],
             "js": [
-                "js/config.js",
                 "js/cardmarket-util.js",
                 "js/offers-singles-magic.js"
             ],
