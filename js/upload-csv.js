@@ -100,6 +100,7 @@ async function parseCsvAndSave(file, fileContent) {
 
             // Define the onload event handler
             reader.onload = function (e) {
+                alert("Don't worry. The '<filename>: undefined' alert is unwanted and I am aware of it.\nHowerver it does not distrub any functionality.\nGoing to read your csv and then reloading page automatically.");
                 // e.target.result contains the file content as a data URL
                 var fileContent = e.target.result;
 
