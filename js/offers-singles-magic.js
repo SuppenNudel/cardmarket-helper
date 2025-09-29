@@ -375,8 +375,10 @@ function toggleFormatFilter(toggleButton, what, elementToToggle) {
     toggleButton.querySelector("span").innerText = (hidden ? "Hide" : "Show") + " " + what;
     if (hidden) {
         elementToToggle.style.display = 'block';
+        config.formatFilterVisible = true;
     } else {
         elementToToggle.style.display = 'none';
+        config.formatFilterVisible = false;
     }
 }
 
@@ -385,10 +387,7 @@ async function addFilters(formats) {
     const div = document.createElement("div");
 
     const htmlContent = await getHtml("resources/table.html");
-
-    // Create a container to hold the imported HTML
     div.innerHTML = htmlContent;
-
     filterWrapper.append(div);
 
     const filterTable = document.querySelector("#format-filter-table");
@@ -406,6 +405,19 @@ async function addFilters(formats) {
     const toggleButton = document.getElementById("format-filter-table-toggle");
     toggleButton.onclick = function() {
         toggleFormatFilter(toggleButton, "Format Filter", document.getElementById("format-filter-table"));
+    }
+
+    // Set initial visibility based on config
+    if (config && config.formatFilterVisible === false) {
+        filterTable.style.display = 'none';
+        toggleButton.querySelector(".chevron").classList.remove('fonticon-chevron-up');
+        toggleButton.querySelector(".chevron").classList.add('fonticon-chevron-down');
+        toggleButton.querySelector("span").innerText = "Show Format Filter";
+    } else {
+        filterTable.style.display = 'block';
+        toggleButton.querySelector(".chevron").classList.remove('fonticon-chevron-down');
+        toggleButton.querySelector(".chevron").classList.add('fonticon-chevron-up');
+        toggleButton.querySelector("span").innerText = "Hide Format Filter";
     }
 }
 
