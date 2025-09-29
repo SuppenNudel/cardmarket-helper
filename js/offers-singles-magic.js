@@ -27,48 +27,48 @@ async function initFields(productDataPromise) {
     const articleRows = table.getElementsByClassName("article-row");
     const articles = {};
 
-    // Create an array to hold all asynchronous tasks
     const tasks = Array.from(articleRows).map(async (articleRow) => {
         const articleId = articleRow.id;
-
-        // Start the async task but don't wait immediately
         const image = await waitFor(articleRow, "div.col-thumbnail img", "mkmId");
         const mkmId = Number(image.getAttribute("mkmId"));
-
         const productData = await productDataPromise;
         const mkmProduct = productData.products[mkmId];
         const cardname = mkmProduct.name;
 
         const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
-        cardNameElement.style.display = "-webkit-box"; // enables line break
+        cardNameElement.style.display = "-webkit-box";
 
-        cardNameElement.append(document.createElement("br"));
-        cardNameElement.append(document.createElement("br"));
-        const formatInfoDiv = document.createElement("div");
-        formatInfoDiv.style.display = "inline-block";
-        formatInfoDiv.style.verticalAlign = "top";
-        formatInfoDiv.style.fontSize = "12px";
-        cardNameElement.append(formatInfoDiv);
+        // Create table for format info and collection info
+        const infoTable = document.createElement("table");
+        infoTable.style.display = "inline";
+        const infoRow = document.createElement("tr");
 
-        const collectionDiv = document.createElement("div");
-        // collectionDiv.style.display = "inline-block";
-        collectionDiv.style.verticalAlign = "top";
-        collectionDiv.style.paddingLeft = "20px";
-        collectionDiv.style.fontSize = "12px";
-        collectionDiv.classList.add("flex-grow-1");
-        cardNameElement.append(collectionDiv);
+        // Format info cell (left)
+        const formatInfoCell = document.createElement("td");
+        formatInfoCell.style.fontSize = "12px";
+        formatInfoCell.style.verticalAlign = "top";
+        formatInfoCell.style.width = "50%";
+        infoRow.appendChild(formatInfoCell);
 
-        // Store the result in the articles object
+        // Collection info cell (right)
+        const collectionInfoCell = document.createElement("td");
+        collectionInfoCell.style.fontSize = "12px";
+        collectionInfoCell.style.verticalAlign = "top";
+        collectionInfoCell.style.width = "50%";
+        infoRow.appendChild(collectionInfoCell);
+
+        infoTable.appendChild(infoRow);
+        cardNameElement.appendChild(infoTable);
+
         articles[articleId] = {
             row: articleRow,
             mkmId: mkmId,
-            formatInfoDiv: formatInfoDiv,
-            collectionDiv: collectionDiv,
+            formatInfoDiv: formatInfoCell,
+            collectionDiv: collectionInfoCell,
             cardname: cardname
         };
     });
 
-    // Wait for all tasks to complete
     await Promise.all(tasks);
 
     return articles;
