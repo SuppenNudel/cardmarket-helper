@@ -502,25 +502,19 @@ function fillMetrics(card) {
     setValue("isAltered", "checked", isAltered);
 }
 
-function collectionLoaded(collection) {
-    // get mkm id from document
-    var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value; // parseMkmIdFromImgSrc(src);
-    document.getElementById("loading").remove();
-
-    var div = document.createElement("div");
-    var mainContent = document.getElementById("mainContent");
-    mainContent.parentElement.insertBefore(div, mainContent);
+function collectionLoaded(collection, tableContainer, loadingDiv) {
+    loadingDiv.remove();
 
     // info if collection not loaded
     if (!collection) {
         const span = document.createElement('span');
         span.innerText = "Collection not loaded.";
-        div.appendChild(span);
+        tableContainer.appendChild(span);
         return;
     }
+    var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
     const mkmProduct = productdata.products[mkmId];
     const productName = mkmProduct.name.replace(/ \/ /g, " // ");
-    // const productNameWithoutSlashes = productName.split(" /")[0];
     const collectionCards = [];
     for (const sameIdCards of Object.values(collection)) {
         for (const collectionCard of sameIdCards) {
@@ -529,39 +523,109 @@ function collectionLoaded(collection) {
             }
         }
     }
+    tableContainer.innerHTML = ""; // Clear previous content
     if (collectionCards.length == 0) {
-        span = document.createElement('span');
+        const span = document.createElement('span');
         span.innerText = "You don't own any printing of this card.";
-        div.appendChild(span);
+        tableContainer.appendChild(span);
     } else {
         generateTable(collectionCards).then(table => {
-            div.appendChild(table);
+            tableContainer.appendChild(table);
         });
     }
 }
 
 (async function main() {
     console.log("sell.js");
+
+    // --- Add toggle and table container before loading starts ---
+    var mainContent = document.getElementById("mainContent");
+
+    // Create a wrapper div for toggle and table
+    var wrapperDiv = document.createElement("div");
+    wrapperDiv.id = "collection-table-wrapper";
+    mainContent.parentElement.insertBefore(wrapperDiv, mainContent);
+
+    // Create toggle label structure
+    var toggleDiv = document.createElement('div');
+    toggleDiv.style.marginBottom = '10px';
+
+    var toggleLabel = document.createElement('label');
+    toggleLabel.className = "switch-button";
+    toggleLabel.style.cursor = "pointer";
+
+    // Checkbox input
+    var toggleInput = document.createElement('input');
+    toggleInput.type = "checkbox";
+    toggleInput.name = "collectionTableToggle";
+
+    // Switch span
+    var switchSpan = document.createElement('span');
+    switchSpan.className = "switch";
+
+    // Values span (optional, for Yes/No)
+    var valuesSpan = document.createElement('span');
+    valuesSpan.className = "values";
+    valuesSpan.innerHTML = `<span class="yes">Show</span><span class="no">Hide</span>`;
+
+    // Label span
+    var labelSpan = document.createElement('span');
+    labelSpan.className = "label";
+    labelSpan.textContent = "Collection Table";
+
+    // Assemble toggle
+    toggleLabel.appendChild(toggleInput);
+    toggleLabel.appendChild(switchSpan);
+    toggleLabel.appendChild(valuesSpan);
+    toggleLabel.appendChild(labelSpan);
+    toggleDiv.appendChild(toggleLabel);
+    wrapperDiv.appendChild(toggleDiv);
+
+    // Create table container
+    var tableContainer = document.createElement("div");
+    tableContainer.id = "collection-table-container";
+    wrapperDiv.appendChild(tableContainer);
+
+    // Load toggle state from storage
+    let tableVisible = true;
+    try {
+        const result = await browser.storage.local.get('collectionTableVisible');
+        if (typeof result.collectionTableVisible === 'boolean') {
+            tableVisible = result.collectionTableVisible;
+        }
+    } catch (e) {
+        console.error('Error loading toggle state:', e);
+    }
+    toggleInput.checked = tableVisible;
+    tableContainer.style.display = tableVisible ? '' : 'none';
+
+    // Toggle logic
+    toggleInput.onchange = function() {
+        const visible = toggleInput.checked;
+        tableContainer.style.display = visible ? '' : 'none';
+        browser.storage.local.set({ collectionTableVisible: visible });
+    };
+
     [pricedata, productdata] = await getCardmarketData();
 
     const priceField = document.getElementById("price");
     if (priceField) {
-        var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value; // parseMkmIdFromImgSrc(src);
+        var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
         myPrice = calcMyPrice(mkmId);
         priceField.value = myPrice;
     }
-
-    var div = document.createElement("div");
-    var mainContent = document.getElementById("mainContent");
-    mainContent.parentElement.insertBefore(div, mainContent);
-    div.textContent = "loading collection..."
-    div.id = 'loading';
-
+    
     // Retrieve data from local storage
     browser.storage.local.get(['collection'])
         .then((result) => {
             const collection = result.collection;
-            collectionLoaded(collection);
+            
+            // Add loading indicator
+            var loadingDiv = document.createElement("div");
+            loadingDiv.textContent = "loading collection...";
+            loadingDiv.id = 'loading';
+            wrapperDiv.appendChild(loadingDiv);
+            collectionLoaded(collection, tableContainer, loadingDiv);
         })
         .catch((error) => {
             console.error('Error retrieving data:', error);
