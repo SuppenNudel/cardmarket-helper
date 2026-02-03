@@ -1,3 +1,20 @@
+# Cardmarket Helper
+
+https://addons.mozilla.org/en/firefox/addon/cardmarket-assistant/
+
+This Firefox-Addon is supposed to help in your everyday life with cardmarket.com
+
+## Disclaimer
+
+This add-on is not affiliated with, endorsed by, or in any way officially connected to Cardmarket. It is an independent, unofficial tool created to enhance the user experience on cardmarket.com
+
+## Homepage
+
+For feature requests, bug reports or general feedback use the form at
+https://nudelforce.notion.site/e9ed9bd81c684952ade7985944f87f17
+
+You can also find the Release Notes and Roadmap there.
+
 # Ideas
 ## From [Better Cardmarket MTG unofficial](https://chrome-stats.com/d/fplghokcfgbdedalpmbmjlafpagclbef)
 - [IMPLEMENTED] Kleine preview Bilder statt Kamera-Icon

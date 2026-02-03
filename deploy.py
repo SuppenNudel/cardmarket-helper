@@ -2,6 +2,10 @@ import os
 import zipfile
 from gitignore_parser import parse_gitignore
 
+# This script zips the current directory into 'cardmarket-assistant.zip',
+# excluding files and directories specified in the '.deployignore' file.
+# The zip is to be uploaded to https://addons.mozilla.org/en-US/developers/addons
+
 def zip_directory(directory, zip_filename, ignore_file):
     # Parse the ignore file
     ignore_parser = parse_gitignore(ignore_file)
@@ -23,6 +27,6 @@ def zip_directory(directory, zip_filename, ignore_file):
 
 if __name__ == "__main__":
     directory = "."
-    zip_filename = "cardmarket-assistant.zip"
+    zip_filename = "cardmarket-helper.zip"
     ignore_file = ".deployignore"
     zip_directory(directory, zip_filename, ignore_file)
