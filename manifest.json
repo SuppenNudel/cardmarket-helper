@@ -1,13 +1,13 @@
 {
     "manifest_version": 2,
-    "name": "Cardmarket Assistant",
-    "version": "1.12.0",
+    "name": "Cardmarket Helper",
+    "version": "1.11.2",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "browser_action": {
         "default_icon": {
             "32": "images/geschaft-32.png"
         },
-        "default_title": "Cardmarket Assistant"
+        "default_title": "Cardmarket Helper"
     },
     "icons": {
         "32": "images/geschaft-32.png",
@@ -143,6 +143,7 @@
                 "https://www.cardmarket.com/*/Magic/Products/Singles/*"
             ],
             "js": [
+                "js/cardmarket-util.js",
                 "js/sell.js"
             ],
             "css": [

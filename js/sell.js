@@ -28,54 +28,6 @@ const SELL_BUTTON_TEXT = {
     'de': "Zum Verkauf stellen"
 }
 
-const LANG_MAP = {
-    "en": 1,
-    "fr": 2,
-    "de": 3,
-    "sp": 4,
-    "it": 5,
-    "zh_CN": 6,
-    "ja": 7,
-    "pt": 8,
-    "ru": 9,
-    "ko": 10,
-    "zh_TW": 11
-}
-
-const LANG_POS_MAP = {
-    "en": "-16px -0px",
-    "fr": "-48px -0px",
-    "de": "-80px -0px",
-    "sp": "-112px -0px",
-    "it": "-144px -0px",
-    "zh_CN": "-176px -0px",
-    "ja": "-208px -0px",
-    "pt": "-240px -0px",
-    "ru": "-272px -0px",
-    "ko": "-304px -0px",
-    "zh_TW": "-336px -0px"
-}
-
-const CONDITION_MAP = {
-    "mint": "MT",
-    "near_mint": "NM",
-    "excellent": "EX",
-    "good": "GD",
-    "light_played": "LP",
-    "played": "PL",
-    "poor": "PO"
-}
-
-const CONDITION_MAP_ID = {
-    "mint": 1,
-    "near_mint": 2,
-    "excellent": 3,
-    "good": 4,
-    "light_played": 5,
-    "played": 6,
-    "poor": 7
-}
-
 function waitForAttribute(element, attributeName) {
     return new Promise((resolve) => {
         // Check if the attribute is already present
