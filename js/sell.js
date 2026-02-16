@@ -466,7 +466,7 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     }
     var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
     const mkmProduct = productdata.products[mkmId];
-    const productName = mkmProduct.name.replace(/ \/ /g, " // ");
+    const productName = mkmProduct.name.replaceAll("\"\"", "\"").replace(/ \/ /g, " // ");
     const collectionCards = [];
     for (const sameIdCards of Object.values(collection)) {
         for (const collectionCard of sameIdCards) {
@@ -552,7 +552,7 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     tableContainer.style.display = tableVisible ? '' : 'none';
 
     // Toggle logic
-    toggleInput.onchange = function() {
+    toggleInput.onchange = function () {
         const visible = toggleInput.checked;
         tableContainer.style.display = visible ? '' : 'none';
         browser.storage.local.set({ collectionTableVisible: visible });
@@ -566,12 +566,12 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
         myPrice = calcMyPrice(mkmId);
         priceField.value = myPrice;
     }
-    
+
     // Retrieve data from local storage
     browser.storage.local.get(['collection'])
         .then((result) => {
             const collection = result.collection;
-            
+
             // Add loading indicator
             var loadingDiv = document.createElement("div");
             loadingDiv.textContent = "loading collection...";

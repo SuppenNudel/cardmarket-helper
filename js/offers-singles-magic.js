@@ -33,7 +33,7 @@ async function initFields(productDataPromise) {
         const mkmId = Number(image.getAttribute("mkmId"));
         const productData = await productDataPromise;
         const mkmProduct = productData.products[mkmId];
-        const cardname = mkmProduct.name;
+        const cardname = mkmProduct.name.replaceAll("\"\"", "\"");
 
         const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
         cardNameElement.style.display = "-webkit-box";
