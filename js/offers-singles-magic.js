@@ -231,35 +231,44 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
 
     const promises = [];
     for (const format of formats) {
-        const promise = fetchFilteredNotionData(format, Array.from(cardNamesSet)).then(notionData => {
-            for (const scryfallCard of scryfallCards) {
-                mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
-                cardData = notionData[mtgtop8Name];
+        const promise = fetchFilteredMtgtop8Data(format, Array.from(cardNamesSet))
+            .then(mtgtop8Data => {
+                console.log(mtgtop8Data);
+                for (const scryfallCard of scryfallCards) {
+                    mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
+                    cardData = mtgtop8Data[mtgtop8Name];
 
-                for(const field in fields) {
-                    const cardname = fields[field].cardname;
-                    if (cardname == scryfallCard.name) {
-                        if(!fields[field]['playrate']) {
-                            fields[field]['playrate'] = {}
+                    for(const field in fields) {
+                        const cardname = fields[field].cardname;
+                        if (cardname == scryfallCard.name) {
+                            if(!fields[field]['playrate']) {
+                                fields[field]['playrate'] = {}
+                            }
+                            fields[field]['playrate'][format.name] = cardData;
                         }
-                        fields[field]['playrate'][format.name] = cardData;
+                    }
+                    
+                    if (cardData) {
+                        formatStaple(scryfallCard, cardData, format);
+                    } else {
+                        // if cards in given format are not analysed, force show legality
+                        formatLegality(scryfallCard, format, showLegality = true);
                     }
                 }
-                
-                if (cardData) {
-                    formatStaple(scryfallCard, cardData, format);
-                } else {
-                    // if cards in given format are not analysed, force show legality
-                    formatLegality(scryfallCard, format, showLegality = true);
-                }
-            }
-        });
+            })
+            .catch(error => {
+                console.error(`Error fetching mtgtop8 data for format ${format.name}:`, error);
+            });
         promises.push(promise);
     }
-    // Wait for all fetchFilteredNotionData calls to complete
-    Promise.all(promises).then(() => {
-        updateHideOrShow(fields, formats);
-    });
+    // Wait for all fetchFilteredMtgtop8Data calls to complete
+    Promise.all(promises)
+        .then(() => {
+            updateHideOrShow(fields, formats);
+        })
+        .catch(error => {
+            console.error("Error during Promise.all:", error);
+        });
 }
 
 async function fillCollectionInfoFields(fields, collection) {
@@ -582,7 +591,7 @@ let config;
 
 (async function main() {
     console.log("offers-singles-magic.js");
-    const formats = await fetchNotionDb(formatsDbId);
+    const formats = getFormats();
     const configData = await initConfig();
 
     addFilters(formats);

@@ -35,7 +35,7 @@ function createLanguageIcon(lang) {
     icon.style.display = "inline-block";
     icon.style.width = "16px";
     icon.style.height = "16px";
-    icon.style.backgroundImage = "url('//static.cardmarket.com/img/1de15dd3f9a7fa49c1f2feb09a3608a5/spriteSheets/ssMain2.png')";
+    icon.style.backgroundImage = "url('//static.cardmarket.com/img/0fa565750d09bba2fc85059ebf12e9ac/spriteSheets/ssMain2.png')";
     icon.style.backgroundPosition = LANG_POS_MAP[lang];
     icon.style.paddingTop = "0px";
     icon.style.paddingRight = "0px";

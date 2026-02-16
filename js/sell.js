@@ -334,12 +334,7 @@ async function generateTable(cards) { // id of same printing
             row.appendChild(td);
             var element = undefined;
             if (key == "Language") {
-                element = document.createElement('span');
-                element.style.display = "inline-block";
-                element.style.width = "16px";
-                element.style.height = "16px";
-                element.style.backgroundImage = "url('//static.cardmarket.com/img/949ba8e63eca06832acdfff64020fea8/spriteSheets/ssMain2.png')";
-                element.style.backgroundPosition = LANG_POS_MAP[value];
+                element = createLanguageIcon(value);
             } else if (key == "Condition") {
                 if (value == "mint") {
                     td.textContent = "❓";

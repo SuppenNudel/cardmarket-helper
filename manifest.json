@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Helper",
-    "version": "1.12.2",
+    "version": "1.13.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "browser_action": {
         "default_icon": {
@@ -22,7 +22,7 @@
         "storage",
         "https://api.scryfall.com/",
         "https://downloads.s3.cardmarket.com/",
-        "https://api.notion.com/"
+        "https://raw.githubusercontent.com/SuppenNudel/"
     ],
     "web_accessible_resources": [
         "html/popup.html",
@@ -122,7 +122,7 @@
             ],
             "js": [
                 "js/get-thumbnail.js",
-                "js/notion.js",
+                "js/mtgtop8-data.js",
                 "js/offers-singles.js"
             ]
         },

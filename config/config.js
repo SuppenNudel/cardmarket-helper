@@ -83,7 +83,6 @@ function setupThumbnailSize() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    result = fetchNotionDb(formatsDbId);
     initFormats().then(formats => {
         for(const [format, value] of Object.entries(formats)) {
             document.getElementById('mtgtop8-'+format).checked = value.mtgtop8;
