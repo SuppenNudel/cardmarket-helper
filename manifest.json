@@ -47,8 +47,7 @@
                 "js/expansion-symbol-fix.js",
                 "js/update-notification.js",
                 "js/load-price-data.js",
-                "js/pagination-control.js",
-                "js/config.js"
+                "js/pagination-control.js"
             ]
         },
         {
