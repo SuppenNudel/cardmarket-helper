@@ -7,7 +7,8 @@
         "default_icon": {
             "32": "images/geschaft-32.png"
         },
-        "default_title": "Cardmarket Helper"
+        "default_title": "Cardmarket Helper",
+        "default_popup": "config/config.html"
     },
     "icons": {
         "32": "images/geschaft-32.png",
@@ -24,8 +25,14 @@
         "https://downloads.s3.cardmarket.com/",
         "https://api.notion.com/"
     ],
+    "options_ui": {
+        "page": "config/config.html",
+        "browser_style": true
+    },
     "web_accessible_resources": [
         "html/popup.html",
+        "config/config.html",
+        "config/config.js",
         "css/keyrune.min.css",
         "fonts/*"
     ],
@@ -40,7 +47,8 @@
                 "js/expansion-symbol-fix.js",
                 "js/update-notification.js",
                 "js/load-price-data.js",
-                "js/pagination-control.js"
+                "js/pagination-control.js",
+                "js/config.js"
             ]
         },
         {

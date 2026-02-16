@@ -1,5 +1,7 @@
 document.getElementById('openConfig').addEventListener('click', () => {
-    browser.runtime.openOptionsPage();
+    // browser.runtime.openOptionsPage();
+    const optionsUrl = browser.runtime.getURL('config/config.html');
+    window.open(optionsUrl, '_blank');
 });
 
 async function initStorage(storageKey, defaultValue) {
@@ -83,7 +85,6 @@ function setupThumbnailSize() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    result = fetchNotionDb(formatsDbId);
     initFormats().then(formats => {
         for(const [format, value] of Object.entries(formats)) {
             document.getElementById('mtgtop8-'+format).checked = value.mtgtop8;

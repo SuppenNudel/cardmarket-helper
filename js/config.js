@@ -1,5 +1,30 @@
 const STORAGE_KEY = 'config';
 
+function addConfigButton() {
+    const offcanvasNav = document.querySelector('#offcanvas-nav > ul');
+    
+    if (offcanvasNav) {
+        const settingsItem = document.createElement('li');
+        settingsItem.className = 'nav-item hvr-sweep-to-right';
+        
+        const settingsLink = document.createElement('a');
+        settingsLink.href = '#';
+        settingsLink.title = 'Helper Extension Settings';
+        settingsLink.className = 'nav-link';
+        settingsLink.textContent = 'Helper Extension Settings';
+        
+        settingsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const optionsUrl = browser.runtime.getURL('config/config.html');
+            window.open(optionsUrl, '_blank');
+        });
+        
+        settingsItem.appendChild(settingsLink);
+        offcanvasNav.appendChild(settingsItem);
+    }
+}
+
+
 async function initConfig() {
     defaultValue = {};
     try {
@@ -24,3 +49,9 @@ async function saveConfig(value) {
         console.error(`Error when saving control ${STORAGE_KEY}:`, error);
     }
 }
+
+
+(async function main() {
+    console.log("config.js");
+    addConfigButton();
+})();
