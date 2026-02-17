@@ -26,6 +26,7 @@
         badgeLink.dataset.bsOriginalTitle = short === "EX" ? "Excellent" : short;
     };
     idCondition.addEventListener("change", updateConditionBadge);
+    idCondition.addEventListener("input", updateConditionBadge);
 
     conditionLabel.insertAdjacentElement("afterend", conditionWrapperDiv);
     
@@ -52,6 +53,7 @@
         languageIcon.style.backgroundPosition = LANG_POS_MAP[langCode];
     };
     idLanguage.addEventListener("change", updateLanguageIcon);
+    idLanguage.addEventListener("input", updateLanguageIcon);
 
     languageLabel.insertAdjacentElement("afterend", languageWrapperDiv);
 })();

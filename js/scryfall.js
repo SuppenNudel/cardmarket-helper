@@ -1,18 +1,7 @@
-const mkmToScryfallIds = {
-    '609877': '640be32d-dcc8-408a-b8a6-077472f1e70b'
-}
-
-const scryfallIdToUrls = {
-    '640be32d-dcc8-408a-b8a6-077472f1e70b': 'https://www.cardmarket.com/en/Magic/Products/Singles/Secret-Lair-Extra-Life-2021/Craterhoof-Behemoth-V2'
-}
-
 // - map cardmarket to manabox for ownership check
 // - check how to rotate the thumbnail
 async function cardByMkmId(mkmId) {
-    var response;
-    if (mkmId in mkmToScryfallIds) {
-        const scryfallId = mkmToScryfallIds[mkmId]
-        response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`,
+    var response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -22,22 +11,7 @@ async function cardByMkmId(mkmId) {
                 mode: 'cors'
             }
         );
-    } else {
-        response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                    'Accept': '*/*'
-                },
-                mode: 'cors'
-            }
-        );
-    }
     const cardObject = await response.json();
-    if (mkmId in mkmToScryfallIds && cardObject.object == "card" && cardObject.cardmarket_id) {
-        console.log(`Unnecessary id in scryfall_data:`, mkmId);
-    }
     return cardObject;
 }
 
@@ -173,7 +147,7 @@ async function generateCardmarketUrl(manaBoxCard) {
         url.searchParams.append(key, value);
     });
 
-    url.searchParams.set('isFoil', manaBoxCard.Foil == "foil" ? 'Y' : 'N');
+    url.searchParams.set('isFoil', manaBoxCard.Foil == "normal" ? 'N' : 'Y');
 
     return url.toString();
 }

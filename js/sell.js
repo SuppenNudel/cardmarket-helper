@@ -28,6 +28,11 @@ const SELL_BUTTON_TEXT = {
     'de': "Zum Verkauf stellen"
 }
 
+function getHighlightColor() {
+    const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    return isDarkMode ? 'darkgreen' : 'lightgreen';
+}
+
 function waitForAttribute(element, attributeName) {
     return new Promise((resolve) => {
         // Check if the attribute is already present
@@ -177,7 +182,7 @@ function parseMkmIdFromImgSrc(imgSrc) {
     }
 }
 
-const HEADERS = ["Fill / Go to", "Quantity", "Set code", "Collector number", "Foil", "Binder Name", "Purchase price", "Misprint", "Altered", "Condition", "Language"];
+const HEADERS = ["Go to / Fill", "Quantity", "Set code", "Collector number", "Foil", "Condition", "Language", "Misprint", "Altered", "Binder Name", "Purchase price"];
 
 // Get the current URL
 var currentURL = window.location.href;
@@ -191,12 +196,6 @@ var parts = pathname.split("/");
 var language = parts[1]; // Assuming "de" is at index 1
 
 function checkForRedirect(newURL) {
-    const newSplit = new URL(newURL).pathname.split("/");
-    for (idx in parts) {
-        if (idx != 1 && newSplit[idx] != parts[idx]) {
-            return true;
-        }
-    }
     const currentIsFoil = url.searchParams.get('isFoil');
     const newIsFoil = new URL(newURL).searchParams.get('isFoil');
     if (currentIsFoil != newIsFoil) {
@@ -205,7 +204,8 @@ function checkForRedirect(newURL) {
     return false;
 }
 
-async function generateTable(cards) { // id of same printing
+async function generateTable(mkmId, cards) { // id of same printing
+    const scryfallCard = await cardByMkmId(mkmId);
     const table = document.createElement('table');
 
     table.style.borderCollapse = 'collapse';
@@ -220,13 +220,17 @@ async function generateTable(cards) { // id of same printing
 
     for (const header of HEADERS) {
         const th = document.createElement('th');
-        th.textContent = header == "Misprint" ? "Listed" : header;
+        if (header === "Collector number") {
+            th.textContent = "CN";
+        } else if (header === "Quantity") {
+            th.textContent = "Qty";
+        } else {
+            th.textContent = header;
+        }
         headerRow.appendChild(th);
     }
     thead.appendChild(headerRow);
     table.appendChild(thead);
-
-    // const sortedArray = cards.sort((cardA, cardB) => (cardB['Scryfall ID'] === scryfallId) - (cardA['Scryfall ID'] === scryfallId));
 
     // Get the value of the 'isFoil' parameter
     var isFoilParam = url.searchParams.get('isFoil') == 'Y';
@@ -240,26 +244,37 @@ async function generateTable(cards) { // id of same printing
         }
         const row = document.createElement('tr');
 
-        // row.value = card;
-        // if(card['Condition'] != 'mint') {
-        // row.addEventListener("click", function () {
-        //     row.style.cursor = 'pointer';
-        //     fillMetrics(card);
-        // });
-        // }
-
-        // if (card['Scryfall ID'] == scryfallId && isFoilParam == (card.Foil == "foil")) {
-        //     row.style.backgroundColor = 'lightgreen';
-        // }
+        var canFill = false;
+        
+        if (card['Scryfall ID'] == scryfallCard.id) {
+            row.style.backgroundColor = getHighlightColor();
+            row.classList.add('highlight-row');
+            if(isFoilParam == (card.Foil != "normal")) {
+                canFill = true;
+            }
+        }
         for (const key of HEADERS) {
             const td = document.createElement('td');
             row.appendChild(td);
-            if (key == "Fill / Go to") {
-                if (card['Scryfall ID'] == "NOT USING SCRYFALL ID") {
-                    if (isFoilParam == (card.Foil == "foil")) {
-                        // Create a new button element
+            if (key == "Go to / Fill") {
+                const newURL = await generateCardmarketUrl(card);
+                if (newURL) {
+                    // compare new url to currentUrl
+                    const needRedirect = checkForRedirect(newURL);
+                    
+                    // Always show Go To link
+                    link = document.createElement("a");
+                    link.textContent = "Go To";
+                    link.setAttribute("href", newURL);
+                    td.appendChild(link);
+                    
+                    // Additionally show Fill button if canFill is true
+                    if (!needRedirect && canFill) {
+                        const spacer = document.createElement("span");
+                        spacer.textContent = " | ";
+                        td.appendChild(spacer);
+                        
                         var button = document.createElement("button");
-                        // Set button attributes and content
                         button.style.width = "70px";
                         button.style.height = "25px";
                         button.style.setProperty('--bs-btn-padding-x', 'initial');
@@ -274,53 +289,13 @@ async function generateTable(cards) { // id of same printing
                         button.setAttribute("id", "myButton");
                         button.setAttribute("class", "btn btn-outline-primary");
                         td.appendChild(button);
-                    } else {
-                        const currentURL = new URL(window.location.href);
-                        currentURL.searchParams.set('isFoil', card.Foil == "foil" ? 'Y' : 'N');
-                        const link = document.createElement("a");
-                        link.textContent = "Go To";
-                        link.setAttribute("href", currentURL);
-                        td.appendChild(link);
                     }
                 } else {
-                    const newURL = await generateCardmarketUrl(card);
-                    if (newURL) {
-                        // compare new url to currentUrl
-                        const needRedirect = checkForRedirect(newURL);
-                        if (needRedirect) {
-                            link = document.createElement("a");
-                            link.textContent = "Go To";
-                            // Get the current URL
-                            // Create a URL object
-                            link.setAttribute("href", newURL);
-                            td.appendChild(link);
-                        } else {
-                            // card is same and can be filled
-
-                            // Create a new button element
-                            var button = document.createElement("button");
-                            // Set button attributes and content
-                            button.style.width = "70px";
-                            button.style.height = "25px";
-                            button.style.setProperty('--bs-btn-padding-x', 'initial');
-                            button.innerHTML = "Fill";
-                            if (!document.querySelector(`[title="${SELL_BUTTON_TEXT[language]}"]`)) {
-                                button.disabled = true;
-                            } else {
-                                button.addEventListener("click", function () {
-                                    fillMetrics(card);
-                                });
-                            }
-                            button.setAttribute("id", "myButton");
-                            button.setAttribute("class", "btn btn-outline-primary");
-                            td.appendChild(button);
-                        }
-                    } else {
-                        link = document.createElement("div");
-                        link.textContent = "undefined";
-                        td.appendChild(link);
-                    }
+                    link = document.createElement("div");
+                    link.textContent = "undefined";
+                    td.appendChild(link);
                 }
+                // }
                 continue;
             }
 
@@ -330,17 +305,7 @@ async function generateTable(cards) { // id of same printing
             if (key == "Language") {
                 element = createLanguageIcon(value);
             } else if (key == "Condition") {
-                if (value == "mint") {
-                    td.textContent = "❓";
-                } else {
-                    element = document.createElement('span');
-                    element.classList.add("article-condition");
-                    element.classList.add(`condition-${CONDITION_MAP[value].toLowerCase()}`);
-                    const childSpan = document.createElement('span');
-                    childSpan.classList.add("badge");
-                    childSpan.textContent = CONDITION_MAP[value];
-                    element.appendChild(childSpan);
-                }
+                element = createConditionIcon(value);
             } else {
                 // only text change
                 td.textContent = value;
@@ -361,7 +326,14 @@ async function generateTable(cards) { // id of same printing
                 }
                 if (key == "Misprint") {
                     if (value == "true") {
-                        td.textContent = "🗒️";
+                        td.textContent = "❔";
+                    } else {
+                        td.textContent = "❌";
+                    }
+                }
+                if (key == "Altered") {
+                    if (value == "true") {
+                        td.textContent = "🖌️";
                     } else {
                         td.textContent = "❌";
                     }
@@ -410,6 +382,15 @@ async function generateTable(cards) { // id of same printing
     tbody.appendChild(fragment);
     table.appendChild(tbody);
 
+    // Observe theme changes and update row colors
+    const observer = new MutationObserver(() => {
+        const highlightRows = table.querySelectorAll('.highlight-row');
+        highlightRows.forEach(row => {
+            row.style.backgroundColor = getHighlightColor();
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+
     return table;
 }
 
@@ -430,8 +411,13 @@ function fillMetrics(card) {
     setValue("isFoil", "checked", isFoil);
     setValue("amount", "value", card.Quantity);
 
-    document.getElementById("idLanguage").value = LANG_MAP[card.Language];
-    document.getElementById("idCondition").value = CONDITION_MAP_ID[card.Condition];
+    const languageSelect = document.getElementById("idLanguage");
+    languageSelect.value = LANG_MAP[card.Language];
+    languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+
+    const conditionSelect = document.getElementById("idCondition");
+    conditionSelect.value = CONDITION_MAP_ID[card.Condition];
+    conditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
 
     var isAltered;
     if (card.Altered == "false") { // altered
@@ -445,8 +431,6 @@ function fillMetrics(card) {
 }
 
 function collectionLoaded(collection, tableContainer, loadingDiv) {
-    loadingDiv.remove();
-
     // info if collection not loaded
     if (!collection) {
         const span = document.createElement('span');
@@ -471,10 +455,12 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
         span.textContent = "You don't own any printing of this card.";
         tableContainer.appendChild(span);
     } else {
-        generateTable(collectionCards).then(table => {
+        generateTable(mkmId, collectionCards).then(table => {
             tableContainer.appendChild(table);
         });
     }
+
+    loadingDiv.remove();
 }
 
 function getUserName() {
@@ -561,17 +547,17 @@ function getUserName() {
         myPrice = calcMyPrice(mkmId, userName);
         priceField.value = myPrice;
     }
+    // Add loading indicator
+    var loadingDiv = document.createElement("div");
+    loadingDiv.textContent = "loading collection...";
+    loadingDiv.id = 'loading';
+    wrapperDiv.appendChild(loadingDiv);
 
     // Retrieve data from local storage
     browser.storage.local.get(['collection'])
         .then((result) => {
             const collection = result.collection;
 
-            // Add loading indicator
-            var loadingDiv = document.createElement("div");
-            loadingDiv.textContent = "loading collection...";
-            loadingDiv.id = 'loading';
-            wrapperDiv.appendChild(loadingDiv);
             collectionLoaded(collection, tableContainer, loadingDiv);
         })
         .catch((error) => {

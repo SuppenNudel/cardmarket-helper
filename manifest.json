@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Cardmarket Helper",
-    "version": "1.13.3",
+    "version": "1.14.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "browser_action": {
         "default_icon": {
@@ -37,7 +37,6 @@
             ],
             "js": [
                 "js/config.js",
-                "js/expansion-symbol-fix.js",
                 "js/update-notification.js",
                 "js/load-price-data.js",
                 "js/pagination-control.js"
