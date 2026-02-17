@@ -478,7 +478,7 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
 }
 
 function getUserName() {
-    return document.querySelector('div[title="My Account"] span').textContent;
+    return document.querySelector('#account-dropdown > div.line-height115 > span').textContent.trim();
 }
 
 (async function main() {
