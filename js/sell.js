@@ -105,11 +105,12 @@ function calcMyPrice(mkmid) {
     // offers
     articleRows = document.getElementById("table").getElementsByClassName("article-row");
     var rivalSellers = [];
+    const userName = getUserName()
     for (var i = 0; i < articleRows.length && rivalSellers.length < rivalsToLookAt; i++) {
         row = articleRows[i];
         const sellerNameElement = row.querySelector(".seller-name a");
-        sellerName = sellerNameElement.innerText;
-        if (sellerName == "NudelForce") {
+        var sellerName = sellerNameElement.innerText;
+        if (sellerName == userName) {
             continue;
         }
         const priceContainer = row.getElementsByClassName("price-container")[0];
@@ -480,6 +481,10 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
             tableContainer.appendChild(table);
         });
     }
+}
+
+function getUserName() {
+    return document.querySelector('div[title="My Account"] span').textContent;
 }
 
 (async function main() {
