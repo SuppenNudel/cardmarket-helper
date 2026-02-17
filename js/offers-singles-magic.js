@@ -233,7 +233,6 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
     for (const format of formats) {
         const promise = fetchFilteredMtgtop8Data(format, Array.from(cardNamesSet))
             .then(mtgtop8Data => {
-                console.log(mtgtop8Data);
                 for (const scryfallCard of scryfallCards) {
                     mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
                     cardData = mtgtop8Data[mtgtop8Name];
