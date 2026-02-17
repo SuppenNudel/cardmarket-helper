@@ -144,7 +144,8 @@
             ],
             "js": [
                 "js/cardmarket-util.js",
-                "js/sell.js"
+                "js/sell.js",
+                "js/sell-metric-icons.js"
             ],
             "css": [
                 "css/keyrune.min.css"

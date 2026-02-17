@@ -30,6 +30,23 @@ const LANG_MAP = {
     "zh_TW": 11
 }
 
+function createConditionIcon(conditionId) {
+    const short = CONDITION_ID_MAP_SHORT[conditionId] || "NM"; // default to NM if conditionId is unknown
+    const a = document.createElement('a');
+    a.href = "https://help.cardmarket.com/en/CardCondition";
+    a.target = "_blank";
+    a.dataset.bsToggle = "tooltip";
+    a.dataset.bsHtml = "true";
+    a.dataset.bsPlacement = "bottom";
+    a.dataset.bsOriginalTitle = CONDITION_ID_MAP_LONG[conditionId];
+    a.className = `article-condition condition-${short.toLowerCase()} me-1`;
+    const span = document.createElement('span');
+    span.className = "badge";
+    span.textContent = short;
+    a.appendChild(span);
+    return a;
+}
+
 function createLanguageIcon(lang) {
     const icon = document.createElement('span');
     icon.style.display = "inline-block";
@@ -55,6 +72,26 @@ const CONDITION_SHORT_MAP_ID = {
     "LP": 5,
     "PL": 6,
     "PO": 7
+}
+
+const CONDITION_ID_MAP_SHORT = {
+    1: "MT",
+    2: "NM",
+    3: "EX",
+    4: "GD",
+    5: "LP",
+    6: "PL",
+    7: "PO"
+}
+
+const CONDITION_ID_MAP_LONG = {
+    1: "Mint",
+    2: "Near Mint",
+    3: "Excellent",
+    4: "Good",
+    5: "Light Played",
+    6: "Played",
+    7: "Poor"
 }
 
 const CONDITION_MAP_ID = {
