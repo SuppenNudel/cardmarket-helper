@@ -320,32 +320,37 @@ async function fillCollectionInfoFields(fields, collection) {
 }
 
 function formatLegality(scryfallCard, format, showLegality = false) {
-    cardname = scryfallCard.name;
-    const classCardName = cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
-    const legality = scryfallCard.legalities[format.scryfallkey];
-    const allFormat = document.querySelectorAll(`.format.${format.name}.${classCardName}`);
-    var legalInfo = null;
-    switch (legality) {
-        case 'not_legal':
-            legalInfo = '🛑 not legal';
-            break;
-        case 'banned':
-            legalInfo = '🚫 banned';
-            break;
-        case 'legal':
-            if (showLegality) {
-                legalInfo = '✅ legal';
-            }
-            break;
-        default:
-            if (showLegality) {
-                legalInfo = legality;
-            }
-    }
-    if (legalInfo) {
-        for (formatField of allFormat) {
-            formatField.textContent = legalInfo;
+    try {
+        cardname = scryfallCard.name;
+        const classCardName = cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
+        const legality = scryfallCard.legalities[format.scryfallkey];
+        const allFormat = document.querySelectorAll(`.format.${format.name}.${classCardName}`);
+        var legalInfo = null;
+        switch (legality) {
+            case 'not_legal':
+                legalInfo = '🛑 not legal';
+                break;
+            case 'banned':
+                legalInfo = '🚫 banned';
+                break;
+            case 'legal':
+                if (showLegality) {
+                    legalInfo = '✅ legal';
+                }
+                break;
+            default:
+                if (showLegality) {
+                    legalInfo = legality;
+                }
         }
+        if (legalInfo) {
+            for (formatField of allFormat) {
+                formatField.textContent = legalInfo;
+            }
+        }
+        
+    } catch (error) {
+        console.error(`Error setting legality for ${scryfallCard.name} in format ${format.name}:`, error);
     }
 }
 
