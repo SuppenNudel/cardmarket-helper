@@ -53,19 +53,10 @@ function waitForAttribute(element, attributeName) {
 }
 
 function calculateMedian(numbers) {
-    numbers.sort(function (a, b) {
-        return a - b;
-    });
-
-    var length = numbers.length;
-    var middle = Math.floor(length / 2);
-
-    if (length % 2 === 0) {
-        return numbers[middle];
-        //return (numbers[middle - 1] + numbers[middle]) / 2;
-    } else {
-        return numbers[middle];
-    }
+    const sorted = [...numbers].sort((a, b) => a - b); // Don't mutate original
+    const length = sorted.length;
+    const middle = Math.floor(length / 2);
+    return sorted[middle];
 }
 
 
@@ -95,7 +86,7 @@ function createPriceDictionary(keys, values) {
     return resultDictionary;
 }
 
-function calcMyPrice(mkmid) {
+function calcMyPrice(mkmid, userName) {
     const inclinePercentage = 0.15; // 15% relative incline threshold
     const maxQuantityThreshold = 10;  // Threshold for how high of a quantity of a rival seller you don't want to compete with
     const rivalsToLookAt = 10;
@@ -105,17 +96,18 @@ function calcMyPrice(mkmid) {
     // offers
     articleRows = document.getElementById("table").getElementsByClassName("article-row");
     var rivalSellers = [];
-    const userName = getUserName()
     for (var i = 0; i < articleRows.length && rivalSellers.length < rivalsToLookAt; i++) {
         row = articleRows[i];
         const sellerNameElement = row.querySelector(".seller-name a");
-        var sellerName = sellerNameElement.innerText;
+        var sellerName = sellerNameElement.textContent.trim();
         if (sellerName == userName) {
             continue;
         }
-        const priceContainer = row.getElementsByClassName("price-container")[0];
-        const price = parseCurrencyStringToDouble(priceContainer.innerText);
-        const quantity = row.getElementsByClassName("col-offer")[0].getElementsByClassName("item-count")[0].innerText;
+
+        // Cache class names or use more specific queries:
+        const priceContainer = row.querySelector(".price-container");
+        const price = parseCurrencyStringToDouble(priceContainer.textContent.trim());
+        const quantity = row.querySelector(".col-offer .item-count").textContent.trim();
         const sellCountElement = row.querySelector(".col-sellerProductInfo .seller-extended .sell-count");
         let sellCountText = sellCountElement.getAttribute("data-bs-original-title");
         if (!sellCountText) {
@@ -127,7 +119,7 @@ function calcMyPrice(mkmid) {
 
             if (sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
                 rivalSellers.push({ quantity: quantity, price: price, sales: sales, availableItems: availableItems });
-                sellerNameElement.innerText = "🤺 " + sellerNameElement.innerText;
+                sellerNameElement.textContent = "🤺 " + sellerNameElement.textContent;
             }
         } else {
             console.log("couln't find sellCountData for ", sellerNameElement.textContent);
@@ -241,6 +233,7 @@ async function generateTable(cards) { // id of same printing
 
     // Create tbody
     const tbody = document.createElement('tbody');
+    const fragment = document.createDocumentFragment();
     for (const card of cards) {
         if (card["Binder Type"] == "list") {
             continue;
@@ -285,7 +278,7 @@ async function generateTable(cards) { // id of same printing
                         const currentURL = new URL(window.location.href);
                         currentURL.searchParams.set('isFoil', card.Foil == "foil" ? 'Y' : 'N');
                         const link = document.createElement("a");
-                        link.innerText = "Go To";
+                        link.textContent = "Go To";
                         link.setAttribute("href", currentURL);
                         td.appendChild(link);
                     }
@@ -296,7 +289,7 @@ async function generateTable(cards) { // id of same printing
                         const needRedirect = checkForRedirect(newURL);
                         if (needRedirect) {
                             link = document.createElement("a");
-                            link.innerText = "Go To";
+                            link.textContent = "Go To";
                             // Get the current URL
                             // Create a URL object
                             link.setAttribute("href", newURL);
@@ -324,7 +317,7 @@ async function generateTable(cards) { // id of same printing
                         }
                     } else {
                         link = document.createElement("div");
-                        link.innerText = "undefined";
+                        link.textContent = "undefined";
                         td.appendChild(link);
                     }
                 }
@@ -412,8 +405,9 @@ async function generateTable(cards) { // id of same printing
                 td.appendChild(element);
             }
         }
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
     table.appendChild(tbody);
 
     return table;
@@ -456,7 +450,7 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     // info if collection not loaded
     if (!collection) {
         const span = document.createElement('span');
-        span.innerText = "Collection not loaded.";
+        span.textContent = "Collection not loaded.";
         tableContainer.appendChild(span);
         return;
     }
@@ -474,7 +468,7 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     tableContainer.innerHTML = ""; // Clear previous content
     if (collectionCards.length == 0) {
         const span = document.createElement('span');
-        span.innerText = "You don't own any printing of this card.";
+        span.textContent = "You don't own any printing of this card.";
         tableContainer.appendChild(span);
     } else {
         generateTable(collectionCards).then(table => {
@@ -563,7 +557,8 @@ function getUserName() {
     const priceField = document.getElementById("price");
     if (priceField) {
         var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
-        myPrice = calcMyPrice(mkmId);
+        const userName = getUserName();
+        myPrice = calcMyPrice(mkmId, userName);
         priceField.value = myPrice;
     }
 
