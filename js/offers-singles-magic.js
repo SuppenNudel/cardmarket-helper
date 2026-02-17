@@ -18,6 +18,24 @@ async function waitFor(searchElement, selector, attribute, interval = 100, timeo
     });
 }
 
+function replaceTextInNode(node, placeholder, value) {
+    // Recursively replace placeholder text in all text nodes and attributes
+    if (node.nodeType === Node.TEXT_NODE) {
+        node.textContent = node.textContent.replaceAll(placeholder, value);
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+        // Replace in attributes
+        for (const attr of node.attributes) {
+            if (attr.value.includes(placeholder)) {
+                attr.value = attr.value.replaceAll(placeholder, value);
+            }
+        }
+        // Recursively process child nodes
+        for (const child of node.childNodes) {
+            replaceTextInNode(child, placeholder, value);
+        }
+    }
+}
+
 function removeDiacritics(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -86,19 +104,30 @@ function sumUp(collectionCardList) {
     // Initialize a sum variable
     let total = 0;
 
-    // Format as a string and sum the values simultaneously
-    const result = Object.entries(sum)
-        .map(([lang, value]) => {
-            total += value; // Sum the values
-            const icon = createLanguageIcon(lang);
-            return `<li>${value}x ${icon.outerHTML}</li>`; // Format each entry
-        })
-        .join('\n'); // Join them with commas
-    return `${total}<ul>${result}</ul>`;
+    // Create DOM elements instead of HTML string
+    const fragment = document.createDocumentFragment();
+    const totalText = document.createTextNode('');
+    const ul = document.createElement('ul');
+    
+    Object.entries(sum).forEach(([lang, value]) => {
+        total += value;
+        const icon = createLanguageIcon(lang);
+        const li = document.createElement('li');
+        li.textContent = `${value}x `;
+        li.appendChild(icon);
+        ul.appendChild(li);
+    });
+    
+    totalText.textContent = total;
+    fragment.appendChild(totalText);
+    fragment.appendChild(ul);
+    
+    return fragment;
 }
 
 function checkOwnership(collection, scryfallCard, cardname=null) {
-    var str = '';
+    const fragment = document.createDocumentFragment();
+    
     if (collection) {
         if (!cardname) {
             cardname = scryfallCard.name;
@@ -117,38 +146,45 @@ function checkOwnership(collection, scryfallCard, cardname=null) {
         }
 
         if (cardsWithThatNameOwned.length == 0) {
-            str = 'not owned';
+            fragment.textContent = 'not owned';
         } else {
-            const nameStr = sumUp(cardsWithThatNameOwned);
+            const nameFragment = sumUp(cardsWithThatNameOwned);
 
-            let printingStr = '...'
+            let printingFragment = null;
             if (scryfallCard && scryfallCard.object == "card") {
                 const collectionCards = collection[scryfallCard.id];
                 if (collectionCards) {
                     // Remove cards with binderType "list"
                     const filteredCollectionCards = collectionCards.filter(card => card["Binder Type"] !== "list");
                     if (filteredCollectionCards.length > 0) {
-                        printingStr = sumUp(filteredCollectionCards);
+                        printingFragment = sumUp(filteredCollectionCards);
                     } else {
-                        printingStr = 'not owned';
+                        printingFragment = document.createTextNode('not owned');
                     }
                 } else {
-                    printingStr = 'not owned'
+                    printingFragment = document.createTextNode('not owned');
                 }
             } else {
                 if(scryfallCard.code == "not_found") {
-                    printingStr = "couldn't find scryfall card with cardmarket id";
+                    printingFragment = document.createTextNode("couldn't find scryfall card with cardmarket id");
                 } else {
-                    printingStr = scryfallCard.details;
+                    printingFragment = document.createTextNode(scryfallCard.details);
                 }
             }
-            str = `all printings: ${nameStr}this printing: ${printingStr}`;
-            // + ` // printing: ${sumPrinting.en + sumPrinting.de} (en: ${sumPrinting.en}, de: ${sumPrinting.de})`;
+            
+            const allPrintingsLabel = document.createTextNode('all printings: ');
+            const thisPrintingLabel = document.createTextNode('this printing: ');
+            
+            fragment.appendChild(allPrintingsLabel);
+            fragment.appendChild(nameFragment);
+            fragment.appendChild(document.createElement('br'));
+            fragment.appendChild(thisPrintingLabel);
+            fragment.appendChild(printingFragment);
         }
     } else {
-        str = '<collection not loaded>';
+        fragment.textContent = 'collection not loaded';
     }
-    return str;
+    return fragment;
 }
 
 function initFormatInfoFields(fields, formats) {
@@ -275,10 +311,10 @@ async function fillCollectionInfoFields(fields, collection) {
         const scryfallCard = await cardByMkmId(field.mkmId);
         if(scryfallCard.object == "card") {
             const result = checkOwnership(collection, scryfallCard);
-            field.collectionDiv.innerHTML = result;
+            field.collectionDiv.replaceChildren(result);
         } else {
             const result = checkOwnership(collection, scryfallCard, field.cardname);
-            field.collectionDiv.innerHTML = result;
+            field.collectionDiv.replaceChildren(result);
         }
     }
 }
@@ -308,7 +344,7 @@ function formatLegality(scryfallCard, format, showLegality = false) {
     }
     if (legalInfo) {
         for (formatField of allFormat) {
-            formatField.innerHTML = legalInfo;
+            formatField.textContent = legalInfo;
         }
     }
 }
@@ -395,16 +431,36 @@ async function addFilters(formats) {
     const div = document.createElement("div");
 
     const htmlContent = await getHtml("resources/table.html");
-    div.innerHTML = htmlContent;
+    // Use DOMParser for secure HTML parsing from trusted source
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlContent, 'text/html');
+    // Append all children from the parsed body
+    while (doc.body.firstChild) {
+        div.appendChild(doc.body.firstChild);
+    }
     filterWrapper.append(div);
 
     const filterTable = document.querySelector("#format-filter-table");
 
     const template = await getHtml("resources/table-filter-tr-template.html");
     for (const format of formats) {
-        const replaced = template.replaceAll("{{format-name}}", format.name);
+        // Create table row elements programmatically for security
         const tr = document.createElement("tr");
-        tr.innerHTML = replaced;
+        
+        // Parse template securely
+        const parser = new DOMParser();
+        const templateDoc = parser.parseFromString(template, 'text/html');
+        const templateTr = templateDoc.querySelector('tr') || templateDoc.body;
+        
+        // Clone the template and replace placeholders with text nodes
+        const clonedContent = templateTr.cloneNode(true);
+        replaceTextInNode(clonedContent, '{{format-name}}', format.name);
+        
+        // Move children from cloned template to tr
+        while (clonedContent.firstChild) {
+            tr.appendChild(clonedContent.firstChild);
+        }
+        
         filterTable.append(tr);
         setupHideToggle(format.name);
         setupUsageThreshold(format.name);
