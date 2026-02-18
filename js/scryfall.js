@@ -132,9 +132,7 @@ async function generateCardmarketUrl(manaBoxCard) {
     var cardmarketUrl = scryfallCard['purchase_uris']['cardmarket'];
 
     if (cardmarketUrl.includes('Search')) {
-        if (scryfallIdToUrls[scryfallCard.id]) {
-            cardmarketUrl = scryfallIdToUrls[scryfallCard.id];
-        } else if (manaBoxCard['Set code'] == "GN3") {
+        if (manaBoxCard['Set code'] == "GN3") {
             cardmarketUrl = `https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ', '-')}`;
         } else {
             return null;
