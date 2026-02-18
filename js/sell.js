@@ -308,7 +308,7 @@ async function generateTable(mkmId, cards) { // id of same printing
             if (key == "Language") {
                 element = createLanguageIcon(value);
             } else if (key == "Condition") {
-                element = createConditionIcon(value);
+                element = createConditionIcon(CONDITION_MAP_ID[value]);
             } else {
                 // only text change
                 td.textContent = value;

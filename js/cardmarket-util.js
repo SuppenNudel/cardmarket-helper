@@ -31,7 +31,7 @@ const LANG_MAP = {
 }
 
 function createConditionIcon(conditionId) {
-    const short = CONDITION_ID_MAP_SHORT[conditionId] || "NM"; // default to NM if conditionId is unknown
+    const short = CONDITION_ID_MAP_SHORT[conditionId];
     const a = document.createElement('a');
     a.href = "https://help.cardmarket.com/en/CardCondition";
     a.target = "_blank";
