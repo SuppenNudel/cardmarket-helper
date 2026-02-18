@@ -196,7 +196,10 @@ var parts = pathname.split("/");
 var language = parts[1]; // Assuming "de" is at index 1
 
 function checkForRedirect(newURL) {
-    const currentIsFoil = url.searchParams.get('isFoil');
+    let currentIsFoil = url.searchParams.get('isFoil');
+    if(currentIsFoil == null) {
+        currentIsFoil = 'N';
+    }
     const newIsFoil = new URL(newURL).searchParams.get('isFoil');
     if (currentIsFoil != newIsFoil) {
         return true;
