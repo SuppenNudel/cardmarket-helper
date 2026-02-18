@@ -147,6 +147,8 @@ async function generateCardmarketUrl(manaBoxCard) {
         url.searchParams.append(key, value);
     });
 
+    url.searchParams.set('language', LANG_MAP[manaBoxCard['Language']]);
+    url.searchParams.set('minCondition', CONDITION_MAP_ID[manaBoxCard['Condition']]);
     url.searchParams.set('isFoil', manaBoxCard.Foil == "normal" ? 'N' : 'Y');
 
     return url.toString();
