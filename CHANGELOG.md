@@ -142,7 +142,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
     - the play  rate filter is not use if it is not filled out
     - the format legality filter is not used if no slider is active
 
-![image.png](attachment:f4d615e9-1967-4fdd-9eac-0be43f4928bf:image.png)
+![Format Filter.png](doc/1.10.0_Format%20Filter.png)
 
 ## [1.9.6] - 2025-03-10
 
@@ -228,7 +228,7 @@ added back in
     - planned to be configurable on the config page
 - The number of decks that are looked at for a given format
     
-    ![image.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/4a15260f-5d14-4a66-991b-8e97c6464907/image.png)
+    ![Playrate Numbers.png](doc/1.7.0_Playrate%20Numbers.png)
     
 
 ### Changed
@@ -237,7 +237,7 @@ added back in
 - Improved requests to Scryfall and mtgtop8, should feel smoother now on sellers singles page
 - Icons for banned and not legal and added text
     
-    ![image.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/a9d81473-ded8-4499-bae6-e5f520966d0d/image.png)
+    ![Legality Icons.png](doc/1.7.0_Legality%20Icons.png)
     
 
 ### Fixed
@@ -263,7 +263,7 @@ added back in
 
 - An alert notification that looks like one from cardmarket when a newer version of this add-on has been loaded since the last time you have dismissed the notification
 
-![image.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/d365dcb5-652e-4dbc-b74a-530f6d7eae26/image.png)
+![Version Notification.png](doc/1.6.2_Version%20Notification.png)
 
 ### Fixed
 
