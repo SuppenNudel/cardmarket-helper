@@ -1,0 +1,66 @@
+name: Deploy to Firefox Addons
+
+on:
+  push:
+    branches:
+      - 'deploy/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: pip install gitignore-parser
+      
+      - name: Build extension zip
+        run: python deploy.py
+      
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Sign and upload to Firefox Addons
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          ADDON_ID: "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
+        run: |
+          npm install -g web-ext
+          web-ext sign \
+            --channel=listed \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET" \
+            --source-dir=. \
+            --artifacts-dir=./web-ext-artifacts
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+      
+      - name: Upload signed XPI to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./web-ext-artifacts/cardmarket-helper.xpi
+          asset_name: cardmarket-helper.xpi
+          asset_content_type: application/x-xpinstall
