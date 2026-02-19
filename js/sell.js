@@ -172,6 +172,10 @@ function calcMyPrice(mkmid, userName) {
 }
 
 function parseMkmIdFromImgSrc(imgSrc) {
+    if (!imgSrc || typeof imgSrc !== 'string') {
+        throw new Error("Invalid imgSrc: expected a non-empty string, got " + typeof imgSrc);
+    }
+    
     var matches = imgSrc.match(/\/(\w+)\/(\d+)\//);
     if (matches && matches.length === 3) {
         var setCode = matches[1]; // "LCC"
@@ -403,11 +407,19 @@ function setValue(elementName, type, value) {
 }
 
 function fillMetrics(card) {
+    if (!card) {
+        console.warn("fillMetrics: card object is undefined or null");
+        return;
+    }
+
     var isFoil;
     if (card.Foil == "normal") { // foil
         isFoil = false;
     } else if (card.Foil == "foil" || card.Foil == "etched") {
         isFoil = true;
+    } else if (card.Foil === undefined) {
+        console.warn("fillMetrics: Foil property is missing from card object");
+        return;
     } else {
         throw new Error("Foil value is not valid: " + card.Foil);
     }
@@ -415,11 +427,19 @@ function fillMetrics(card) {
     setValue("amount", "value", card.Quantity);
 
     const languageSelect = document.getElementById("idLanguage");
-    languageSelect.value = LANG_MAP[card.Language];
+    if (card.Language && LANG_MAP[card.Language]) {
+        languageSelect.value = LANG_MAP[card.Language];
+    } else {
+        console.warn("fillMetrics: Invalid language:", card.Language);
+    }
     languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
 
     const conditionSelect = document.getElementById("idCondition");
-    conditionSelect.value = CONDITION_MAP_ID[card.Condition];
+    if (card.Condition && CONDITION_MAP_ID[card.Condition]) {
+        conditionSelect.value = CONDITION_MAP_ID[card.Condition];
+    } else {
+        console.warn("fillMetrics: Invalid condition:", card.Condition);
+    }
     conditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
 
     var isAltered;
@@ -427,6 +447,9 @@ function fillMetrics(card) {
         isAltered = false;
     } else if (card.Altered == "true") {
         isAltered = true;
+    } else if (card.Altered === undefined) {
+        console.warn("fillMetrics: Altered property is missing from card object");
+        return;
     } else {
         throw new Error("Altered value is not valid: " + card.Altered);
     }

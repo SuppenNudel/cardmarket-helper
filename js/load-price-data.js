@@ -107,10 +107,13 @@ function save(key, data) {
 }
 
 function getGameId(game) {
+    if (!game) {
+        throw new Error("Game parameter is missing or undefined");
+    }
     if (game in cardGames) {
         return cardGames[game];
     } else {
-        throw new Error(game + " is not supported yet");
+        throw new Error(`Game "${game}" is not supported yet`);
     }
 }
 

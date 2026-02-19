@@ -321,8 +321,20 @@ async function fillCollectionInfoFields(fields, collection) {
 
 function formatLegality(scryfallCard, format, showLegality = false) {
     try {
+        if (!scryfallCard || !scryfallCard.name) {
+            console.warn("Invalid scryfallCard object:", scryfallCard);
+            return;
+        }
+        
         cardname = scryfallCard.name;
         const classCardName = cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
+        
+        // Check if legalities exists before accessing it
+        if (!scryfallCard.legalities) {
+            console.warn(`No legalities data for card: ${cardname}`);
+            return;
+        }
+        
         const legality = scryfallCard.legalities[format.scryfallkey];
         const allFormat = document.querySelectorAll(`.format.${format.name}.${classCardName}`);
         var legalInfo = null;
@@ -350,49 +362,70 @@ function formatLegality(scryfallCard, format, showLegality = false) {
         }
         
     } catch (error) {
-        console.error(`Error setting legality for ${scryfallCard.name} in format ${format.name}:`, error);
+        console.error(`Error setting legality for card in format ${format?.name || 'unknown'}:`, error);
     }
 }
 
 function scryfallCardToMtgtop8Name(scryfallCard) {
+    if (!scryfallCard || !scryfallCard.layout) {
+        console.warn("scryfallCardToMtgtop8Name: Invalid scryfallCard or missing layout property");
+        return null;
+    }
+    
     const layout = scryfallCard.layout;
     // TODO add all cases to the list
     if (['adventure', 'transform'].includes(layout)) {
-        return scryfallCard.card_faces[0].name;
+        if (scryfallCard.card_faces && scryfallCard.card_faces[0] && scryfallCard.card_faces[0].name) {
+            return scryfallCard.card_faces[0].name;
+        }
+        console.warn("scryfallCardToMtgtop8Name: card_faces data missing for transform/adventure card");
+        return scryfallCard.name ? scryfallCard.name.replace("//", "/") : null;
     }
-    return scryfallCard.name.replace("//", "/");
+    return scryfallCard.name ? scryfallCard.name.replace("//", "/") : null;
 }
 
 function formatStaple(scryfallCard, cardData, format) {
-    const cardname = scryfallCard.name;
-    // const mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
-    // const cardData = notionData[mtgtop8Name];
-
-    const classCardName = cardname.replaceAll(" // ", "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
-
-    const legality = scryfallCard.legalities[format.scryfallkey];
-    if (legality == 'legal') {
-        mainData = cardData[true];
-        const allMain = document.querySelectorAll(`.main.decks.${format.name}.${classCardName}`);
-        for (main of allMain) {
-            main.innerText = mainData ? (mainData.decks*100).toFixed(1) +"%" : "-";
+    try {
+        if (!scryfallCard || !scryfallCard.name) {
+            console.warn("Invalid scryfallCard object:", scryfallCard);
+            return;
         }
 
-        const allMainAvg = document.querySelectorAll(`.main.avg.${format.name}.${classCardName}`);
-        for (main of allMainAvg) {
-            main.innerText = mainData ? mainData.avg : "-";
+        const cardname = scryfallCard.name;
+        const classCardName = cardname.replaceAll(" // ", "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
+
+        // Check if legalities exists before accessing it
+        if (!scryfallCard.legalities || !scryfallCard.legalities[format.scryfallkey]) {
+            console.warn(`No legality data for card ${cardname} in format ${format.name}`);
+            return;
         }
 
-        sideData = cardData[false];
-        const allSide = document.querySelectorAll(`.side.decks.${format.name}.${classCardName}`);
-        for (side of allSide) {
-            side.innerText = sideData ? (sideData.decks*100).toFixed(1) +"%" : "-";
-        }
+        const legality = scryfallCard.legalities[format.scryfallkey];
+        if (legality == 'legal') {
+            mainData = cardData[true];
+            const allMain = document.querySelectorAll(`.main.decks.${format.name}.${classCardName}`);
+            for (main of allMain) {
+                main.innerText = mainData ? (mainData.decks*100).toFixed(1) +"%" : "-";
+            }
 
-        const allSideAvg = document.querySelectorAll(`.side.avg.${format.name}.${classCardName}`);
-        for (side of allSideAvg) {
-            side.innerText = sideData ? sideData.avg : "-";
+            const allMainAvg = document.querySelectorAll(`.main.avg.${format.name}.${classCardName}`);
+            for (main of allMainAvg) {
+                main.innerText = mainData ? mainData.avg : "-";
+            }
+
+            sideData = cardData[false];
+            const allSide = document.querySelectorAll(`.side.decks.${format.name}.${classCardName}`);
+            for (side of allSide) {
+                side.innerText = sideData ? (sideData.decks*100).toFixed(1) +"%" : "-";
+            }
+
+            const allSideAvg = document.querySelectorAll(`.side.avg.${format.name}.${classCardName}`);
+            for (side of allSideAvg) {
+                side.innerText = sideData ? sideData.avg : "-";
+            }
         }
+    } catch (error) {
+        console.error(`Error formatting staple data for card in format ${format?.name || 'unknown'}:`, error);
     }
 }
 

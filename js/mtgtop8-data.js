@@ -15,7 +15,6 @@ async function fetchFormatCardData(format) {
             const now = Date.now();
             // Check if cache is still valid
             if (now - timestamp < CACHE_DURATION) {
-                console.debug(`Using cached data for ${formatName}`);
                 return data;
             }
         }
