@@ -1,6 +1,6 @@
 # Cardmarket Helper
 
-https://addons.mozilla.org/en/firefox/addon/cardmarket-assistant/
+https://addons.mozilla.org/en/firefox/addon/cardmarket-helper/
 
 This Firefox-Addon is supposed to help in your everyday life with cardmarket.com
 
@@ -15,23 +15,32 @@ https://nudelforce.notion.site/e9ed9bd81c684952ade7985944f87f17
 
 You can also find the Release Notes and Roadmap there.
 
-# Ideas
-## From [Better Cardmarket MTG unofficial](https://chrome-stats.com/d/fplghokcfgbdedalpmbmjlafpagclbef)
+# Bug Reports / Feature Requests / Feedback
+
+If you have any of those please feel free to submit them at https://github.com/SuppenNudel/cardmarket-helper/issues/new
+
+## Inspirations
+
+Some Features of this addon have been inspired by existing addons. So I wanted to credeit them here:
+
+### [Better Cardmarket MTG unofficial](https://chromewebstore.google.com/detail/better-cardmarket-mtg-uno/fplghokcfgbdedalpmbmjlafpagclbef)
 - [IMPLEMENTED] Kleine preview Bilder statt Kamera-Icon
-## From [Carmarket Format Filter](https://chromewebstore.google.com/detail/cardmarket-format-filter/okfobifncpmjgnccfacmfkdnkhjbiglp)
+
+### [Carmarket Format Filter](https://chromewebstore.google.com/detail/cardmarket-format-filter/okfobifncpmjgnccfacmfkdnkhjbiglp)
 - [Source Code](https://github.com/Aeolic/cardmarket-filter)
-- Format Filter
-## From [Cardmarket Companion](https://chromewebstore.google.com/detail/cardmarket-companion/mpbncolfefkegmaccdejhngjcjkjoaep)
+- [IMPLEMENTED] Format Filter
+
+### [Cardmarket Companion](https://chromewebstore.google.com/detail/cardmarket-companion/mpbncolfefkegmaccdejhngjcjkjoaep)
 - [IMPLEMENTED] Angebote auslesen und Preisfeld ausfüllen
 
-# Eigne Ideen
-- [IMPLEMENTED] Eigentlicher Preis der Karte neben Angebotspreis darstellen
-    - [IMPLEMENTED] Angebotspreis einfärben, ob gut oder schlecht
+## Findings
 
--  [IMPLEMENTED] on sell page, show owned card that match the printing and make them selectable
-    - [IMPLEMENTED] when selecting fill out details
-  
-# Improvements
+### [Cardmarket Companion](https://chromewebstore.google.com/detail/cardmarket-companion/mpbncolfefkegmaccdejhngjcjkjoaep)
+- Add-on with similar features
+
+
+## Legacy Idea Documentation
+### Improvements
 - make a request to outside if a cardmarket id wasn't found on scryfall (to automate)
 
 - offers-singles
@@ -43,11 +52,11 @@ You can also find the Release Notes and Roadmap there.
 - sell
     - redirect currently disabled
 
-# Bugs
+### Bugs
 - when putting something in the shopping cart, the camera icon reappears
 
-# Figure out
-- some cards on mkm have the same id but there are multiple entries in scryfall
+### Figure out
+- some cars on mkm have the same id but there are multiple entries in scryfall
     - Example Coastal Tower 8ED -> normal / foil
 
     - check if there is a foil version of the card in the same set with the same collector number
