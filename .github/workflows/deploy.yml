@@ -30,6 +30,26 @@ jobs:
           VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Extract the section for this version from CHANGELOG.md
+          # Finds content between "## [VERSION]" and the next "## [" or end of file
+          sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$d' > release_notes.txt
+          
+          # If the file is empty, set a default message
+          if [ ! -s release_notes.txt ]; then
+            echo "See CHANGELOG.md for details" > release_notes.txt
+          fi
+          
+          # Use multiline output for the release body
+          {
+            echo 'changelog<<EOF'
+            cat release_notes.txt
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+      
       - name: Sign and upload to Firefox Addons
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
@@ -52,6 +72,7 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}
           release_name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
       
