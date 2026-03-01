@@ -35,7 +35,7 @@ jobs:
           from pathlib import Path
 
           version = os.environ.get("VERSION", "").strip()
-          if not re.fullmatch(r"[1-9]\d{0,8}(\.[1-9]\d{0,8}){0,3}", version):
+          if not re.fullmatch(r"(0|[1-9]\d{0,8})(\.(0|[1-9]\d{0,8})){0,3}", version):
             raise SystemExit(f"Invalid version format: {version}")
 
           path = Path("manifest.json")
