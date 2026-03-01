@@ -32,6 +32,7 @@ jobs:
           python - <<PY
           import os
           import re
+          import json
           from pathlib import Path
 
           version = os.environ.get("VERSION", "").strip()
@@ -39,11 +40,11 @@ jobs:
             raise SystemExit(f"Invalid version format: {version}")
 
           path = Path("manifest.json")
-          text = path.read_text(encoding="utf-8")
-          updated = re.sub(r'"version"\s*:\s*"[^"]*"', f'"version": "{version}"', text, count=1)
-          if text == updated:
+          data = json.loads(path.read_text(encoding="utf-8"))
+          if "version" not in data:
             raise SystemExit("version field not found in manifest.json")
-          path.write_text(updated, encoding="utf-8")
+          data["version"] = version
+          path.write_text(json.dumps(data, indent=4) + "\n", encoding="utf-8")
           PY
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
