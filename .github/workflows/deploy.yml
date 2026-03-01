@@ -28,12 +28,16 @@ jobs:
             echo "Branch name must be deploy/<version>. Got: $GITHUB_REF_NAME" >&2
             exit 1
           fi
-          python - <<'PY'
-          import json
+          export VERSION
+          python - <<PY
+          import os
           import re
           from pathlib import Path
 
-          version = "${VERSION}"
+          version = os.environ.get("VERSION", "").strip()
+          if not re.fullmatch(r"[1-9]\d{0,8}(\.[1-9]\d{0,8}){0,3}", version):
+            raise SystemExit(f"Invalid version format: {version}")
+
           path = Path("manifest.json")
           text = path.read_text(encoding="utf-8")
           updated = re.sub(r'"version"\s*:\s*"[^"]*"', f'"version": "{version}"', text, count=1)
