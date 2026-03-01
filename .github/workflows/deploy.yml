@@ -19,6 +19,29 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
+      - name: Set version from branch name
+        id: branch_version
+        run: |
+          VERSION="${GITHUB_REF_NAME#deploy/}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            echo "Branch name must be deploy/<version>. Got: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          version = "${VERSION}"
+          path = Path("manifest.json")
+          text = path.read_text(encoding="utf-8")
+          updated = re.sub(r'"version"\s*:\s*"[^"]*"', f'"version": "{version}"', text, count=1)
+          if text == updated:
+            raise SystemExit("version field not found in manifest.json")
+          path.write_text(updated, encoding="utf-8")
+          PY
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Install dependencies
         run: pip install gitignore-parser
@@ -29,8 +52,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep '"version"' manifest.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=${{ steps.branch_version.outputs.version }}" >> $GITHUB_OUTPUT
       
       - name: Extract release notes from CHANGELOG
         id: changelog
