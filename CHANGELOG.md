@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.3.1.0] - 2026-03-01
+
+### Added
+- Toggle if sell price should be filled automatically by addon
+- Fill out quantity, language, condition and foil automatically depending on filter parameters
+- You can use my new [Manabox Viewer](https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html) to view your Manabox collection (exported through csv) on your PC. It will offer links to cardmarket where the filter parameters will be applied according to your cards' metrics (quantity, language, condition, foil)
+
+### Fixed
+- "loading colleciton..." no longer showing, when "Collection not loaded."
+
+
 ## [2026.2.1.0] - 2026-02-19
 
 ### Changed

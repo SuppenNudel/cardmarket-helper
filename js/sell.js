@@ -28,6 +28,8 @@ const SELL_BUTTON_TEXT = {
     'de': "Zum Verkauf stellen"
 }
 
+let myPrice = null;
+
 function getHighlightColor() {
     const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
     return isDarkMode ? 'darkgreen' : 'lightgreen';
@@ -352,12 +354,14 @@ async function generateTable(mkmId, cards) { // id of same printing
                     }
                 }
                 if (key == "Purchase price") {
-                    td.textContent = parseFloat(td.textContent).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-                    if (myPrice > value) {
-                        ;
-                        td.textContent = "📈 " + td.textContent;
-                    } else {
-                        td.textContent = "📉 " + td.textContent;
+                    const purchasePrice = parseFloat(td.textContent);
+                    td.textContent = purchasePrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+                    if (typeof myPrice === 'number' && !Number.isNaN(myPrice) && !Number.isNaN(purchasePrice)) {
+                        if (myPrice > purchasePrice) {
+                            td.textContent = "📈 " + td.textContent;
+                        } else {
+                            td.textContent = "📉 " + td.textContent;
+                        }
                     }
                 }
                 if (key == "Set code") {
@@ -404,6 +408,45 @@ async function generateTable(mkmId, cards) { // id of same printing
 function setValue(elementName, type, value) {
     input = document.querySelector(`input[name="${elementName}"]`);
     input[type] = value;
+}
+
+function getSingleQueryParam(paramName) {
+    const value = url.searchParams.get(paramName);
+    if (!value || value.includes(',')) {
+        return null;
+    }
+    return value;
+}
+
+function applyUrlFiltersToForm() {
+    const languageParam = getSingleQueryParam('language');
+    if (languageParam) {
+        const languageSelect = document.getElementById("idLanguage");
+        if (languageSelect) {
+            languageSelect.value = languageParam;
+            languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    const conditionParam = getSingleQueryParam('minCondition') || getSingleQueryParam('condition');
+    if (conditionParam) {
+        const conditionSelect = document.getElementById("idCondition");
+        if (conditionSelect) {
+            conditionSelect.value = conditionParam;
+            conditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    const isFoilParam = getSingleQueryParam('isFoil');
+    if (isFoilParam) {
+        const isFoil = isFoilParam === 'Y' || isFoilParam === '1' || isFoilParam === 'true';
+        setValue("isFoil", "checked", isFoil);
+    }
+
+    const quantityParam = getSingleQueryParam('quantity');
+    if (quantityParam) {
+        setValue("amount", "value", quantityParam);
+    }
 }
 
 function fillMetrics(card) {
@@ -462,6 +505,9 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
         const span = document.createElement('span');
         span.textContent = "Collection not loaded.";
         tableContainer.appendChild(span);
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
         return;
     }
     var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
@@ -507,6 +553,8 @@ function getUserName() {
     // Create toggle label structure
     var toggleDiv = document.createElement('div');
     toggleDiv.style.marginBottom = '10px';
+    toggleDiv.style.display = 'flex';
+    toggleDiv.style.gap = '12px';
 
     var toggleLabel = document.createElement('label');
     toggleLabel.className = "switch-button";
@@ -537,6 +585,32 @@ function getUserName() {
     toggleLabel.appendChild(valuesSpan);
     toggleLabel.appendChild(labelSpan);
     toggleDiv.appendChild(toggleLabel);
+
+    var priceToggleLabel = document.createElement('label');
+    priceToggleLabel.className = "switch-button";
+    priceToggleLabel.style.cursor = "pointer";
+
+    var priceToggleInput = document.createElement('input');
+    priceToggleInput.type = "checkbox";
+    priceToggleInput.name = "priceAutofillToggle";
+
+    var priceSwitchSpan = document.createElement('span');
+    priceSwitchSpan.className = "switch";
+
+    var priceValuesSpan = document.createElement('span');
+    priceValuesSpan.className = "values";
+    priceValuesSpan.innerHTML = `<span class="yes">On</span><span class="no">Off</span>`;
+
+    var priceLabelSpan = document.createElement('span');
+    priceLabelSpan.className = "label";
+    priceLabelSpan.textContent = "Price Autofill";
+
+    priceToggleLabel.appendChild(priceToggleInput);
+    priceToggleLabel.appendChild(priceSwitchSpan);
+    priceToggleLabel.appendChild(priceValuesSpan);
+    priceToggleLabel.appendChild(priceLabelSpan);
+    toggleDiv.appendChild(priceToggleLabel);
+
     wrapperDiv.appendChild(toggleDiv);
 
     // Create table container
@@ -546,16 +620,21 @@ function getUserName() {
 
     // Load toggle state from storage
     let tableVisible = true;
+    let priceAutofillEnabled = true;
     try {
-        const result = await browser.storage.local.get('collectionTableVisible');
+        const result = await browser.storage.local.get(['collectionTableVisible', 'priceAutofillEnabled']);
         if (typeof result.collectionTableVisible === 'boolean') {
             tableVisible = result.collectionTableVisible;
+        }
+        if (typeof result.priceAutofillEnabled === 'boolean') {
+            priceAutofillEnabled = result.priceAutofillEnabled;
         }
     } catch (e) {
         console.error('Error loading toggle state:', e);
     }
     toggleInput.checked = tableVisible;
     tableContainer.style.display = tableVisible ? '' : 'none';
+    priceToggleInput.checked = priceAutofillEnabled;
 
     // Toggle logic
     toggleInput.onchange = function () {
@@ -564,14 +643,22 @@ function getUserName() {
         browser.storage.local.set({ collectionTableVisible: visible });
     };
 
+    priceToggleInput.onchange = function () {
+        const enabled = priceToggleInput.checked;
+        browser.storage.local.set({ priceAutofillEnabled: enabled });
+    };
+
+    applyUrlFiltersToForm();
+
     [pricedata, productdata] = await getCardmarketData();
 
     const priceField = document.getElementById("price");
-    if (priceField) {
+    if (priceField && priceToggleInput.checked) {
         var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
         const userName = getUserName();
-        myPrice = calcMyPrice(mkmId, userName);
-        priceField.value = myPrice;
+        const computedPrice = parseFloat(calcMyPrice(mkmId, userName));
+        myPrice = computedPrice;
+        priceField.value = computedPrice.toFixed(2);
     }
     // Add loading indicator
     var loadingDiv = document.createElement("div");

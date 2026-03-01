@@ -56,7 +56,7 @@ function makeAnnouncement(text, version) {
         .then((result) => {
             const lastAckedVersion = result.lastAckedVersion;
             if(!lastAckedVersion || lastAckedVersion != version) {
-                makeAnnouncement(`Cardmarket Assistant, new Version: ${version}`, version);
+                makeAnnouncement(`Cardmarket Helper, new Version: ${version}`, version);
             }
         })
         .catch((error) => {
