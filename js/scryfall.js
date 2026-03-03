@@ -59,37 +59,42 @@ async function scryfallCardsCollection(cardNames) {
             mode: 'cors'
     };
 
-    // Convert the Set of card names into an array
-    const cardNameArray = Array.from(cardNames);
+    try {
+        // Convert the Set of card names into an array
+        const cardNameArray = Array.from(cardNames);
 
-    // Split the card names into batches of 75
-    const batches = [];
-    while (cardNameArray.length > 0) {
-        batches.push(cardNameArray.splice(0, 75));
+        // Split the card names into batches of 75
+        const batches = [];
+        while (cardNameArray.length > 0) {
+            batches.push(cardNameArray.splice(0, 75));
+        }
+
+        // Function to fetch a single batch of cards
+        const fetchBatch = async (batch) => {
+            const body = JSON.stringify({
+                identifiers: batch.map(name => ({ name })),
+            });
+
+            const result = await backgroundFetch(url, {
+                method: "POST",
+                headers: headers,
+                body: body
+            });
+            return result;
+        };
+
+        // Fetch all batches and combine the results
+        const allResults = [];
+        for (const batch of batches) {
+            const result = await fetchBatch(batch);
+            allResults.push(...result.data); // `data` contains the fetched card information
+        }
+
+        return allResults;
+    } catch (error) {
+        console.error("Error fetching Scryfall card collection:", error);
+        return null;
     }
-
-    // Function to fetch a single batch of cards
-    const fetchBatch = async (batch) => {
-        const body = JSON.stringify({
-            identifiers: batch.map(name => ({ name })),
-        });
-
-        const result = await backgroundFetch(url, {
-            method: "POST",
-            headers: headers,
-            body: body
-        });
-        return result;
-    };
-
-    // Fetch all batches and combine the results
-    const allResults = [];
-    for (const batch of batches) {
-        const result = await fetchBatch(batch);
-        allResults.push(...result.data); // `data` contains the fetched card information
-    }
-
-    return allResults;
 }
 
 

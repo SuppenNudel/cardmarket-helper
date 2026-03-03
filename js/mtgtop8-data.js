@@ -42,8 +42,9 @@ async function fetchFormatCardData(format) {
         
         return data;
     } catch (error) {
-        // console.error(`Failed to fetch ${format} card data:`, error);
-        return {};
+        console.error(`Failed to fetch ${formatName} card data:`, error);
+        // Return null instead of empty object to indicate failure
+        return null;
     }
 }
 
@@ -63,6 +64,13 @@ function getFormats() {
 // Filter Pioneer card data for specific card names
 async function fetchFilteredMtgtop8Data(format, card_names) {
     const formatData = await fetchFormatCardData(format);
+    
+    // Return null if format data fetch failed
+    if (!formatData || formatData === null) {
+        console.warn(`No format data available for ${format.name}`);
+        return null;
+    }
+    
     const result = {};
     card_names.forEach(name => {
         if (formatData[name]) {

@@ -255,7 +255,7 @@ function initCollectionInfoFields(fields) {
 }
 
 async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards) {
-    for (var scryfallCard of scryfallCards) {
+    for (const scryfallCard of scryfallCards) {
         for(const field in fields) {
             const cardname = fields[field].cardname;
             if (cardname == scryfallCard.name) {
@@ -271,9 +271,19 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
     for (const format of formats) {
         const promise = fetchFilteredMtgtop8Data(format, Array.from(cardNamesSet))
             .then(mtgtop8Data => {
+                // Check if fetch failed (returned null)
+                if (mtgtop8Data === null) {
+                    console.warn(`Failed to fetch data for ${format.name}, showing legality only`);
+                    // Show legality for all cards
+                    for (const scryfallCard of scryfallCards) {
+                        formatLegality(scryfallCard, format, showLegality = true);
+                    }
+                    return;
+                }
+                
                 for (const scryfallCard of scryfallCards) {
-                    mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
-                    cardData = mtgtop8Data[mtgtop8Name];
+                    const mtgtop8Name = scryfallCardToMtgtop8Name(scryfallCard);
+                    const cardData = mtgtop8Data[mtgtop8Name];
 
                     for(const field in fields) {
                         const cardname = fields[field].cardname;
@@ -294,18 +304,20 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
                 }
             })
             .catch(error => {
-                console.error(`Error fetching mtgtop8 data for format ${format.name}:`, error);
+                console.error(`Error processing mtgtop8 data for format ${format.name}:`, error);
+                // Continue processing other formats even if one fails
             });
         promises.push(promise);
     }
-    // Wait for all fetchFilteredMtgtop8Data calls to complete
-    Promise.all(promises)
-        .then(() => {
-            updateHideOrShow(fields, formats);
-        })
-        .catch(error => {
-            console.error("Error during Promise.all:", error);
-        });
+    // Wait for all promises to complete
+    try {
+        await Promise.all(promises);
+        updateHideOrShow(fields, formats);
+    } catch (error) {
+        console.error("Error during format data processing:", error);
+        // Still try to update the UI even if some formats failed
+        updateHideOrShow(fields, formats);
+    }
 }
 
 async function fillCollectionInfoFields(fields, collection) {
@@ -449,6 +461,7 @@ async function getHtml(path) {
         return htmlContent;
     } catch (error) {
         console.error("Error loading HTML content:", error);
+        return null;
     }
 }
 
@@ -755,37 +768,56 @@ let config;
 
 (async function main() {
     console.log("offers-singles-magic.js");
-    const formats = getFormats();
-    const configData = await initConfig();
+    try {
+        const formats = getFormats();
+        const configData = await initConfig();
+        
+        const productDataPromise = getCachedCardmarketData(KEY_PRODUCTDATA);
+        const fieldsPromise = initFields(productDataPromise);
+        const collectionPromise = getCollection();
+        
+        // Initialize config before addFilters() since it depends on config
+        config = createDeepProxy(configData, async () => {
+            await saveConfig(config);
+            fieldsPromise.then(fields => {
+                updateHideOrShow(fields, formats);
+            }).catch(error => {
+                console.error("Error updating hide/show state:", error);
+            });
+        });
 
-    addFilters(formats);
-    
-    const productDataPromise = getCachedCardmarketData(KEY_PRODUCTDATA);
-    const fieldsPromise = initFields(productDataPromise);
-    const collectionPromise = getCollection();
-    
-    config = createDeepProxy(configData, async () => {
-        await saveConfig(config);
+        await addFilters(formats);
+
         fieldsPromise.then(fields => {
-            updateHideOrShow(fields, formats);
-        })
-    });
-
-    fieldsPromise.then(fields => {
-        const cardNamesSet = new Set(
-            Object.values(fields).flatMap(field => [field.cardname.replace("//", "/"), field.cardname.split(/ \/?\/ /)[0]])
-        );
-        const scryfallCards = scryfallCardsCollection(cardNamesSet);
-        
-        scryfallCards.then(scryfallCards => {
-            initFormatInfoFields(fields, formats);
-            fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards);
+            const cardNamesSet = new Set(
+                Object.values(fields).flatMap(field => [field.cardname.replace("//", "/"), field.cardname.split(/ \/?\/ /)[0]])
+            );
+            const scryfallCards = scryfallCardsCollection(cardNamesSet);
+            
+            scryfallCards.then(scryfallCards => {
+                if (!scryfallCards || scryfallCards.length === 0) {
+                    console.warn("No Scryfall card data available");
+                    return;
+                }
+                initFormatInfoFields(fields, formats);
+                fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards)
+                    .catch(error => {
+                        console.error("Error filling format info fields:", error);
+                    });
+            }).catch(error => {
+                console.error("Error fetching Scryfall card data:", error);
+            });
+            
+            initCollectionInfoFields(fields);
+            collectionPromise.then(collection => {
+                fillCollectionInfoFields(fields, collection);
+            }).catch(error => {
+                console.error("Error filling collection info:", error);
+            });
+        }).catch(error => {
+            console.error("Error initializing fields:", error);
         });
-        
-        initCollectionInfoFields(fields);
-        collectionPromise.then(collection => {
-            fillCollectionInfoFields(fields, collection);
-        });
-    });
-
+    } catch (error) {
+        console.error("Fatal error in offers-singles-magic main:", error);
+    }
 })();

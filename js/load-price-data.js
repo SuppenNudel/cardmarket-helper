@@ -41,17 +41,22 @@ async function getCachedCardmarketData(key) {
     const game = getGame();
 
     const storageKey = key + game;
-    const result = await browser.storage.local.get(storageKey);
+    try {
+        const result = await browser.storage.local.get(storageKey);
 
-    let data = result[storageKey];
-    if (data == undefined) {
-        data = await loadCardmarketData(key);
-    } else {
-        if (isDataOutdated(data.createdAt)) {
+        let data = result[storageKey];
+        if (data == undefined) {
             data = await loadCardmarketData(key);
+        } else {
+            if (isDataOutdated(data.createdAt)) {
+                data = await loadCardmarketData(key);
+            }
         }
+        return data;
+    } catch (error) {
+        console.error(`Error getting cached data for ${key}:`, error);
+        return null;
     }
-    return data;
 }
 
 async function loadCardmarketData(key) {
@@ -82,13 +87,21 @@ async function loadCardmarketData(key) {
         return data;
     } catch (error) {
         console.error('There has been a problem with your fetch operation:', error);
+        // Return null to indicate failure
+        return null;
     }
 }
 
 function getGame() {
     const gameHref = document.querySelector('#brand-gamesDD > a');
+    if (!gameHref || !gameHref.href) {
+        throw new Error("Could not determine game from page - game dropdown not found");
+    }
     const parts = gameHref.href.split('/');
     const game = parts.pop();
+    if (!game) {
+        throw new Error("Could not extract game name from URL");
+    }
     return game;
 }
 
