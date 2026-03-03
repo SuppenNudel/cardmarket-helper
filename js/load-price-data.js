@@ -59,11 +59,7 @@ async function loadCardmarketData(key) {
     const gameId = getGameId(game);
     const url = getCardmarketDataUrl(key, gameId);
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Network response was not ok ' + response.statusText);
-        }
-        const data = await response.json();
+        const data = await backgroundFetch(url);
 
         let infoKey;
         switch (key) {

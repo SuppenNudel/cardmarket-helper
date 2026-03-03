@@ -1,17 +1,16 @@
 // - map cardmarket to manabox for ownership check
 // - check how to rotate the thumbnail
 async function cardByMkmId(mkmId) {
-    var response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                    'Accept': '*/*'
-                },
-                mode: 'cors'
+    const cardObject = await backgroundFetch(
+        `https://api.scryfall.com/cards/cardmarket/${mkmId}`,
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
+                'Accept': '*/*'
             }
-        );
-    const cardObject = await response.json();
+        }
+    );
     return cardObject;
 }
 
@@ -75,19 +74,12 @@ async function scryfallCardsCollection(cardNames) {
             identifiers: batch.map(name => ({ name })),
         });
 
-        const response = await fetch(url, {
+        const result = await backgroundFetch(url, {
             method: "POST",
             headers: headers,
             body: body
         });
-
-        if (!response.ok) {
-            const errorDetails = await response.json();
-            console.error("Error Details:", errorDetails);
-            throw new Error(`Error: ${response.status} - ${response.statusText}`);
-        }
-
-        return response.json();
+        return result;
     };
 
     // Fetch all batches and combine the results
@@ -102,22 +94,16 @@ async function scryfallCardsCollection(cardNames) {
 
 
 async function scryfallRequest(path) {
-    const response = await fetch(`https://api.scryfall.com${path}`,
+    const json = await backgroundFetch(`https://api.scryfall.com${path}`,
         {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
                 'Accept': '*/*'
-            },
-            mode: 'cors'
+            }
         }
     );
-    const json = await response.json();
-    if (response.ok) {
-        return json; // aka scryfallCard
-    } else {
-        throw json;
-    }
+    return json; // aka scryfallCard
 }
 
 async function generateCardmarketUrl(manaBoxCard) {

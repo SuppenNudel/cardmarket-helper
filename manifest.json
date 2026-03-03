@@ -1,9 +1,9 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "Cardmarket Helper",
     "version": "2026.3.1.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
-    "browser_action": {
+    "action": {
         "default_icon": {
             "32": "images/geschaft-32.png"
         },
@@ -22,33 +22,42 @@
         }
     },
     "permissions": [
-        "storage",
-        "https://api.scryfall.com/",
-        "https://downloads.s3.cardmarket.com/",
-        "https://raw.githubusercontent.com/SuppenNudel/"
+        "storage"
     ],
+    "host_permissions": [
+        "https://api.scryfall.com/*",
+        "https://downloads.s3.cardmarket.com/*",
+        "https://raw.githubusercontent.com/*"
+    ],
+    "background": {
+        "scripts": ["js/background.js"]
+    },
     "web_accessible_resources": [
-        "html/popup.html",
-        "css/keyrune.min.css",
-        "fonts/*"
+        {
+            "resources": [
+                "html/popup.html",
+                "css/keyrune.min.css",
+                "fonts/*"
+            ],
+            "matches": ["https://www.cardmarket.com/*"]
+        }
     ],
-    "content_security_policy": "script-src 'self'; object-src 'self'",
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    },
     "content_scripts": [
         {
-            "matches": [
-                "https://www.cardmarket.com/*"
-            ],
+            "matches": ["https://www.cardmarket.com/*"],
             "js": [
                 "js/config.js",
                 "js/update-notification.js",
+                "js/fetch-helper.js",
                 "js/load-price-data.js",
                 "js/pagination-control.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*"
-            ],
+            "matches": ["https://www.cardmarket.com/*"],
             "exclude_matches": [
                 "https://www.cardmarket.com/*/Offers/Singles*",
                 "https://www.cardmarket.com/*/Magic/Wants/ShoppingWizard/Results*",
@@ -60,31 +69,24 @@
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Magic/*"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Magic/*"],
             "js": [
+                "js/fetch-helper.js",
                 "js/scryfall.js",
                 "lib/papaparse.min.js",
                 "js/upload-csv.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/*/Orders/*"
-            ],
+            "matches": ["https://www.cardmarket.com/*/*/Orders/*"],
             "js": [
                 "lib/papaparse.min.js",
                 "js/export-articles.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Magic/Orders/*"
-            ],
-            "exclude_matches": [
-                "https://www.cardmarket.com/*/Orders/Sales/Paid"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Magic/Orders/*"],
+            "exclude_matches": ["https://www.cardmarket.com/*/Orders/Sales/Paid"],
             "js": [
                 "js/get-thumbnail.js",
                 "js/cardmarket-util.js",
@@ -92,46 +94,35 @@
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Orders/Sales/Paid"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Orders/Sales/Paid"],
             "js": [
                 "js/sales-paid.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"],
             "js": [
                 "js/wantslist_import.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Magic/Wants/*"
-            ],
-            "exclude_matches": [
-                "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Magic/Wants/*"],
+            "exclude_matches": ["https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"],
             "js": [
                 "js/wantslist_export.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Offers/Singles*"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Offers/Singles*"],
             "js": [
                 "js/get-thumbnail.js",
+                "js/fetch-helper.js",
                 "js/mtgtop8-data.js",
                 "js/offers-singles.js"
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Magic/*/Offers/Singles*"],
             "js": [
                 "js/cardmarket-util.js",
                 "js/offers-singles-magic.js"
@@ -141,9 +132,7 @@
             ]
         },
         {
-            "matches": [
-                "https://www.cardmarket.com/*/Magic/Products/Singles/*"
-            ],
+            "matches": ["https://www.cardmarket.com/*/Magic/Products/Singles/*"],
             "js": [
                 "js/cardmarket-util.js",
                 "js/sell.js",

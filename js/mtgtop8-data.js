@@ -25,11 +25,7 @@ async function fetchFormatCardData(format) {
     // Fetch fresh data
     const url = `https://raw.githubusercontent.com/SuppenNudel/mtgtop8-topcards/refs/heads/main/${formatName}.json`;
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Error: ${response.status} - ${response.statusText}`);
-        }
-        const data = await response.json();
+        const data = await backgroundFetch(url);
         
         // Cache the data
         try {
