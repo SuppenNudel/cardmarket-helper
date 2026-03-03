@@ -194,7 +194,9 @@ function initFormatInfoFields(fields, formats) {
             field.formatInfoDiv.append(formatElement);
             formatElement.style = "display: flex";
             formatElement.innerText = `${format.name}:`;
-            formatElement.innerHTML += '&nbsp;';
+            const nbsp = document.createElement('span');
+            nbsp.textContent = '\u00A0';
+            formatElement.appendChild(nbsp);
 
             const classCardName = field.cardname.replaceAll(/ \/?\/ /g, "-").replaceAll(" ", "-").replaceAll(/[^a-zA-Z0-9-]/g, "");
             // const classCardNameSpllit = field.cardname.split(" // ")[0].replaceAll(" ", "-").replaceAll(",", "").replaceAll("'", "");
@@ -211,7 +213,7 @@ function initFormatInfoFields(fields, formats) {
 
             const divider2 = document.createElement('div');
             initFormatInfoFields.appendChild(divider2);
-            divider2.innerHTML = "&nbsp;(";
+            divider2.textContent = '\u00A0(';
             
             const mainAvg = document.createElement('div');
             initFormatInfoFields.appendChild(mainAvg);
@@ -220,7 +222,7 @@ function initFormatInfoFields(fields, formats) {
 
             const divider = document.createElement('div');
             initFormatInfoFields.appendChild(divider);
-            divider.innerHTML = ")&nbsp;/&nbsp;";
+            divider.textContent = ')\u00A0/\u00A0';
 
             const sideDecks = document.createElement('div');
             initFormatInfoFields.appendChild(sideDecks);
@@ -229,7 +231,7 @@ function initFormatInfoFields(fields, formats) {
 
             const divider3 = document.createElement('div');
             initFormatInfoFields.appendChild(divider3);
-            divider3.innerHTML = "&nbsp;(";
+            divider3.textContent = '\u00A0(';
             
             const sideAvg = document.createElement('div');
             initFormatInfoFields.appendChild(sideAvg);
@@ -238,7 +240,7 @@ function initFormatInfoFields(fields, formats) {
 
             const divider4 = document.createElement('div');
             initFormatInfoFields.appendChild(divider4);
-            divider4.innerHTML = ")";
+            divider4.textContent = ')';
         }
     }
 }
@@ -646,7 +648,23 @@ if (colClass) {
 
 let clonedElement = hitsCol.cloneNode(false); // Clone the element (true means deep clone, including child nodes)
 hitsCol.parentNode.insertBefore(clonedElement, hitsCol.nextSibling);
-clonedElement.innerHTML = "<span>Hiding </span><span id='hidden-articles'>X</span><span> of </span><span id='total-articles'>Y</span><span> articles</span>";
+const hidingSpan = document.createElement('span');
+hidingSpan.textContent = 'Hiding ';
+clonedElement.appendChild(hidingSpan);
+const hiddenCountSpan = document.createElement('span');
+hiddenCountSpan.id = 'hidden-articles';
+hiddenCountSpan.textContent = 'X';
+clonedElement.appendChild(hiddenCountSpan);
+const ofSpan = document.createElement('span');
+ofSpan.textContent = ' of ';
+clonedElement.appendChild(ofSpan);
+const totalCountSpan = document.createElement('span');
+totalCountSpan.id = 'total-articles';
+totalCountSpan.textContent = 'Y';
+clonedElement.appendChild(totalCountSpan);
+const articlesSpan = document.createElement('span');
+articlesSpan.textContent = ' articles';
+clonedElement.appendChild(articlesSpan);
 let clonedClass = [...clonedElement.classList].find(cls => cls.startsWith('col-')); // Find the class that starts with 'col-'
 if (clonedClass) {
     clonedElement.classList.replace(clonedClass, 'col-2'); // Replace it with 'col-1'
