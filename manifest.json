@@ -37,7 +37,9 @@
             "resources": [
                 "html/popup.html",
                 "css/keyrune.min.css",
-                "fonts/*"
+                "fonts/*",
+                "resources/table.html",
+                "resources/table-filter-tr-template.html"
             ],
             "matches": ["https://www.cardmarket.com/*"]
         }

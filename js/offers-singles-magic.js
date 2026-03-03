@@ -450,6 +450,34 @@ async function getHtml(path) {
     }
 }
 
+function getFilterContainer() {
+    const legacyWrapper = document.querySelector("#FilterOffersFormWrapper");
+    if (legacyWrapper) {
+        return { container: legacyWrapper, insertAfter: null };
+    }
+
+    const componentForm = document.querySelector('[data-component-name="CategoryOffersFilterComponent"] form');
+    if (componentForm) {
+        return { container: componentForm, insertAfter: null };
+    }
+
+    const filterForm = document.querySelector('form[action*="User_Account_Filter_FilterUserInventory"]');
+    if (filterForm) {
+        return { container: filterForm, insertAfter: null };
+    }
+
+    const main = document.querySelector('main.container');
+    if (main) {
+        const breadcrumb = main.querySelector('nav[aria-label="breadcrumb"]');
+        if (breadcrumb && breadcrumb.parentNode) {
+            return { container: breadcrumb.parentNode, insertAfter: breadcrumb };
+        }
+        return { container: main, insertAfter: null };
+    }
+
+    return null;
+}
+
 function toggleFormatFilter(toggleButton, what, elementToToggle) {
     hidden = elementToToggle.style.display === 'none';
     toggleButton.querySelector(".chevron").classList.toggle('fonticon-chevron-up');
@@ -465,22 +493,47 @@ function toggleFormatFilter(toggleButton, what, elementToToggle) {
 }
 
 async function addFilters(formats) {
-    const filterWrapper = document.querySelector("#FilterOffersFormWrapper");
+    const filterTarget = getFilterContainer();
+    if (!filterTarget) {
+        console.error("Format filter container not found");
+        return;
+    }
+
     const div = document.createElement("div");
+    div.className = "row g-2 mb-2";
+    const col = document.createElement("div");
+    col.className = "col-12";
+    div.appendChild(col);
 
     const htmlContent = await getHtml("resources/table.html");
+    if (!htmlContent) {
+        console.error("Format filter template could not be loaded");
+        return;
+    }
     // Use DOMParser for secure HTML parsing from trusted source
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, 'text/html');
     // Append all children from the parsed body
     while (doc.body.firstChild) {
-        div.appendChild(doc.body.firstChild);
+        col.appendChild(doc.body.firstChild);
     }
-    filterWrapper.append(div);
+    if (filterTarget.insertAfter && filterTarget.insertAfter.parentNode) {
+        filterTarget.insertAfter.parentNode.insertBefore(div, filterTarget.insertAfter.nextSibling);
+    } else {
+        filterTarget.container.append(div);
+    }
 
     const filterTable = document.querySelector("#format-filter-table");
+    if (!filterTable) {
+        console.error("Format filter table not found after injection");
+        return;
+    }
 
     const template = await getHtml("resources/table-filter-tr-template.html");
+    if (!template) {
+        console.error("Format filter row template could not be loaded");
+        return;
+    }
     for (const format of formats) {
         // Create table row elements programmatically for security
         const tr = document.createElement("tr");
