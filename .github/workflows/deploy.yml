@@ -106,6 +106,87 @@ jobs:
             --source-dir=. \
             --artifacts-dir=./web-ext-artifacts
       
+      - name: List artifacts directory
+        run: |
+          echo "Contents of ./web-ext-artifacts/:"
+          ls -la ./web-ext-artifacts/ || echo "Directory does not exist"
+          echo ""
+          echo "Finding .xpi files:"
+          find ./web-ext-artifacts/ -name "*.xpi" -o -name "*.zip" 2>/dev/null || echo "No .xpi or .zip files found"
+      
+      - name: Rename XPI file
+        run: |
+          XPI_FILE=$(find ./web-ext-artifacts/ -name "*.xpi" | head -1)
+          if [ -z "$XPI_FILE" ]; then
+            echo "No .xpi file found in ./web-ext-artifacts/"
+            exit 1
+          fi
+          echo "Found XPI file: $XPI_FILE"
+          mv "$XPI_FILE" ./web-ext-artifacts/cardmarket-helper.xpi
+          echo "Renamed to: ./web-ext-artifacts/cardmarket-helper.xpi"
+      
+      - name: Update release notes on Firefox AMO
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          ADDON_ID: "6b7ad442-dbee-4ef8-bc53-43af0e3de819"
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python -m pip install PyJWT requests --quiet
+          
+          python << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import time
+          import jwt
+          import requests
+          
+          iss = os.environ.get("AMO_JWT_ISSUER")
+          secret = os.environ.get("AMO_JWT_SECRET")
+          addon_id = os.environ.get("ADDON_ID")
+          version = os.environ.get("VERSION")
+          
+          # Read release notes
+          with open("release_notes.txt", "r") as f:
+              release_notes = f.read().strip()
+          
+          # Create JWT token
+          now = int(time.time())
+          payload = {
+              "iss": iss,
+              "jti": f"{now}000",
+              "iat": now,
+              "exp": now + 300
+          }
+          
+          token = jwt.encode(payload, secret, algorithm="HS256")
+          
+          # Update release notes on AMO
+          url = f"https://addons.mozilla.org/api/v5/addons/{addon_id}/versions/{version}/"
+          headers = {
+              "Authorization": f"JWT {token}",
+              "Content-Type": "application/json"
+          }
+          data = {
+              "release_notes": release_notes
+          }
+          
+          try:
+              response = requests.patch(url, json=data, headers=headers)
+              print(f"Response status: {response.status_code}")
+              if response.status_code >= 400:
+                  print(f"Response: {response.text}")
+                  if response.status_code == 404:
+                      print("Note: Addon version not found on AMO yet - it may be available after initial processing")
+                  elif response.status_code >= 500:
+                      print("Note: AMO server error - release notes may update automatically")
+              else:
+                  print("Release notes updated successfully!")
+          except Exception as e:
+              print(f"Could not update release notes: {e}")
+              print("Note: Release notes will need to be updated manually or will be available after AMO processes the upload")
+          PYTHON_SCRIPT
+      
       - name: Create GitHub Release
         uses: actions/create-release@v1
         id: create_release
