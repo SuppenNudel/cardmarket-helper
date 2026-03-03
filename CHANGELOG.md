@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.3.1.1] - 2026-03-03
+
+### Changed
+- Upgraded to Firefox Manifest v3 for improved security and performance
+- Enhanced error handling to prevent silent failures and provide better stability
+
+### Fixed
+- Compatibility with Cardmarket's new filter layout on Offers pages
+- Configuration initialization race condition that could cause errors on page load
+
+### Security
+- Removed potentially unsafe innerHTML usage throughout the extension
+
 ## [2026.3.1.0] - 2026-03-01
 
 ### Added
