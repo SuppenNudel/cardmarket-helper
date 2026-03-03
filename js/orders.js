@@ -154,7 +154,7 @@ function collectionLoaded(collection) {
             const langIcon = info.querySelector("div.col-icon span span.icon");
             const backgroundPosition = langIcon.style.backgroundPosition;
 
-            var lang;
+            let lang;
             for (const posLang in LANG_POS_MAP) {
                 const pos = LANG_POS_MAP[posLang];
                 if (pos == backgroundPosition) {

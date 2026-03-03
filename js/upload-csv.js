@@ -100,11 +100,11 @@ async function parseCsvAndSave(file, fileContent) {
 
         const div = document.createElement("div");
 
-        var filenameDiv = document.createElement('div');
+        const filenameDiv = document.createElement('div');
         filenameDiv.id = "manabox-file-name";
         div.appendChild(filenameDiv);
 
-        var fileInput = document.createElement("input");
+        const fileInput = document.createElement("input");
         fileInput.type = "file";
         fileInput.accept = ".csv";
         div.appendChild(fileInput);
@@ -164,16 +164,16 @@ async function parseCsvAndSave(file, fileContent) {
                 window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
                 // Get the selected file
-                var file = fileInput.files[0];
+                const file = fileInput.files[0];
 
                 // Create a new FileReader
-                var reader = new FileReader();
+                const reader = new FileReader();
 
                 // Define the onload event handler
                 reader.onload = function (e) {
                     try {
                         // e.target.result contains the file content as a data URL
-                        var fileContent = e.target.result;
+                        const fileContent = e.target.result;
 
                         parseCsvAndSave(file, fileContent).catch(err => {
                             console.error("Unhandled error from parseCsvAndSave:", err);

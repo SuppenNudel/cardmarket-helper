@@ -337,7 +337,7 @@ function formatLegality(scryfallCard, format, showLegality = false) {
         
         const legality = scryfallCard.legalities[format.scryfallkey];
         const allFormat = document.querySelectorAll(`.format.${format.name}.${classCardName}`);
-        var legalInfo = null;
+        let legalInfo = null;
         switch (legality) {
             case 'not_legal':
                 legalInfo = '🛑 not legal';
@@ -757,7 +757,7 @@ let config;
         const cardNamesSet = new Set(
             Object.values(fields).flatMap(field => [field.cardname.replace("//", "/"), field.cardname.split(/ \/?\/ /)[0]])
         );
-        var scryfallCards = scryfallCardsCollection(cardNamesSet);
+        const scryfallCards = scryfallCardsCollection(cardNamesSet);
         
         scryfallCards.then(scryfallCards => {
             initFormatInfoFields(fields, formats);
