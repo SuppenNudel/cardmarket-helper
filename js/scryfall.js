@@ -1,17 +1,25 @@
 // - map cardmarket to manabox for ownership check
 // - check how to rotate the thumbnail
 async function cardByMkmId(mkmId) {
-    const cardObject = await backgroundFetch(
-        `https://api.scryfall.com/cards/cardmarket/${mkmId}`,
-        {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                'Accept': '*/*'
+    try {
+        const cardObject = await backgroundFetch(
+            `https://api.scryfall.com/cards/cardmarket/${mkmId}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
+                    'Accept': '*/*'
+                }
             }
+        );
+        return cardObject;
+    } catch (error) {
+        const message = String(error && error.message ? error.message : error);
+        if (message.startsWith('HTTP 404')) {
+            return null;
         }
-    );
-    return cardObject;
+        throw error;
+    }
 }
 
 const rot90Layout = ["split"];

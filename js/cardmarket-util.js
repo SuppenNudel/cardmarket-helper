@@ -113,3 +113,63 @@ const CONDITION_MAP = {
     "played": "PL",
     "poor": "PO"
 }
+
+function normalizeManaBoxLanguageCode(langCode) {
+    const normalized = String(langCode || "").trim().replace("-", "_").toLowerCase();
+    if (!normalized) return null;
+
+    for (const key of Object.keys(LANG_MAP)) {
+        if (key.toLowerCase() === normalized) {
+            return key;
+        }
+    }
+
+    return null;
+}
+
+function getLanguageCodeFromBackgroundPosition(backgroundPosition) {
+    const normalizedPos = String(backgroundPosition || "").replace(/\s+/g, " ").trim();
+    if (!normalizedPos) return null;
+
+    for (const [langCode, position] of Object.entries(LANG_POS_MAP)) {
+        const normalizedCandidate = String(position || "").replace(/\s+/g, " ").trim();
+        if (normalizedCandidate === normalizedPos) {
+            return langCode;
+        }
+    }
+
+    return null;
+}
+
+function getLanguageIdFromCode(langCode) {
+    const normalizedCode = normalizeManaBoxLanguageCode(langCode);
+    if (!normalizedCode) return null;
+    return LANG_MAP[normalizedCode] || null;
+}
+
+function getLanguageCodeFromId(languageId) {
+    const id = String(languageId || "").trim();
+    if (!id) return null;
+
+    for (const [langCode, mappedId] of Object.entries(LANG_MAP)) {
+        if (String(mappedId) === id) {
+            return langCode;
+        }
+    }
+
+    return null;
+}
+
+function parseCardmarketCurrency(currencyString) {
+    const text = String(currencyString || "").trim();
+    if (!text) return null;
+
+    if (text.includes('\n(PPU: ')) {
+        const ppuPart = text.split('\n(PPU: ')[1] || "";
+        const parsed = Number.parseFloat(ppuPart.replace(' €)', '').replace(',', '.'));
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    const parsed = Number.parseFloat(text.replace(' €', '').replace(',', '.'));
+    return Number.isNaN(parsed) ? null : parsed;
+}

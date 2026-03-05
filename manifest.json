@@ -95,8 +95,12 @@
             "matches": [
                 "https://www.cardmarket.com/*/*/Orders/*"
             ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Magic/Orders/*"
+            ],
             "js": [
                 "lib/papaparse.min.js",
+                "js/cardmarket-util.js",
                 "js/export-articles.js"
             ]
         },
@@ -108,8 +112,10 @@
                 "https://www.cardmarket.com/*/Orders/Sales/Paid"
             ],
             "js": [
+                "lib/papaparse.min.js",
                 "js/get-thumbnail.js",
                 "js/cardmarket-util.js",
+                "js/export-articles.js",
                 "js/orders.js"
             ]
         },

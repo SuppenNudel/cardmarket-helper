@@ -24,7 +24,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({ success: true, data: data });
             })
             .catch(error => {
-                console.error('Background fetch error:', error);
+                const errorText = String(error && error.message ? error.message : error);
+                if (!errorText.startsWith('HTTP 404')) {
+                    console.error('Background fetch error:', error);
+                }
                 sendResponse({ success: false, error: error.message });
             });
         
