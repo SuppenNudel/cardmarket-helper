@@ -106,19 +106,6 @@ function addToTimeline(timestamp) {
     updateTimeline(timestamp);
 }
 
-function parseCurrencyStringToDouble(currencyString) {
-    // Check if the value contains '\n(PPU: '
-    if (currencyString.includes('\n(PPU: ')) {
-        // Extract the PPU part
-        const ppuPart = currencyString.split('\n(PPU: ')[1];
-        // Remove the closing parenthesis and currency symbol, then convert to float
-        return parseFloat(ppuPart.replace(' €)', '').replace(',', '.'));
-    } else {
-        // For the simpler format, remove the currency symbol and convert to float
-        return parseFloat(currencyString.replace(' €', '').replace(',', '.'));
-    }
-}
-
 function collectionLoaded(collection) {
     const products = document.querySelectorAll("table.product-table tbody tr");
     const locationHeader = document.createElement("th");
@@ -126,6 +113,10 @@ function collectionLoaded(collection) {
     const headerRow = document.querySelector("table.product-table thead tr");
     headerRow.insertBefore(locationHeader, headerRow.querySelector("th.price"));
     for (const product of products) {
+        const collectionInfo = document.createElement("td");
+        collectionInfo.style = "width: 250px; text-align: left;";
+        product.insertBefore(collectionInfo, product.querySelector("td.price"));
+
         showThumbnail(product.querySelector("span.thumbnail-icon")).then(image => {
             if (collection) {
                 return getScryfallCardFromImage(image);
@@ -133,13 +124,9 @@ function collectionLoaded(collection) {
                 return Promise.reject(new Error("Collection not loaded"));
             }
         }).then(scryfallCard => {
-            const collectionInfo = document.createElement("td"); // to append to
-            collectionInfo.style = "width: 250px; text-align: left;";
-            product.insertBefore(collectionInfo, product.querySelector("td.price"));
-
             if (!scryfallCard) {
                 const collectionDiv = document.createElement("div");
-                collectionDiv.textContent = "couldn't associate cardmarket card with scryfall card";
+                collectionDiv.textContent = "Not found on Scryfall for this Cardmarket ID";
                 collectionInfo.appendChild(collectionDiv)
                 return;
             }
@@ -154,14 +141,7 @@ function collectionLoaded(collection) {
             const langIcon = info.querySelector("div.col-icon span span.icon");
             const backgroundPosition = langIcon.style.backgroundPosition;
 
-            let lang;
-            for (const posLang in LANG_POS_MAP) {
-                const pos = LANG_POS_MAP[posLang];
-                if (pos == backgroundPosition) {
-                    lang = posLang;
-                    break;
-                }
-            }
+            const lang = getLanguageCodeFromBackgroundPosition(backgroundPosition);
 
             const foil = info.querySelector("div.col-extras span.icon span.icon") ? "foil" : "normal";
 
@@ -172,6 +152,11 @@ function collectionLoaded(collection) {
                 collectionInfo.appendChild(collectionDiv)
                 collectionDiv.textContent = `${collectionCard["Quantity"]}x ${collectionCard["Binder Type"] == "deck" ? "Deck - " : ""}${collectionCard["Binder Name"]}`;
             }
+        }).catch(error => {
+            const collectionDiv = document.createElement("div");
+            collectionDiv.textContent = "Scryfall lookup failed";
+            collectionInfo.appendChild(collectionDiv);
+            console.warn("Collection lookup failed for product row:", error);
         });
     }
 }
@@ -199,16 +184,8 @@ function scrapeArticles() {
             const langSpan = infoTd.querySelector("span.is-24x24 > span.icon");
             const backgroundPosition = langSpan ? langSpan.style.backgroundPosition : null;
 
-            let lang = null;
-            if (backgroundPosition) {
-                for (const [key, value] of Object.entries(LANG_POS_MAP)) {
-                    if (value === backgroundPosition) {
-                        lang = key;
-                        break;
-                    }
-                }
-            }
-            const langId = LANG_MAP[lang];
+            const lang = getLanguageCodeFromBackgroundPosition(backgroundPosition);
+            const langId = getLanguageIdFromCode(lang);
 
             const extrasSpan = row.querySelector("span.extras");
             const foilElement = extrasSpan.querySelector("span.icon[aria-label='Foil']")
@@ -219,7 +196,7 @@ function scrapeArticles() {
 
             const priceElement = row.querySelector("td.price");
             const priceStr = priceElement ? priceElement.textContent.trim() : null;
-            const price = parseCurrencyStringToDouble(priceStr)
+            const price = parseCardmarketCurrency(priceStr)
 
             const dataAmount = amountCell ? amountCell.getAttribute("data-amount") : null;
             const mkmid = img.getAttribute("mkmid");

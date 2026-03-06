@@ -14,6 +14,13 @@ This add-on is not affiliated with, endorsed by, or in any way officially connec
 
 If you have any of those please feel free to submit them at https://github.com/SuppenNudel/cardmarket-helper/issues/new
 
+## ManaBox Viewer target (for Orders export)
+
+The **Open in ManaBox Viewer** button uses `config.manaboxViewerMode` from `browser.storage.sync`:
+
+- `local` (default): opens `http://localhost:8000/index.html`
+- `hosted`: opens `https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html`
+
 ## Inspirations
 
 Some Features of this addon have been inspired by existing addons. So I wanted to credeit them here:
