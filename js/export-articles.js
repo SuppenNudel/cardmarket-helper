@@ -218,8 +218,84 @@ function normalizeConditionToId(conditionText) {
     return CONDITION_MAP_ID[normalized] || "";
 }
 
+function isSalesOrder() {
+    const breadcrumbNav = document.querySelector('nav[aria-label="breadcrumb"]');
+    if (breadcrumbNav) {
+        const breadcrumbSales = breadcrumbNav.querySelector('a[href*="/Orders/Sales"]');
+        const breadcrumbPurchases = breadcrumbNav.querySelector('a[href*="/Orders/Purchases"]');
+        if (breadcrumbPurchases) {
+            return false;
+        }
+        if (breadcrumbSales) {
+            return true;
+        }
+    }
+
+    const salesLink = document.querySelector('a[href$="Orders/Sales"]');
+    const purchasesLink = document.querySelector('a[href$="Orders/Purchases"]');
+    if (purchasesLink) {
+        return false;
+    }
+    return Boolean(salesLink);
+}
+
+function isSalesPaidArticlesPage() {
+    if (/\/Orders\/Sales\/Paid\/Articles/i.test(window.location.pathname)) {
+        return true;
+    }
+
+    return Boolean(document.querySelector("tr[data-article-id]")) && isSalesOrder();
+}
+
+function scrapeSalesPaidArticlesFromPage() {
+    const rows = document.querySelectorAll("tr[data-article-id]");
+    if (!rows || rows.length === 0) {
+        return [];
+    }
+
+    const articles = [];
+
+    rows.forEach(row => {
+        const idProduct = String(row.getAttribute("data-product-id") || "").trim();
+        if (!idProduct) return;
+
+        const amountRaw = row.getAttribute("data-amount") || "";
+        const amount = Number.parseInt(String(amountRaw || "").trim(), 10);
+
+        const priceAttr = row.getAttribute("data-price") || "";
+        let price = Number.parseFloat(String(priceAttr || "").replace(",", "."));
+        if (Number.isNaN(price)) {
+            price = parseCurrencyStringToDouble(row.querySelector("td.price") ? row.querySelector("td.price").textContent : "");
+        }
+
+        const conditionId = String(row.getAttribute("data-condition") || "").trim();
+        const condition = ORDER_CONDITION_BY_ID[conditionId] || "";
+
+        const languageId = String(row.getAttribute("data-language") || "").trim();
+        const languageCode = getLanguageCodeFromId(languageId);
+
+        const name = String(row.getAttribute("data-name") || "").trim()
+            || (row.querySelector("td.name a") ? row.querySelector("td.name a").textContent.trim() : "")
+            || (row.querySelector("td.info a") ? row.querySelector("td.info a").textContent.trim() : "");
+
+        const foilElement = row.querySelector("span.icon[aria-label='Foil'], span.icon[title='Foil'], span.icon[data-bs-original-title='Foil']");
+
+        articles.push({
+            idProduct,
+            groupCount: Number.isNaN(amount) ? 1 : amount,
+            price: price === null || Number.isNaN(price) ? "" : price.toFixed(2),
+            condition,
+            language: languageCode || "",
+            isFoil: Boolean(foilElement),
+            name
+        });
+    });
+
+    return articles;
+}
+
 function buildShipmentCsvFromPageScrape() {
-    const articles = scrapeOrderArticlesFromPage();
+    const articles = scrapeOrderArticlesFromPage().concat(scrapeSalesPaidArticlesFromPage());
     if (!articles || articles.length === 0) {
         return "";
     }
@@ -489,13 +565,75 @@ function openViewerWindowWithFallback(primaryTarget) {
 
 function getSellerName() {
     const sellerElement = document.querySelector("#SellerBuyerInfo span.seller-name");
-    return sellerElement ? sellerElement.textContent.trim() : "unknown_seller";
+    if (sellerElement) {
+        return sellerElement.textContent.trim();
+    }
+
+    const titleElement = document.querySelector(".page-title-container h1") || document.querySelector("h1");
+    return titleElement ? titleElement.textContent.trim().replace(/\s+/g, "_") : "unknown_seller";
 }
 
-function addExportButton() {
+function getOrderIdFromPage() {
+    const pathMatch = window.location.pathname.match(/Orders\/(\d+)/i);
+    if (pathMatch) {
+        return pathMatch[1];
+    }
+
+    const linkMatch = document.querySelector("a[href*='/Orders/']");
+    if (linkMatch && linkMatch.getAttribute("href")) {
+        const match = linkMatch.getAttribute("href").match(/Orders\/(\d+)/i);
+        if (match) {
+            return match[1];
+        }
+    }
+
+    return "";
+}
+
+function waitForActionBarGrid(timeoutMs = 8000) {
+    return new Promise(resolve => {
+        const start = Date.now();
+
+        const findGrid = () => {
+            const actionBar = document.querySelector(".action-bar");
+            if (!actionBar) return null;
+            const directGrids = Array.from(actionBar.querySelectorAll(":scope > .d-grid"));
+            return directGrids.length > 0 ? directGrids[directGrids.length - 1] : null;
+        };
+
+        const existing = findGrid();
+        if (existing) {
+            resolve(existing);
+            return;
+        }
+
+        const observer = new MutationObserver(() => {
+            const found = findGrid();
+            if (found) {
+                observer.disconnect();
+                resolve(found);
+            } else if (Date.now() - start > timeoutMs) {
+                observer.disconnect();
+                resolve(null);
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        setTimeout(() => {
+            observer.disconnect();
+            resolve(findGrid());
+        }, timeoutMs);
+    });
+}
+
+async function addExportButton() {
     // Create a new button for custom download
     const collapsibleExportElement = document.getElementById("collapsibleExport") || document.getElementById("collapsiblePrintShipment");
-    if(!collapsibleExportElement) {
+    const isSales = isSalesOrder();
+    const isSalesPaid = isSalesPaidArticlesPage();
+    
+    if(!collapsibleExportElement && !isSalesPaid) {
         return;
     }
 
@@ -503,51 +641,82 @@ function addExportButton() {
         return;
     }
 
+    // Find standalone Export Articles grid (direct child of .action-bar)
+    let exportArticlesGrid = null;
+    if (isSales) {
+        exportArticlesGrid = await waitForActionBarGrid();
+    }
+
+    const containerDiv = document.createElement("div");
+    containerDiv.classList = "d-grid";
+
+    // Create Export Adjusted button (only for purchase orders)
     const exportButton = document.createElement("input");
     exportButton.type = "button";
     const title = "Export Adjusted"
     exportButton.title = title;
     exportButton.value = title;
     exportButton.classList = "btn my-2 btn-sm btn-outline-primary";
-    const containerDiv = document.createElement("div");
-    containerDiv.classList = "d-grid";
-    containerDiv.appendChild(exportButton);
 
+    // Create Open in ManaBox Viewer button
     const openInViewerButton = document.createElement("input");
     openInViewerButton.type = "button";
     openInViewerButton.id = "cmh-open-manabox-viewer-btn";
     const viewerTitle = "Open in ManaBox Viewer";
     openInViewerButton.title = viewerTitle;
     openInViewerButton.value = viewerTitle;
-    openInViewerButton.classList = "btn mt-2 btn-sm btn-outline-primary";
-    containerDiv.appendChild(openInViewerButton);
+    openInViewerButton.classList = "btn my-2 btn-sm btn-outline-primary";
 
-    collapsibleExportElement.appendChild(containerDiv);
-
-    // Attach event listener to custom button
-    exportButton.addEventListener("click", async () => {
-        try {
-            const { adjustedCsvContent, idShipment } = await fetchAdjustedCsvContent(collapsibleExportElement);
-
-            // Trigger download of the modified CSV file
-            const blob = new Blob([adjustedCsvContent], { type: "text/csv" });
-            const downloadUrl = URL.createObjectURL(blob);
-
-            // Create an invisible link, set the href to the blob, and trigger download
-            const link = document.createElement("a");
-            link.href = downloadUrl;
-            const sellerName = getSellerName();
-            link.download = `ArticlesFromShipment${idShipment}_from_${sellerName}.csv`;
-            document.body.appendChild(link);
-            link.click();
-
-            // Clean up
-            document.body.removeChild(link);
-            URL.revokeObjectURL(downloadUrl);
-        } catch (error) {
-            console.error("Error downloading or modifying CSV:", error);
+    // On sales order pages with standalone Export Articles grid, add only viewer button
+    if (isSales && exportArticlesGrid) {
+        exportArticlesGrid.appendChild(openInViewerButton);
+    } else if (collapsibleExportElement) {
+        // On purchase orders, add both buttons to collapsible
+        // On sales orders without standalone grid, add only viewer button
+        if (!isSales) {
+            containerDiv.appendChild(exportButton);
         }
-    });
+        containerDiv.appendChild(openInViewerButton);
+        collapsibleExportElement.appendChild(containerDiv);
+    } else {
+        // Fallback: insert at top of page
+        containerDiv.appendChild(openInViewerButton);
+        const anchorElement = document.querySelector(".page-title-container")
+            || document.querySelector("nav[aria-label='breadcrumb']")
+            || document.body.firstChild;
+        if (anchorElement && anchorElement.insertAdjacentElement) {
+            anchorElement.insertAdjacentElement("afterend", containerDiv);
+        } else if (document.body) {
+            document.body.insertBefore(containerDiv, document.body.firstChild);
+        }
+    }
+
+    // Attach event listener to export button (only on purchase orders)
+    if (!isSales) {
+        exportButton.addEventListener("click", async () => {
+            try {
+                const { adjustedCsvContent, idShipment } = await fetchAdjustedCsvContent(collapsibleExportElement);
+
+                // Trigger download of the modified CSV file
+                const blob = new Blob([adjustedCsvContent], { type: "text/csv" });
+                const downloadUrl = URL.createObjectURL(blob);
+
+                // Create an invisible link, set the href to the blob, and trigger download
+                const link = document.createElement("a");
+                link.href = downloadUrl;
+                const sellerName = getSellerName();
+                link.download = `ArticlesFromShipment${idShipment}_from_${sellerName}.csv`;
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up
+                document.body.removeChild(link);
+                URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                console.error("Error downloading or modifying CSV:", error);
+            }
+        });
+    }
 
     openInViewerButton.addEventListener("click", async () => {
         const resolvedTarget = await resolveManaBoxViewerTarget();
@@ -559,12 +728,16 @@ function addExportButton() {
 
         try {
             const idShipmentInput = (collapsibleExportElement && collapsibleExportElement.querySelector('input[name="idShipment"]')) || document.querySelector('input[name="idShipment"]');
-            const idShipment = idShipmentInput ? idShipmentInput.value : "";
+            const idShipment = idShipmentInput ? idShipmentInput.value : getOrderIdFromPage();
 
             let sourceRows = scrapeOrderArticlesFromPage();
+            if (sourceRows.length === 0) {
+                sourceRows = scrapeSalesPaidArticlesFromPage();
+            }
+
             let adjustedCsvContent = "";
 
-            if (sourceRows.length === 0) {
+            if (sourceRows.length === 0 && collapsibleExportElement) {
                 const exportPayload = await fetchAdjustedCsvContent(collapsibleExportElement);
                 adjustedCsvContent = exportPayload.adjustedCsvContent;
                 sourceRows = parseShipmentCsvRows(adjustedCsvContent).map(row => ({
@@ -590,7 +763,7 @@ function addExportButton() {
                 type: "cardmarket-helper:preload-csv",
                 source: "cardmarket-helper",
                 format: "cardmarket-shipment-export",
-                shipmentId: idShipment,
+                shipmentId: idShipment || "sales_paid_articles",
                 sellerName: getSellerName(),
                 csvContent: adjustedCsvContent,
                 cards: viewerCards,
@@ -608,5 +781,5 @@ function addExportButton() {
     console.log("export-articles.js");
     console.log("seller:", getSellerName());
 
-    addExportButton();
+    await addExportButton();
 })();
