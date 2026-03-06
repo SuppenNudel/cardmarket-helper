@@ -80,9 +80,10 @@ jobs:
           # Finds content between "## [VERSION]" and the next "## [" or end of file
           sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$d' > release_notes.txt
           
-          # If the file is empty, set a default message
+          # Fail if no release notes were found
           if [ ! -s release_notes.txt ]; then
-            echo "See CHANGELOG.md for details" > release_notes.txt
+            echo "No release notes found for version $VERSION in CHANGELOG.md" >&2
+            exit 1
           fi
           
           echo "Detected release notes for $VERSION:"
@@ -209,3 +210,7 @@ jobs:
           git checkout main
           git merge --no-ff "origin/${GITHUB_REF_NAME}" -m "chore: merge ${GITHUB_REF_NAME}"
           git push origin main
+
+      - name: Delete deploy branch
+        run: |
+          git push origin --delete "${GITHUB_REF_NAME}"
