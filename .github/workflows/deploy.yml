@@ -85,6 +85,9 @@ jobs:
             echo "See CHANGELOG.md for details" > release_notes.txt
           fi
           
+          echo "Detected release notes for $VERSION:"
+          cat release_notes.txt
+          
           # Use multiline output for the release body
           {
             echo 'changelog<<EOF'
@@ -197,3 +200,12 @@ jobs:
             --title "Release v${{ steps.version.outputs.version }}" \
             --notes-file release_notes.txt \
             --repo "$GITHUB_REPOSITORY"
+
+      - name: Merge deploy branch into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git merge --no-ff "origin/${GITHUB_REF_NAME}" -m "chore: merge ${GITHUB_REF_NAME}"
+          git push origin main
