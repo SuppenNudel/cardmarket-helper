@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.3.2.0] - 2026-03-06
+
+### Added
+- ManaBox Viewer preload for Sales/Paid articles
+- Sales/Paid articles export now works even when the CSV export is missing
+
+### Fixed
+- ManaBox Viewer button placement on sales orders (now below Export Articles)
+
 ## [2026.3.1.1] - 2026-03-03
 
 ### Changed
