@@ -1,3 +1,5 @@
+// Cardmarket data fetching - uses background script for centralized caching
+
 const cardGames = {
     "Magic": 1,
     "YuGiOh": 3,
@@ -24,74 +26,6 @@ const KEY_PRICEDATA = 'pricedata';
 const KEY_PRODUCTDATA = 'productdata';
 const KEY_NON_SINGLES = 'nonsingles';
 
-function getCardmarketDataUrl(key, gameId) {
-    switch (key) {
-        case KEY_PRICEDATA:
-            return `https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_${gameId}.json`;
-        case KEY_PRODUCTDATA:
-            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_${gameId}.json`;
-        case KEY_NON_SINGLES:
-            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_${gameId}.json`;
-        default:
-            break;
-    }
-}
-
-async function getCachedCardmarketData(key) {
-    const game = getGame();
-
-    const storageKey = key + game;
-    try {
-        const result = await browser.storage.local.get(storageKey);
-
-        let data = result[storageKey];
-        if (data == undefined) {
-            data = await loadCardmarketData(key);
-        } else {
-            if (isDataOutdated(data.createdAt)) {
-                data = await loadCardmarketData(key);
-            }
-        }
-        return data;
-    } catch (error) {
-        console.error(`Error getting cached data for ${key}:`, error);
-        return null;
-    }
-}
-
-async function loadCardmarketData(key) {
-    const game = getGame();
-    const gameId = getGameId(game);
-    const url = getCardmarketDataUrl(key, gameId);
-    try {
-        const data = await backgroundFetch(url);
-
-        let infoKey;
-        switch (key) {
-            case KEY_PRICEDATA:
-                infoKey = 'priceGuides';
-                break;
-            case KEY_PRODUCTDATA:
-                infoKey = 'products';
-            default:
-                break;
-        }
-
-        const dictionary = data[infoKey].reduce((acc, obj) => {
-            acc[obj.idProduct] = obj;
-            return acc;
-        }, {});
-        data[infoKey] = dictionary;
-
-        save(key, data);
-        return data;
-    } catch (error) {
-        console.error('There has been a problem with your fetch operation:', error);
-        // Return null to indicate failure
-        return null;
-    }
-}
-
 function getGame() {
     const gameHref = document.querySelector('#brand-gamesDD > a');
     if (!gameHref || !gameHref.href) {
@@ -105,16 +39,6 @@ function getGame() {
     return game;
 }
 
-function save(key, data) {
-    const game = getGame();
-    const objStr = key + game;
-    const obj = { [objStr]: data };
-    browser.storage.local.set(obj)
-        .catch((error) => {
-            console.error('Error saving data:', error);
-        });
-}
-
 function getGameId(game) {
     if (!game) {
         throw new Error("Game parameter is missing or undefined");
@@ -126,15 +50,29 @@ function getGameId(game) {
     }
 }
 
-function isDataOutdated(createdAt) {
-    // Parse the timestamp string into a Date object
-    const cachedDate = new Date(createdAt);
-    const currentDate = new Date();
-
-    const timeDifference = currentDate - cachedDate; // Difference in milliseconds
-    const hoursDifference = timeDifference / (1000 * 60 * 60); // Convert milliseconds to hours
-
-    return hoursDifference > 24;
+async function getCachedCardmarketData(key) {
+    const game = getGame();
+    
+    try {
+        const response = await browser.runtime.sendMessage({
+            action: 'getCardmarketData',
+            key: key,
+            game: game
+        });
+        
+        if (!response) {
+            throw new Error('No response from background script');
+        }
+        
+        if (response.success) {
+            return response.data;
+        } else {
+            throw new Error(response.error || 'Unknown error from background script');
+        }
+    } catch (error) {
+        console.error(`Error getting cached data for ${key}:`, error);
+        return null;
+    }
 }
 
 async function getCardmarketData() {
@@ -142,4 +80,36 @@ async function getCardmarketData() {
     const productdata = await getCachedCardmarketData(KEY_PRODUCTDATA);
 
     return [pricedata, productdata];
+}
+
+// Legacy functions kept for backwards compatibility (no longer used internally)
+function getCardmarketDataUrl(key, gameId) {
+    switch (key) {
+        case KEY_PRICEDATA:
+            return `https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_${gameId}.json`;
+        case KEY_PRODUCTDATA:
+            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_${gameId}.json`;
+        case KEY_NON_SINGLES:
+            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_${gameId}.json`;
+        default:
+            break;
+    }
+}
+
+function isDataOutdated(createdAt) {
+    const cachedDate = new Date(createdAt);
+    const currentDate = new Date();
+    const timeDifference = currentDate - cachedDate;
+    const hoursDifference = timeDifference / (1000 * 60 * 60);
+    return hoursDifference > 24;
+}
+
+function save(key, data) {
+    const game = getGame();
+    const objStr = key + game;
+    const obj = { [objStr]: data };
+    browser.storage.local.set(obj)
+        .catch((error) => {
+            console.error('Error saving data:', error);
+        });
 }

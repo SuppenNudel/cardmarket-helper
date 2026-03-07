@@ -1,53 +1,30 @@
+// MTG Top8 data fetching - uses background script for centralized caching
 
-// Cache duration in milliseconds (24 hours)
-const CACHE_DURATION = 24 * 60 * 60 * 1000;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
-// Fetch Pioneer card data from the provided URL with caching
 async function fetchFormatCardData(format) {
     const formatName = format.name;
-    const cacheKey = `mtgtop8_cache_${formatName}`;
     
-    // Try to get cached data
     try {
-        const cached = await browser.storage.local.get(cacheKey);
-        if (cached[cacheKey]) {
-            const { data, timestamp } = cached[cacheKey];
-            const now = Date.now();
-            // Check if cache is still valid
-            if (now - timestamp < CACHE_DURATION) {
-                return data;
-            }
-        }
-    } catch (error) {
-        console.error(`Error reading cache for ${formatName}:`, error);
-    }
-    
-    // Fetch fresh data
-    const url = `https://raw.githubusercontent.com/SuppenNudel/mtgtop8-topcards/refs/heads/main/${formatName}.json`;
-    try {
-        const data = await backgroundFetch(url);
+        const response = await browser.runtime.sendMessage({
+            action: 'getMtgtop8Data',
+            formatName: formatName
+        });
         
-        // Cache the data
-        try {
-            await browser.storage.local.set({
-                [cacheKey]: {
-                    data: data,
-                    timestamp: Date.now()
-                }
-            });
-            console.debug(`Cached data for ${formatName}`);
-        } catch (error) {
-            console.error(`Error caching data for ${formatName}:`, error);
+        if (!response) {
+            throw new Error('No response from background script');
         }
         
-        return data;
+        if (response.success) {
+            return response.data;
+        } else {
+            throw new Error(response.error || 'Unknown error from background script');
+        }
     } catch (error) {
         console.error(`Failed to fetch ${formatName} card data:`, error);
-        // Return null instead of empty object to indicate failure
         return null;
     }
 }
-
 
 function getFormats() {
     const formats = [
@@ -60,12 +37,9 @@ function getFormats() {
     return formats;
 }
 
-
-// Filter Pioneer card data for specific card names
 async function fetchFilteredMtgtop8Data(format, card_names) {
     const formatData = await fetchFormatCardData(format);
     
-    // Return null if format data fetch failed
     if (!formatData || formatData === null) {
         console.warn(`No format data available for ${format.name}`);
         return null;
@@ -74,19 +48,22 @@ async function fetchFilteredMtgtop8Data(format, card_names) {
     const result = {};
     card_names.forEach(name => {
         if (formatData[name]) {
-            // Ensure cardName exists in resultMap
             if (!result[name]) {
                 result[name] = {};
             }
-            result[name][true] = { decks: formatData[name]['mainboard']['decks'], avg: formatData[name]['mainboard']['avg'] };
-            result[name][false] = { decks: formatData[name]['sideboard']['decks'], avg: formatData[name]['sideboard']['avg'] };
+            result[name][true] = { 
+                decks: formatData[name]['mainboard']['decks'], 
+                avg: formatData[name]['mainboard']['avg'] 
+            };
+            result[name][false] = { 
+                decks: formatData[name]['sideboard']['decks'], 
+                avg: formatData[name]['sideboard']['avg'] 
+            };
         }
     });
     return result;
 }
 
-
-// Utility: parse decks count from text (not used in new data format)
 function parseDecksCount(text) {
     const match = text.match(/(\d+)\s+decks/);
     return match ? parseInt(match[1], 10) : null;

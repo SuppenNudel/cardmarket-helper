@@ -1,21 +1,33 @@
-// - map cardmarket to manabox for ownership check
-// - check how to rotate the thumbnail
+// Scryfall API - uses background script for rate-limited requests
+
 async function cardByMkmId(mkmId) {
     try {
-        const cardObject = await backgroundFetch(
-            `https://api.scryfall.com/cards/cardmarket/${mkmId}`,
-            {
+        const cardObject = await browser.runtime.sendMessage({
+            action: 'scryfallRequest',
+            path: `/cards/cardmarket/${mkmId}`,
+            options: {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                    'Accept': '*/*'
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5'
                 }
             }
-        );
-        return cardObject;
+        });
+        
+        if (!cardObject) {
+            throw new Error('No response from background script');
+        }
+        
+        if (cardObject.success === false) {
+            const errorMsg = cardObject.error || 'Unknown error';
+            if (errorMsg.includes('404')) {
+                return null;
+            }
+            throw new Error(errorMsg);
+        }
+        
+        return cardObject.success ? cardObject.data : cardObject;
     } catch (error) {
         const message = String(error && error.message ? error.message : error);
-        if (message.startsWith('HTTP 404')) {
+        if (message.includes('404')) {
             return null;
         }
         throw error;
@@ -44,12 +56,11 @@ async function getScryfallCardFromImage(theImage) {
     }
     const scryfallCard = await cardByMkmId(mkmId);
     //rotateCard(theImage, scryfallCard);
-    if (scryfallCard.id) {
+    if (scryfallCard && scryfallCard.id) {
         return scryfallCard;
     }
 }
 
-// to get legality
 async function cardById(scryfallId) {
     return scryfallRequest(`/cards/${scryfallId}`);
 }
@@ -60,42 +71,48 @@ async function scryfallSearch(query) {
 
 async function scryfallCardsCollection(cardNames) {
     const url = "https://api.scryfall.com/cards/collection";
-    const headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-        'Accept': '*/*',
-            mode: 'cors'
-    };
-
+    
     try {
-        // Convert the Set of card names into an array
         const cardNameArray = Array.from(cardNames);
-
-        // Split the card names into batches of 75
+        
         const batches = [];
         while (cardNameArray.length > 0) {
             batches.push(cardNameArray.splice(0, 75));
         }
-
-        // Function to fetch a single batch of cards
+        
         const fetchBatch = async (batch) => {
             const body = JSON.stringify({
                 identifiers: batch.map(name => ({ name })),
             });
 
-            const result = await backgroundFetch(url, {
-                method: "POST",
-                headers: headers,
-                body: body
+            const result = await browser.runtime.sendMessage({
+                action: 'scryfallRequest',
+                path: url,
+                options: {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5'
+                    },
+                    body: body
+                }
             });
-            return result;
+            
+            if (!result) {
+                throw new Error('No response from background script');
+            }
+            
+            if (result.success === false) {
+                throw new Error(result.error || 'Unknown error');
+            }
+            
+            return result.success ? result.data : result;
         };
 
-        // Fetch all batches and combine the results
         const allResults = [];
         for (const batch of batches) {
             const result = await fetchBatch(batch);
-            allResults.push(...result.data); // `data` contains the fetched card information
+            allResults.push(...result.data);
         }
 
         return allResults;
@@ -105,18 +122,31 @@ async function scryfallCardsCollection(cardNames) {
     }
 }
 
-
 async function scryfallRequest(path) {
-    const json = await backgroundFetch(`https://api.scryfall.com${path}`,
-        {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                'Accept': '*/*'
+    try {
+        const result = await browser.runtime.sendMessage({
+            action: 'scryfallRequest',
+            path: path,
+            options: {
+                headers: {
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5'
+                }
             }
+        });
+        
+        if (!result) {
+            throw new Error('No response from background script');
         }
-    );
-    return json; // aka scryfallCard
+        
+        if (result.success === false) {
+            throw new Error(result.error || 'Unknown error');
+        }
+        
+        return result.success ? result.data : result;
+    } catch (error) {
+        console.error("Error in scryfallRequest:", error);
+        throw error;
+    }
 }
 
 async function generateCardmarketUrl(manaBoxCard) {
