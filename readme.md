@@ -14,6 +14,18 @@ This add-on is not affiliated with, endorsed by, or in any way officially connec
 
 If you have any of those please feel free to submit them at https://github.com/SuppenNudel/cardmarket-helper/issues/new
 
+## Development Setup
+
+When loading this extension temporarily via `about:debugging`, Firefox MV3 treats `host_permissions` as optional. You must manually grant them:
+
+1. Go to `about:addons`
+2. Find "Cardmarket Helper"
+3. Click on the extension name
+4. Go to "Permissions" tab
+5. Enable all listed permissions (Scryfall, Cardmarket downloads, GitHub)
+
+**Note:** When the extension is signed and distributed through AMO, these permissions will be required at install time automatically.
+
 ## ManaBox Viewer target (for Orders export)
 
 The **Open in ManaBox Viewer** button uses `config.manaboxViewerMode` from `browser.storage.sync`:
