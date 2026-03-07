@@ -61,3 +61,97 @@ input:checked + .slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
+
+/* Table column width adjustments for UserOffersTable */
+/* At large breakpoints, Name grows while Info and Offer keep compact minimum widths */
+@media (min-width: 992px) {
+    #UserOffersTable .table-header > .row,
+    #UserOffersTable .article-row {
+        flex-wrap: nowrap;
+    }
+
+    #UserOffersTable .col-sellerProductInfo .row {
+        flex-wrap: nowrap;
+    }
+
+    #UserOffersTable .col-sellerProductInfo .col-seller.col-lg-auto {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+        max-width: none;
+    }
+
+    #UserOffersTable .col-sellerProductInfo .col-product.col-lg {
+        flex: 0 0 auto;
+        min-width: 180px;
+        width: auto;
+        max-width: none;
+    }
+
+    #UserOffersTable .col-sellerProductInfo .col-product .row {
+        flex-wrap: wrap;
+    }
+
+    #UserOffersTable .col-sellerProductInfo .col-product .product-attributes,
+    #UserOffersTable .col-sellerProductInfo .col-product .product-comments {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    #UserOffersTable .col-sellerProductInfo .col-product .product-comments {
+        margin-top: 0.15rem;
+    }
+
+    #UserOffersTable .col-offer {
+        flex: 0 0 220px;
+        min-width: 220px;
+        width: 220px;
+        max-width: none;
+    }
+
+    #UserOffersTable .col-offer .price-container .d-flex.flex-column {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.15rem 0.35rem;
+    }
+
+    #UserOffersTable .col-offer .price-container .d-flex.flex-column > br,
+    #UserOffersTable .col-offer .price-container .d-flex.flex-column > div:empty {
+        display: none;
+    }
+
+    #UserOffersTable .col-offer .price-container .d-flex.flex-column > div:first-child {
+        display: flex;
+        align-items: center;
+    }
+
+    #UserOffersTable .col-offer .price-container .d-flex.flex-column > div {
+        white-space: nowrap;
+    }
+
+    #UserOffersTable .col-offer .amount-container,
+    #UserOffersTable .col-offer .actions-container.col {
+        flex: 0 0 auto;
+        width: auto;
+    }
+
+    #UserOffersTable .col-offer .amount-container.me-3 {
+        margin-right: 0.35rem !important;
+    }
+
+    #UserOffersTable .col-offer .actions-container .input-group {
+        flex-wrap: nowrap;
+    }
+
+    #UserOffersTable .col-offer .actions-container .input-group .form-select.amount {
+        min-width: 3.5rem;
+        flex: 0 0 3.5rem;
+    }
+
+    #UserOffersTable .col-offer .actions-container .input-group .btn {
+        flex: 0 0 auto;
+    }
+}

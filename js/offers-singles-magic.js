@@ -65,7 +65,7 @@ async function initFields(productDataPromise) {
         const formatInfoCell = document.createElement("td");
         formatInfoCell.style.fontSize = "12px";
         formatInfoCell.style.verticalAlign = "top";
-        formatInfoCell.style.width = "50%";
+        formatInfoCell.style.width = "60%";
         infoRow.appendChild(formatInfoCell);
 
         // Collection info cell (right)
@@ -130,6 +130,10 @@ function checkOwnership(collection, scryfallCard, cardname=null) {
     
     if (collection) {
         if (!cardname) {
+            if (!scryfallCard || !scryfallCard.name) {
+                console.warn("checkOwnership called with invalid scryfallCard and no cardname fallback");
+                return fragment;
+            }
             cardname = scryfallCard.name;
         }
         const cardsWithThatNameOwned = []
@@ -322,13 +326,24 @@ async function fillFormatInfoFields(fields, formats, cardNamesSet, scryfallCards
 
 async function fillCollectionInfoFields(fields, collection) {
     for(const field of Object.values(fields)) {        
-        const scryfallCard = await cardByMkmId(field.mkmId);
-        if(scryfallCard.object == "card") {
-            const result = checkOwnership(collection, scryfallCard);
-            field.collectionDiv.replaceChildren(result);
-        } else {
-            const result = checkOwnership(collection, scryfallCard, field.cardname);
-            field.collectionDiv.replaceChildren(result);
+        try {
+            const scryfallCard = await cardByMkmId(field.mkmId);
+            
+            if (!scryfallCard) {
+                console.warn(`Scryfall card not found for: "${field.cardname}" (MKM ID: ${field.mkmId})`);
+                field.collectionDiv.replaceChildren(document.createTextNode("couldn't find scryfall card with cardmarket id"));
+                continue;
+            }
+            
+            if(scryfallCard.object == "card") {
+                const result = checkOwnership(collection, scryfallCard);
+                field.collectionDiv.replaceChildren(result);
+            } else {
+                const result = checkOwnership(collection, scryfallCard, field.cardname);
+                field.collectionDiv.replaceChildren(result);
+            }
+        } catch (error) {
+            console.error(`Error processing collection info for "${field.cardname}" (MKM ID: ${field.mkmId}):`, error);
         }
     }
 }
