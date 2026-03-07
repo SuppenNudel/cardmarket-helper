@@ -13,8 +13,8 @@ function parseCurrencyStringToDouble(currencyString) {
 
 function getColorBasedOnPercentageRange(referencePrice, priceToCompare) {
     // Calculate the upper and lower bounds
-    var upperBound = referencePrice * (1 + 10 / 100);
-    var lowerBound = referencePrice * (1 - 10 / 100);
+    var lowerBound = referencePrice * 0.90;
+    var upperBound = referencePrice * 1.10;
 
     // Check if priceToCompare is within the range
     if (priceToCompare < lowerBound) {
@@ -28,6 +28,69 @@ function getColorBasedOnPercentageRange(referencePrice, priceToCompare) {
     }
 }
 
+function getColorForLowPrice(lowPrice, offerPrice) {
+    // Low price is the cheapest available, so offer can't be cheaper
+    //green: offer equals or is at low price
+    // orange: offer is within 10% above low
+    // red: offer exceeds 10% above low
+    var threshold = lowPrice * 1.10;
+    
+    if (offerPrice <= lowPrice) {
+        return 'green';
+    } else if (offerPrice <= threshold) {
+        return 'orange';
+    } else {
+        return 'red';
+    }
+}
+
+function normalizePriceGuides(priceGuides) {
+    if (!priceGuides) {
+        return {};
+    }
+
+    if (Array.isArray(priceGuides)) {
+        // Legacy cache format can be an array; normalize to an idProduct keyed dictionary.
+        return priceGuides.reduce((acc, entry) => {
+            if (entry && entry.idProduct != null) {
+                acc[String(entry.idProduct)] = entry;
+            }
+            return acc;
+        }, {});
+    }
+
+    return priceGuides;
+}
+
+async function getAllPriceData() {
+    // Fetch both the game price guide (singles + non-singles) and accessories price guide.
+    // Since we can't determine from the URL whether we're looking at accessories or not,
+    // we merge both data sources into one id-based map.
+    const [gameData, accessoriesData] = await Promise.all([
+        getCachedCardmarketData(KEY_PRICEDATA),
+        getCachedCardmarketData(KEY_PRICEDATA_ACCESSORIES)
+    ]);
+
+    const gamePriceGuides = normalizePriceGuides(gameData && gameData.priceGuides);
+    const accessoriesPriceGuides = normalizePriceGuides(accessoriesData && accessoriesData.priceGuides);
+
+    return {
+        priceGuides: {
+            ...gamePriceGuides,
+            ...accessoriesPriceGuides
+        }
+    };
+}
+
+function getPricesByMkmId(priceGuides, mkmId) {
+    if (!priceGuides || !mkmId) {
+        return null;
+    }
+
+    const id = String(mkmId);
+    return priceGuides[id] || null;
+}
+
 function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
     var priceContainer = articleRow.querySelector(".price-container .flex-column");
     if(!mkmid) {
@@ -37,8 +100,18 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         return;
     }
     pricePromise.then(result => {
-        [pricedata, productdata] = result;
-        const prices = pricedata.priceGuides[mkmid];
+        const pricedata = result;
+        const prices = getPricesByMkmId(pricedata.priceGuides, mkmid);
+
+        if (!prices) {
+            const noPriceDiv = document.createElement("div");
+            priceContainer.appendChild(document.createElement("br"));
+            priceContainer.appendChild(noPriceDiv);
+            noPriceDiv.innerText = "No price data available";
+            noPriceDiv.style.color = "gray";
+            noPriceDiv.style.fontSize = "0.9em";
+            return;
+        }
 
         var productAttributesElement = articleRow.querySelector('.product-attributes');
         var foilElement = productAttributesElement.querySelector('[aria-label="Foil"]');
@@ -49,7 +122,8 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         const trend = prices[`trend${foilElement ? '-foil' : holoElement ? '-holo' : ''}`];
         
         priceContainer.querySelector(".align-items-center").classList.remove("d-flex");
-        offerElement = priceContainer.querySelector('span[class*="text-end"]');
+        // Select the offer price span specifically from the .align-items-center div, not the shipping cost span
+        offerElement = priceContainer.querySelector('.align-items-center span[class*="text-end"]');
         currStr = offerElement.innerText;
         offer = parseCurrencyStringToDouble(currStr);
     
@@ -57,16 +131,11 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         var div = document.createElement("div");
         priceContainer.appendChild(div);
     
-        // if playset - should be discontinued
-        if (priceContainer.getElementsByClassName('fst-italic text-muted').length > 0) {
-            offer = offer / 4;
-        }
-    
         if (low) {
             const lowDiv = document.createElement("div");
             priceContainer.appendChild(lowDiv);
             lowDiv.innerText = "⬇️ " + low.toFixed(2);
-            const lowColor = getColorBasedOnPercentageRange(low, offer);
+            const lowColor = getColorForLowPrice(low, offer);
             lowDiv.style.color = lowColor;
         }
         if (avg) {
@@ -93,14 +162,40 @@ function updateContentOfCard(articleRow, pricePromise) {
         const mkmId = image.getAttribute("mkmId");
         checkPriceWithCardmarket(articleRow, mkmId, pricePromise);
     });
+
+    forceOfferCommentIcon(articleRow);
+}
+
+function forceOfferCommentIcon(articleRow) {
+    const productComments = articleRow.querySelector('.product-comments');
+    if (!productComments) {
+        return;
+    }
+
+    const mobileIcon = productComments.querySelector('.fonticon-comments');
+    if (!mobileIcon) {
+        return;
+    }
+
+    // Keep text available for bootstrap tooltips, but never rendered inline.
+    const desktopTextWrapper = productComments.querySelector('.d-none.d-lg-block');
+    if (desktopTextWrapper) {
+        desktopTextWrapper.classList.add('d-none');
+        desktopTextWrapper.classList.remove('d-lg-block');
+    }
+
+    mobileIcon.classList.remove('d-lg-none');
 }
 
 function updateContent() {
     const table = document.getElementById("UserOffersTable"); // div
     const thumbnailHeader = table.querySelector("div.table-header div.col-thumbnail");
-    thumbnailHeader.style.width = '10rem';
+    if (thumbnailHeader) {
+        thumbnailHeader.style.width = '10rem';
+    }
 
-    pricePromise = getCardmarketData();
+    // Fetch price data (same price guide covers singles, non-singles, and accessories)
+    pricePromise = getAllPriceData();
 
     const articleRows = table.getElementsByClassName("article-row");
     for (const articleRow of articleRows) {
@@ -109,6 +204,6 @@ function updateContent() {
 }
 
 (async function main() {
-    console.log("offers-singles.js");
+    console.log("offers.js");
     updateContent();
 })();

@@ -36,11 +36,16 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
             theImage.width = thumbnail / 1.4;
         }
 
-        const parent = thumbnailIcon.parentNode;
-
-        parent.innerHTML = '';
-        parent.appendChild(theImage);
-        parent.style.width = "10rem";
+        // Replace only the camera icon inside the thumbnailIcon span, keeping tooltip functionality
+        thumbnailIcon.innerHTML = '';
+        thumbnailIcon.appendChild(theImage);
+        
+        // Set height and width on the parent .col-thumbnail to show the full image
+        const parent = thumbnailIcon.closest('.col-thumbnail');
+        if (parent) {
+            parent.style.height = thumbnail ? `${thumbnail}px` : "150px";
+            parent.style.width = "10rem";
+        }
     }
 
     return theImage;
@@ -53,6 +58,20 @@ function* iterateThumbnails() {
     }
 }
 
+function extractMkmId(imgTag) {
+    if (!imgTag) {
+        return null;
+    }
+
+    // Prefer the image src URL when an <img ...> tag is provided.
+    const srcMatch = imgTag.match(/src\s*=\s*["']([^"']+)["']/i);
+    const source = srcMatch ? srcMatch[1] : imgTag;
+
+    // Capture the numeric filename just before the extension, e.g. /294805.jpg -> 294805
+    const fileMatch = source.match(/\/(\d+)\.[^\/.?]+(?:\?|$)/);
+    return fileMatch ? fileMatch[1] : null;
+}
+
 async function showThumbnail(thumbnailIcon) {
     let imgTag = thumbnailIcon.title;
     if (!imgTag) {
@@ -61,10 +80,7 @@ async function showThumbnail(thumbnailIcon) {
     if (!imgTag) {
         imgTag = thumbnailIcon.getAttribute("data-bs-title");
     }
-    var matches = imgTag.match(/(\d+)\.jpg/);
-    if (matches) {
-        var mkmId = matches[1];
-    }
+    const mkmId = extractMkmId(imgTag);
     const theImage = await changePreviewImage(thumbnailIcon, imgTag);
     if (mkmId) {
         theImage.setAttribute("mkmId", mkmId);

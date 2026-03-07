@@ -148,13 +148,12 @@
         },
         {
             "matches": [
-                "https://www.cardmarket.com/*/Offers/Singles*"
+                "https://www.cardmarket.com/*/Offers/*"
             ],
             "js": [
                 "js/get-thumbnail.js",
                 "js/fetch-helper.js",
-                "js/mtgtop8-data.js",
-                "js/offers-singles.js"
+                "js/offers.js"
             ]
         },
         {
@@ -162,6 +161,7 @@
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
             ],
             "js": [
+                "js/mtgtop8-data.js",
                 "js/cardmarket-util.js",
                 "js/offers-singles-magic.js"
             ],

@@ -1,30 +1,10 @@
 // Cardmarket data fetching - uses background script for centralized caching
 
-const cardGames = {
-    "Magic": 1,
-    "YuGiOh": 3,
-    "Pokemon": 6,
-    "OnePiece": 18,
-    "Lorcana": 19,
-    "StarWarsUnlimited": 21,
-    "FleshAndBlood": 16,
-    "Digimon": 17,
-    "DragonBallSuper": 13,
-    "Vanguard": 8,
-    "WeissSchwarz": 10,
-    "BattleSpiritsSaga": 20,
-    "FinalFantasy": 9,
-    "FoW": 7,
-    "WoW": 2,
-    "StarWarsDestiny": 15,
-    "Dragoborne": 11,
-    "MyLittlePony": 12,
-    "Spoils": 5
-};
-
 const KEY_PRICEDATA = 'pricedata';
 const KEY_PRODUCTDATA = 'productdata';
 const KEY_NON_SINGLES = 'nonsingles';
+const KEY_ACCESSORIES = 'accessories';
+const KEY_PRICEDATA_ACCESSORIES = 'pricedata-accessories';
 
 function getGame() {
     const gameHref = document.querySelector('#brand-gamesDD > a');
@@ -37,17 +17,6 @@ function getGame() {
         throw new Error("Could not extract game name from URL");
     }
     return game;
-}
-
-function getGameId(game) {
-    if (!game) {
-        throw new Error("Game parameter is missing or undefined");
-    }
-    if (game in cardGames) {
-        return cardGames[game];
-    } else {
-        throw new Error(`Game "${game}" is not supported yet`);
-    }
 }
 
 async function getCachedCardmarketData(key) {
@@ -80,20 +49,6 @@ async function getCardmarketData() {
     const productdata = await getCachedCardmarketData(KEY_PRODUCTDATA);
 
     return [pricedata, productdata];
-}
-
-// Legacy functions kept for backwards compatibility (no longer used internally)
-function getCardmarketDataUrl(key, gameId) {
-    switch (key) {
-        case KEY_PRICEDATA:
-            return `https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_${gameId}.json`;
-        case KEY_PRODUCTDATA:
-            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_${gameId}.json`;
-        case KEY_NON_SINGLES:
-            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_${gameId}.json`;
-        default:
-            break;
-    }
 }
 
 function isDataOutdated(createdAt) {

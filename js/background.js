@@ -10,21 +10,25 @@ console.log('Background script loading...');
 const CACHE_DURATION_24H = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_DELAY = 100; // 100ms between requests (10 req/sec for Scryfall)
 
+const KEY_ACCESSORIES = 'accessories';
+const KEY_PRICEDATA_ACCESSORIES = 'pricedata-accessories';
+
 const CARD_GAMES = {
     "Magic": 1,
-    "YuGiOh": 3,
     "Pokemon": 6,
+    "YuGiOh": 3,
     "OnePiece": 18,
     "Lorcana": 19,
-    "StarWarsUnlimited": 21,
+    "Riftbound": 22,
     "FleshAndBlood": 16,
+    "StarWarsUnlimited": 21,
     "Digimon": 17,
     "DragonBallSuper": 13,
     "Vanguard": 8,
     "WeissSchwarz": 10,
-    "BattleSpiritsSaga": 20,
     "FinalFantasy": 9,
     "FoW": 7,
+    "BattleSpiritsSaga": 20,
     "WoW": 2,
     "StarWarsDestiny": 15,
     "Dragoborne": 11,
@@ -207,17 +211,22 @@ function getCardmarketDataUrl(key, gameId) {
     switch (key) {
         case 'pricedata':
             return `https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_${gameId}.json`;
+        case KEY_PRICEDATA_ACCESSORIES:
+            return `https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_accessories.json`;
         case 'productdata':
             return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_${gameId}.json`;
         case 'nonsingles':
             return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_nonsingles_${gameId}.json`;
+        case KEY_ACCESSORIES:
+            return `https://downloads.s3.cardmarket.com/productCatalog/productList/products_accessories.json`;
         default:
             throw new Error(`Unknown data key: ${key}`);
     }
 }
 
 async function handleCardmarketDataRequest(key, game) {
-    const cacheKey = key + game;
+    // For game-independent data types (like accessories), game parameter is optional
+    const cacheKey = key + (game || '');
     
     // Check cache first
     const cached = await cacheManager.get(cacheKey);
@@ -226,12 +235,19 @@ async function handleCardmarketDataRequest(key, game) {
     }
     
     // Fetch fresh data
-    const gameId = CARD_GAMES[game];
-    if (!gameId) {
-        throw new Error(`Game "${game}" is not supported yet`);
-    }
+    let url;
     
-    const url = getCardmarketDataUrl(key, gameId);
+    if (key === KEY_ACCESSORIES || key === KEY_PRICEDATA_ACCESSORIES) {
+        // Accessories don't need a game ID
+        url = getCardmarketDataUrl(key, null);
+    } else {
+        // Game-dependent data 
+        const gameId = CARD_GAMES[game];
+        if (!gameId) {
+            throw new Error(`Game "${game}" is not supported yet`);
+        }
+        url = getCardmarketDataUrl(key, gameId);
+    }
     const rawData = await cacheManager.fetchWithDeduplication(url);
     
     // Transform data (convert array to dictionary)
