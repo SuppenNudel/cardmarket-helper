@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.3.3.0] - 2026-03-08
+
+### Added
+- Centralized caching with request deduplication and rate limiting
+- Support for non-singles and accessories for price comparison on Offers pages
+- Support for Riftbound for price comparison
+
+### Changed
+- Price comparison with LOW prices. Now it is green if the price is the same or lower than the offer, orange if it is at most 10% more expensive, and red if it is even more expensive
+
+### Fixed
+- The layout of the table on Offers pages
+  - To achieve this comments about an article are always shrunken down to the hoverable speech bubble icon
+
 ## [2026.3.2.1] - 2026-03-06
 
 ### Changed
@@ -35,12 +49,12 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 ## [2026.3.1.0] - 2026-03-01
 
 ### Added
-- Toggle if sell price should be filled automatically by addon
+- Toggle if sell price should be filled automatically by add-on
 - Fill out quantity, language, condition and foil automatically depending on filter parameters
-- You can use my new [Manabox Viewer](https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html) to view your Manabox collection (exported through csv) on your PC. It will offer links to cardmarket where the filter parameters will be applied according to your cards' metrics (quantity, language, condition, foil)
+- You can use my new [Manabox Viewer](https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html) to view your Manabox collection (exported through CSV) on your PC. It will offer links to Cardmarket where the filter parameters will be applied according to your cards' metrics (quantity, language, condition, foil)
 
 ### Fixed
-- "loading colleciton..." no longer showing, when "Collection not loaded."
+- "loading collection..." no longer showing, when "Collection not loaded."
 
 
 ## [2026.2.1.0] - 2026-02-19
@@ -80,7 +94,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 
-- Cascading issue when a cards format legality/play-rate was not successfully loaded
+- Cascading issue when a card's format legality/play-rate was not successfully loaded
 - Language independent way for finding the current user’s name
 
 ### Changed
@@ -92,19 +106,19 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 
-- When checking prices of rivals, your own username is now used to ignore your own offers instead of the developers one
+- When checking prices of rivals, your own username is now used to ignore your own offers instead of the developer's one
 
 ## [1.13.1] - 2026-02-17
 
 ### Changed
 
-- Caching format playrate data
+- Caching format play rate data
 
 ## [1.13.0] - 2026-02-16
 
 ### Changed
 
-- The location where format staple data from mtgtop8 is stored. No longer in notion database but on GitHub
+- The location where format staple data from mtgtop8 is stored. No longer in Notion database but on GitHub
 
 ### Fixed
 
@@ -114,13 +128,13 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 
-- An issue with cards having " in their name. Cardmarkets product catalog json has them listed with double "”
+- An issue with cards having " in their name. Cardmarket's product catalog JSON has them listed with double "”
 
 ## [1.12.1] - 2026-02-03
 
 ### Added
 
-- An alert when uploading a ManaBox csv file that states that <filename>:undefined is a known and unwanted alert and I don’t know how to remove that, but doesn’t disrupt functionality
+- An alert when uploading a ManaBox CSV file that states that <filename>:undefined is a known and unwanted alert and I don’t know how to remove that, but doesn’t disrupt functionality
 - A toggle to enable/disable or rather show/hide the collection table on the Singles page
 
 ### Changed
@@ -129,7 +143,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 
-- Format Filter toggle state on Offers page is memorized between page loads
+- Format Filter toggle state on Offers page is remembered between page loads
 - Formatting of format and collection information on Offers page
 - Country Flag Sprite Positions
 
@@ -156,14 +170,14 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 
-- card thumbnails not being resolved correctly
+- Card thumbnails not being resolved correctly
 
 ## [1.10.2] - 2025-03-11
 
 ### Fixed
 
-- a bug when there is no play rate for a card
-- with cards with strange characters in their names
+- A bug when there is no play rate for a card
+- With cards with strange characters in their names
 
 ## [1.10.1] - 2025-03-11
 
@@ -177,7 +191,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 - Filter on Singles Offers page for format legality and card play rate
     - the play rate filter lets cards through if its play rate of either main board or side board is above the threshold
-    - the play  rate filter is not use if it is not filled out
+    - the play rate filter is not used if it is not filled out
     - the format legality filter is not used if no slider is active
 
 ![Format Filter.png](doc/1.10.0_Format%20Filter.png)
@@ -186,11 +200,9 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 
-- on paginated sites the arrow keys would go to another page regardless of any state
-now it won’t switch pages if anything is in focus, e.g. if you are within a text input
-- accidentally removed collection info
-added back in
-- an mistake when fetching the database for play rate info
+- On paginated sites the arrow keys would go to another page regardless of any state. Now it won’t switch pages if anything is in focus, e.g. if you are within a text input
+- Accidentally removed collection info, added back in
+- A mistake when fetching the database for play rate info
 
 ## [1.9.5] - 2025-03-07
 
@@ -212,7 +224,7 @@ added back in
 
 ### Changed
 
-- in collection info instead of language name the flag icon is shown
+- In collection info instead of language name the flag icon is shown
 
 ## [1.9.1] - 2025-02-05
 
@@ -222,8 +234,8 @@ added back in
 
 ### Changed
 
-- Card Staple Info is now gathered from [mtgtop8.com/topcards](mtgtop8.com/topcards) and for easier reading written into a notion database [mtgtop8/topcards](https://www.notion.so/mtgtop8-topcards-179f020626c280678e16e9569f37d8ea?pvs=21) from where the data for the add-on is taken
-- the staple info shows percentage of decks that use the card and in brackets the average quantity of the card in the decks that use that cards. In front of the slash is the main board data, behind the side board data
+- Card Staple Info is now gathered from [mtgtop8.com/topcards](mtgtop8.com/topcards) and for easier reading written into a Notion database [mtgtop8/topcards](https://www.notion.so/mtgtop8-topcards-179f020626c280678e16e9569f37d8ea?pvs=21) from where the data for the add-on is taken
+- the staple info shows percentage of decks that use the card and in brackets the average quantity of the card in the decks that use those cards. In front of the slash is the main board data, behind the side board data
 
 ### Removed
 
@@ -235,7 +247,7 @@ added back in
 
 ### Changed
 
-- added seller name to export articles from shipment csv file
+- Added seller name to export articles from shipment csv file
 
 ## [1.8.0] - 2024-10-25
 
@@ -272,7 +284,7 @@ added back in
 ### Changed
 
 - On Product Singles page: Calculated sell price only takes rival sellers into account (and trend price)
-- Improved requests to Scryfall and mtgtop8, should feel smoother now on sellers singles page
+- Improved requests to Scryfall and mtgtop8, should feel smoother now on seller's singles page
 - Icons for banned and not legal and added text
     
     ![Legality Icons.png](doc/1.7.0_Legality%20Icons.png)
@@ -287,8 +299,8 @@ added back in
 
 ### Fixed
 
-- a bug not filling sell form correctly
-- a bug where nothing gets done when there are not rival sellers
+- A bug not filling sell form correctly
+- A bug where nothing gets done when there are no rival sellers
 
 ## [1.6.3] - 2024-10-19
 
@@ -299,13 +311,13 @@ added back in
 
 ### Added
 
-- An alert notification that looks like one from cardmarket when a newer version of this add-on has been loaded since the last time you have dismissed the notification
+- An alert notification that looks like one from Cardmarket when a newer version of this add-on has been loaded since the last time you have dismissed the notification
 
 ![Version Notification.png](doc/1.6.2_Version%20Notification.png)
 
 ### Fixed
 
-- A bug when checking the ManaBox collection for a double-faced-transform card from cardmarket. It would say you don’t own any even if you do.
+- A bug when checking the ManaBox collection for a double-faced-transform card from Cardmarket. It would say you don’t own any even if you do.
 
 ## [1.6.1] - 2024-10-07
 
