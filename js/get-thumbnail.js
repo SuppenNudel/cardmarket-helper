@@ -28,23 +28,41 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     const thumbnail = result.thumbnail;
 
     if (thumbnail != 0) {
+        const imageHeight = thumbnail ? Number(thumbnail) : 150;
+        const imageWidth = imageHeight / 1.4;
+
         if (!thumbnail) {
-            theImage.height = 150;
-            theImage.width = 150 / 1.4;
+            theImage.height = imageHeight;
+            theImage.width = imageWidth;
         } else {
-            theImage.height = thumbnail;
-            theImage.width = thumbnail / 1.4;
+            theImage.height = imageHeight;
+            theImage.width = imageWidth;
         }
 
         // Replace only the camera icon inside the thumbnailIcon span, keeping tooltip functionality
         thumbnailIcon.innerHTML = '';
         thumbnailIcon.appendChild(theImage);
+
+        // Override Cardmarket's icon sizing so the wrapper grows with the injected image.
+        thumbnailIcon.classList.remove('is-24x24');
+        thumbnailIcon.style.display = 'inline-block';
+        thumbnailIcon.style.overflow = 'visible';
+        thumbnailIcon.style.height = `${imageHeight}px`;
+        thumbnailIcon.style.width = `${imageWidth}px`;
         
-        // Set height and width on the parent .col-thumbnail to show the full image
-        const parent = thumbnailIcon.closest('.col-thumbnail');
+        // Keep table or grid rows aligned to the custom thumbnail height.
+        const parent = thumbnailIcon.closest('td, .col-thumbnail');
         if (parent) {
-            parent.style.height = thumbnail ? `${thumbnail}px` : "150px";
-            parent.style.width = "10rem";
+            parent.style.height = `${imageHeight}px`;
+            parent.style.minHeight = `${imageHeight}px`;
+            parent.style.width = '10rem';
+            parent.style.verticalAlign = 'top';
+        }
+
+        const row = thumbnailIcon.closest('tr');
+        if (row) {
+            row.style.height = `${imageHeight}px`;
+            row.style.minHeight = `${imageHeight}px`;
         }
     }
 
