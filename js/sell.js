@@ -1,33 +1,3 @@
-const FROM = {
-    'en': "From",
-    'de': 'ab'
-}
-const PRICE_TREND = {
-    'en': "Price Trend",
-    'de': "Preis-Trend"
-}
-const AVG_30 = {
-    'en': "30-days average price",
-    'de': "30-Tages-Durchschnitt"
-}
-const AVG_7 = {
-    'en': "7-days average price",
-    'de': "7-Tages-Durchschnitt"
-}
-const AVG_1 = {
-    'en': "1-day average price",
-    'de': "1-Tages-Durchschnitt"
-}
-const ITEMS = {
-    'en': "Available items",
-    'de': "Verfügbare Artikel"
-}
-
-const SELL_BUTTON_TEXT = {
-    'en': "Put for sale",
-    'de': "Zum Verkauf stellen"
-}
-
 let myPrice = null;
 
 function getHighlightColor() {
@@ -80,17 +50,65 @@ function parseCurrencyStringToDouble(currencyString) {
     }
 }
 
-function createPriceDictionary(keys, values) {
-    var resultDictionary = {};
-    for (var i = 0; i < keys.length; i++) {
-        var key = keys[i].textContent.trim();
-        var value = values[i].textContent.trim();
-        if ([FROM[language], PRICE_TREND[language], AVG_1[language], AVG_7[language], AVG_30[language]].includes(key)) {
-            value = parseCurrencyStringToDouble(value);
-        }
-        resultDictionary[key] = value;
+function createPriceDictionary() {
+    // Language-independent extraction: anchor to the "Reprints/Versions" row and
+    // parse the following rows by stable position in Cardmarket's info list.
+    const infoList = document.querySelector(".info-list-container dl.labeled");
+    if (!infoList) {
+        return {};
     }
-    return resultDictionary;
+
+    const dtNodes = Array.from(infoList.querySelectorAll(":scope > dt"));
+    const ddNodes = Array.from(infoList.querySelectorAll(":scope > dd"));
+    const pairCount = Math.min(dtNodes.length, ddNodes.length);
+    if (pairCount === 0) {
+        return {};
+    }
+
+    const pairs = [];
+    for (let i = 0; i < pairCount; i++) {
+        pairs.push({ dd: ddNodes[i], value: ddNodes[i].textContent.trim() });
+    }
+
+    const reprintsIndex = pairs.findIndex(pair => pair.dd.querySelector('a[href*="/Versions"], a[href*="isFoil="]'));
+    if (reprintsIndex < 0 || reprintsIndex + 1 >= pairs.length) {
+        return {};
+    }
+
+    const nextRows = pairs.slice(reprintsIndex + 1, reprintsIndex + 7).map(pair => pair.value);
+    if (nextRows.length === 0) {
+        return {};
+    }
+
+    const result = {};
+    const [availableItems, fromValue, ...remainingPriceRows] = nextRows;
+
+    if (availableItems !== undefined) {
+        result.items = Number.parseInt(availableItems.replace(/[^0-9]/g, ""), 10);
+    }
+
+    if (fromValue !== undefined) {
+        result.from = fromValue === "N/A" ? null : parseCurrencyStringToDouble(fromValue);
+    }
+
+    const priceRows = remainingPriceRows
+        .map(value => (value === "N/A" ? null : parseCurrencyStringToDouble(value)))
+        .filter(value => value !== null && !Number.isNaN(value));
+
+    if (priceRows.length === 4) {
+        result.trend = priceRows[0];
+        result.avg30 = priceRows[1];
+        result.avg7 = priceRows[2];
+        result.avg1 = priceRows[3];
+    } else if (priceRows.length === 3) {
+        result.avg30 = priceRows[0];
+        result.avg7 = priceRows[1];
+        result.avg1 = priceRows[2];
+    } else if (priceRows.length > 0) {
+        [result.avg30, result.avg7, result.avg1] = priceRows;
+    }
+
+    return result;
 }
 
 function calcMyPrice(mkmid, userName) {
@@ -194,12 +212,15 @@ const HEADERS = ["Go to / Fill", "Quantity", "Set code", "Collector number", "Fo
 var currentURL = window.location.href;
 // Create a URL object
 var url = new URL(currentURL);
-// Get pathname from URL
-var pathname = url.pathname;
-// Split the pathname by '/'
-var parts = pathname.split("/");
-// Extract language from parts
-var language = parts[1]; // Assuming "de" is at index 1
+function hasListProductSubmitButton() {
+    const listProductForm = document.getElementById("ListProductForm")
+        || document.querySelector('form[action*="/PostGetAction/Article_ListProduct"]');
+    if (!listProductForm) {
+        return false;
+    }
+
+    return Boolean(listProductForm.querySelector('input[type="submit"], button[type="submit"]'));
+}
 
 function checkForRedirect(newURL) {
     let currentIsFoil = url.searchParams.get('isFoil');
@@ -288,7 +309,7 @@ async function generateTable(mkmId, cards) { // id of same printing
                         button.style.height = "25px";
                         button.style.setProperty('--bs-btn-padding-x', 'initial');
                         button.innerHTML = "Fill";
-                        if (!document.querySelector(`[title="${SELL_BUTTON_TEXT[language]}"]`)) {
+                        if (!hasListProductSubmitButton()) {
                             button.disabled = true;
                         } else {
                             button.addEventListener("click", function () {
