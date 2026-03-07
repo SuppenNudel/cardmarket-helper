@@ -33,7 +33,8 @@ const LANG_MAP = {
 function createConditionIcon(conditionId) {
     const short = CONDITION_ID_MAP_SHORT[conditionId];
     const a = document.createElement('a');
-    a.href = "https://help.cardmarket.com/en/CardCondition";
+    const pageLang = (document.documentElement.lang || "en").split("-")[0];
+    a.href = `https://help.cardmarket.com/${pageLang}/CardCondition`;
     a.target = "_blank";
     a.dataset.bsToggle = "tooltip";
     a.dataset.bsHtml = "true";

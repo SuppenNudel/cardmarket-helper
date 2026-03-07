@@ -150,6 +150,7 @@ async function scryfallRequest(path) {
 }
 
 async function generateCardmarketUrl(manaBoxCard) {
+    const pageLang = (document.documentElement.lang || "en").split("-")[0];
     var scryfallCard = await cardById(manaBoxCard['Scryfall ID']);
 
     if (['7ED'].includes(manaBoxCard['Set code'])) {
@@ -162,7 +163,7 @@ async function generateCardmarketUrl(manaBoxCard) {
 
     if (cardmarketUrl.includes('Search')) {
         if (manaBoxCard['Set code'] == "GN3") {
-            cardmarketUrl = `https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ', '-')}`;
+            cardmarketUrl = `https://www.cardmarket.com/${pageLang}/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ', '-')}`;
         } else {
             return null;
         }

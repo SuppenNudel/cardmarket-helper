@@ -50,6 +50,40 @@ function parseCurrencyStringToDouble(currencyString) {
     }
 }
 
+function parseNumberFromText(value) {
+    if (value === null || value === undefined) {
+        return Number.NaN;
+    }
+
+    const normalized = String(value)
+        .trim()
+        .replace(/\s/g, "")
+        .replace(/€/g, "")
+        .replace(/,/g, ".")
+        .replace(/[^0-9.-]/g, "");
+
+    return Number.parseFloat(normalized);
+}
+
+function formatCurrencyValue(amount, currencyCode) {
+    const locale = (document.documentElement.lang || navigator.language || "en").replace("_", "-");
+    const normalizedCurrency = /^[A-Za-z]{3}$/.test(String(currencyCode || ""))
+        ? String(currencyCode).toUpperCase()
+        : "EUR";
+
+    try {
+        return amount.toLocaleString(locale, {
+            style: "currency",
+            currency: normalizedCurrency
+        });
+    } catch (error) {
+        return amount.toLocaleString("en", {
+            style: "currency",
+            currency: "EUR"
+        });
+    }
+}
+
 function createPriceDictionary() {
     // Language-independent extraction: anchor to the "Reprints/Versions" row and
     // parse the following rows by stable position in Cardmarket's info list.
@@ -375,8 +409,11 @@ async function generateTable(mkmId, cards) { // id of same printing
                     }
                 }
                 if (key == "Purchase price") {
-                    const purchasePrice = parseFloat(td.textContent);
-                    td.textContent = purchasePrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+                    const purchasePrice = parseNumberFromText(td.textContent);
+                    const purchaseCurrency = String(card["Purchase price currency"] || "EUR").trim();
+                    if (!Number.isNaN(purchasePrice)) {
+                        td.textContent = formatCurrencyValue(purchasePrice, purchaseCurrency);
+                    }
                     if (typeof myPrice === 'number' && !Number.isNaN(myPrice) && !Number.isNaN(purchasePrice)) {
                         if (myPrice > purchasePrice) {
                             td.textContent = "📈 " + td.textContent;
