@@ -171,21 +171,33 @@ jobs:
               "Authorization": f"JWT {token}",
               "Content-Type": "application/json"
           }
-          data = {
-              "release_notes": release_notes
-          }
+            data = {
+              "release_notes": {
+                "en-US": release_notes
+              }
+            }
           
           try:
+              # Wait until the version is available on AMO before patching
+              for attempt in range(1, 11):
+                check = requests.get(url, headers=headers)
+                if check.status_code == 200:
+                  break
+                if check.status_code != 404:
+                  print(f"Version check failed (attempt {attempt}): {check.status_code}")
+                  print(f"Response: {check.text}")
+                time.sleep(30)
+
               response = requests.patch(url, json=data, headers=headers)
               print(f"Response status: {response.status_code}")
               if response.status_code >= 400:
-                  print(f"Response: {response.text}")
-                  if response.status_code == 404:
-                      print("Note: Addon version not found on AMO yet - it may be available after initial processing")
-                  elif response.status_code >= 500:
-                      print("Note: AMO server error - release notes may update automatically")
+                print(f"Response: {response.text}")
+                if response.status_code == 404:
+                  print("Note: Addon version not found on AMO yet - it may be available after initial processing")
+                elif response.status_code >= 500:
+                  print("Note: AMO server error - release notes may update automatically")
               else:
-                  print("Release notes updated successfully!")
+                print("Release notes updated successfully!")
           except Exception as e:
               print(f"Could not update release notes: {e}")
               print("Note: Release notes will need to be updated manually or will be available after AMO processes the upload")
