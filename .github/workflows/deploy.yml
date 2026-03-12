@@ -154,7 +154,7 @@ jobs:
           ADDON_ID: "6b7ad442-dbee-4ef8-bc53-43af0e3de819"
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          python -m pip install PyJWT requests --quiet
+          python -m pip install PyJWT requests typing_extensions --quiet
           
           python << 'PYTHON_SCRIPT'
           import os
