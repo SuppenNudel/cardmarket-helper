@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Cardmarket Helper",
-    "version": "2026.3.2.1",
+    "version": "2026.3.3.1",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "action": {
         "default_icon": {
