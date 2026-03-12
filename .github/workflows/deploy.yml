@@ -97,20 +97,37 @@ jobs:
           } >> $GITHUB_OUTPUT
       
       - name: Sign and upload to Firefox Addons
+        id: amo_sign
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
           ADDON_ID: "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
         run: |
           npm install -g web-ext
+          LOG_FILE=$(mktemp)
+
+          set +e
           web-ext sign \
             --channel=listed \
             --api-key="$AMO_JWT_ISSUER" \
             --api-secret="$AMO_JWT_SECRET" \
             --source-dir=. \
-            --artifacts-dir=./web-ext-artifacts
+            --artifacts-dir=./web-ext-artifacts 2>&1 | tee "$LOG_FILE"
+          SIGN_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$SIGN_EXIT" -eq 0 ]; then
+            echo "amo_upload_skipped=false" >> "$GITHUB_OUTPUT"
+          elif grep -Eq "Submission failed \(2\): Conflict|Version .* already exists\." "$LOG_FILE"; then
+            echo "AMO version already exists. Continuing workflow and skipping XPI-dependent steps."
+            echo "amo_upload_skipped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web-ext sign failed with an unexpected error."
+            exit "$SIGN_EXIT"
+          fi
       
       - name: List artifacts directory
+        if: steps.amo_sign.outputs.amo_upload_skipped != 'true'
         run: |
           echo "Contents of ./web-ext-artifacts/:"
           ls -la ./web-ext-artifacts/ || echo "Directory does not exist"
@@ -119,6 +136,7 @@ jobs:
           find ./web-ext-artifacts/ -name "*.xpi" -o -name "*.zip" 2>/dev/null || echo "No .xpi or .zip files found"
       
       - name: Rename XPI file
+        if: steps.amo_sign.outputs.amo_upload_skipped != 'true'
         run: |
           XPI_FILE=$(find ./web-ext-artifacts/ -name "*.xpi" | head -1)
           if [ -z "$XPI_FILE" ]; then
@@ -204,6 +222,7 @@ jobs:
           PYTHON_SCRIPT
       
       - name: Create GitHub Release and Upload Assets
+        if: steps.amo_sign.outputs.amo_upload_skipped != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
