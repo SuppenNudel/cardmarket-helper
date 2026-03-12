@@ -31,7 +31,7 @@ When loading this extension temporarily via `about:debugging`, Firefox MV3 treat
 The **Open in ManaBox Viewer** button uses `config.manaboxViewerMode` from `browser.storage.sync`:
 
 - `local` (default): opens `http://localhost:8000/index.html`
-- `hosted`: opens `https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html`
+- `hosted`: opens `https://suppennudel.github.io/manabox-viewer/`
 
 ## Inspirations
 

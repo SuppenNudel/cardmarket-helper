@@ -50,7 +50,7 @@ const MANABOX_VIEWER_TARGETS = {
         origin: "http://localhost:8000"
     },
     hosted: {
-        url: "https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html",
+        url: "https://suppennudel.github.io/manabox-viewer/",
         origin: "https://htmlpreview.github.io"
     }
 };

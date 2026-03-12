@@ -51,7 +51,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 ### Added
 - Toggle if sell price should be filled automatically by add-on
 - Fill out quantity, language, condition and foil automatically depending on filter parameters
-- You can use my new [Manabox Viewer](https://htmlpreview.github.io/?https://github.com/SuppenNudel/manabox-viewer/blob/main/index.html) to view your Manabox collection (exported through CSV) on your PC. It will offer links to Cardmarket where the filter parameters will be applied according to your cards' metrics (quantity, language, condition, foil)
+- You can use my new [Manabox Viewer](https://suppennudel.github.io/manabox-viewer/) to view your Manabox collection (exported through CSV) on your PC. It will offer links to Cardmarket where the filter parameters will be applied according to your cards' metrics (quantity, language, condition, foil)
 
 ### Fixed
 - "loading collection..." no longer showing, when "Collection not loaded."
