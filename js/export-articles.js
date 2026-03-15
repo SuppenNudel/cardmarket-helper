@@ -51,7 +51,7 @@ const MANABOX_VIEWER_TARGETS = {
     },
     hosted: {
         url: "https://suppennudel.github.io/manabox-viewer/",
-        origin: "https://htmlpreview.github.io"
+        origin: "https://suppennudel.github.io"
     }
 };
 
@@ -102,6 +102,19 @@ async function resolveManaBoxViewerTarget() {
         }
     } catch (error) {
         console.error("Error reading ManaBox viewer mode from config:", error);
+    }
+
+    try {
+        const installType = await new Promise(resolve => {
+            browser.runtime.sendMessage({ action: "getInstallType" }, response => {
+                resolve(response && response.success ? response.data : null);
+            });
+        });
+        if (installType === "development") {
+            return MANABOX_VIEWER_TARGETS["local"];
+        }
+    } catch (error) {
+        // fall through to default
     }
 
     return MANABOX_VIEWER_TARGETS[DEFAULT_MANABOX_VIEWER_MODE];

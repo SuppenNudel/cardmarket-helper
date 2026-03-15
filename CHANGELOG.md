@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.3.3.2] - 2026-03-15
+
+### Fixed
+- Issue with payload not being sent to manabox-viewer when clicking "Open in ManaBox Viewer" button
+
 ## [2026.3.3.1] - 2026-03-12
 
 ### Changed

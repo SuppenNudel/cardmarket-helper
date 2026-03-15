@@ -351,6 +351,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     // Legacy support for direct fetch requests
                     result = await cacheManager.fetchWithDeduplication(request.url, request.options || {});
                     break;
+
+                case 'getInstallType':
+                    result = await browser.management.getSelf().then(info => info.installType);
+                    break;
                     
                 default:
                     throw new Error(`Unknown action: ${request.action}`);

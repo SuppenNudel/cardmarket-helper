@@ -310,11 +310,15 @@ function addExportButton() {
 (async function main() {
     console.log("orders.js");
 
-    const isSales = document.querySelector('a[href$="Orders/Sales"]') !== null;
+    const isSalesPaidArticles = /\/Orders\/Sales\/Paid\/Articles/i.test(window.location.pathname);
+    const isSales = document.querySelector('a[href$="Orders/Sales"]') !== null && !isSalesPaidArticles;
     if (isSales) {
         browser.storage.sync.get('orders').then(result => {
             let orders = result.orders || {}; // Get the current object or use an empty object if not found
-            const orderId = document.querySelector("div.page-title-container h1").textContent.match(/#(\d+)/)[1];
+            const h1 = document.querySelector("div.page-title-container h1");
+            const orderIdMatch = h1 && h1.textContent.match(/#(\d+)/);
+            const orderId = orderIdMatch ? orderIdMatch[1] : null;
+            if (!orderId) return;
             const order = orders[orderId];
             const timestamp = order ? order.timestamp : null;
             addPackedButton(orderId, timestamp);
