@@ -105,7 +105,7 @@ When you select your ManaBox file, its content gets loaded and the page automati
 
 ℹ️ There will be a pop-up alert with “<filename>: undefined”. This is unwanted behavior but does not impact functionality.
 
-![Untitled](doc/ManaBox_Export.png)
+<img src="doc/ManaBox_Export.png" width="200">
 
 To export your collection from ManaBox go into the top right menu and select “Export” (you need to confirm the following popup with another click on “Export”)
 
