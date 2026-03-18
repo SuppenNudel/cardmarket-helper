@@ -77,3 +77,115 @@ Some Features of this addon have been inspired by existing addons. So I wanted t
 
 - some cards have the same id on scryfall but multiple on mkm
     - Example Mystical Archive Abundant Harvest - normal / foil and etched
+ 
+ # Features (needs updating)
+
+ ## Display Thumbnails
+
+![Before](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/6906faae-74bb-4b20-8fc8-0ae990fcaad5/Untitled.png)
+
+Before
+
+Instead of the camera icon, the card's image get's displayed directly.
+
+This change is made everywhere on cardmarket where you would see those photo camera icons, even on non-Magic pages)
+
+⚠️ Temporarily Disabled as of 1.9.0: Since 1.1.0: In the settings menu you can adjust the size of the Thumbnail and toggle this feature on/off
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/0aeb29d0-e84b-44ba-9a67-047ebe0d4a73/Untitled.png)
+
+![After](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/0bf20798-823b-42a5-b655-a044a598fabc/Untitled.png)
+
+After
+
+## Upload ManaBox collection
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/d09d575b-1ff4-4d0d-ad26-30160c335d2e/Untitled.png)
+
+When you select your ManaBox file, its content gets loaded and the page automatically gets reloaded in order to fill out the page with all the necessary info.
+
+ℹ️ There will be a pop-up alert with “<filename>: undefined”. This is unwanted behavior but does not impact functionality.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/6d228fa7-c59f-482f-97aa-cfa2373a22f5/Untitled.png)
+
+To export your collection from ManaBox go into the top right menu and select “Export” (you need to confirm the following popup with another click on “Export”)
+
+Then select where the export should go to. I always use Google Drive.
+
+# Singles Page (Sell your cards)
+
+### Printings of the current card that you own
+
+When on a "Singles" page, and you have loaded your ManaBox collection, a table gets created which displays which printings of the card you are currently looking at you own.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/6928c969-d9a4-4302-887e-3c47a240c890/Untitled.png)
+
+### Go To (does not work currently 17. September 2025 )
+
+If you click on this link you will get redirected to the cardmarket Singles page of this card.
+
+### Fill Metrics
+
+Click the “FILL” button to fill out the form.
+
+If Condition is “MINT” a ❓gets displayed. This is to indicate that the condition of the card hasn’t been personally checked yet. A card should not be listed as MINT anyways in 99.9% of the cases.
+
+Already listed should indicate if the card has been already put up for sale. It uses the “Misprint” metric of ManaBox (you need to update this in ManaBox yourself)
+
+The “Price” field of the form gets filled out automatically by comparing the current LOW, TREND, AVG1, AVG7, AVG30 prices and the top few offers by other people.
+
+Next to the “Purchase price” a stock market emoji is shown depending on if it is higher or lower than the automatically determined price from above.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/690f368b-b966-4603-8d4d-ef38e2e316fc/Untitled.png)
+
+## Offers Singles
+
+![image.png](attachment:90258efa-6e96-48ac-8a9d-7b6ac5040e8b:image.png)
+
+### Metrics
+
+| EDHREC Rank
+(currently not enabled 17. September 2025) | The Ranking on [edhrec.com](http://edhrec.com)
+Source: scryfall.com |
+| --- | --- |
+| Formats | Percentage of decks that used this card in the past 2 months in that format. In brackets is the average quantity of the card in the decks that use this card
+In front of the slash is the data for the main board, behind is the data for sideboard.
+Source: mtgtop8.com/topcards |
+| Bottom Row | On the right it shows how many copies of any of the printings of the card you own in any language
+and how many of any language you own for this specific printing (including foil and non-foil) |
+
+### Format Filter
+
+You can hide cards on a seller’s offer page
+
+![image.png](attachment:fe955fe3-ed65-48bd-86de-eda06c1349fc:image.png)
+
+- Version until before 1.9.0
+    
+    ⚠️ Disabled as of 1.9.0: You can modify which formats to analyze by going into the extension settings (left column)
+    
+    ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/c866dcf0-eae5-42cc-9388-b37ee056c3a4/Untitled.png)
+    
+    With the right column you can let the extension hide rows if the card is not legal in one of the selected formats.
+    
+    This function is turned of if no format is selected.
+    
+
+### Prices
+
+⬇️ cardmarket low price
+
+↔️ cardmarket average price
+
+📈 cardmarket trend price
+
+The coloring is dependend on the ratio between the offered price respective low/average/trend price
+Within 10% it’s orange, if the offering is cheaper than that it is green, if it is more expensie it is red
+
+## Export Wants-List (since 1.2
+
+.0)
+
+![Wants-List_Export.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/c7776845-cf49-466c-9c77-2766f00fa2c1/Wants-List_Export.png)
+
+With a click on the “Export as .csv”-Button you can export your currently shown Wants-List as a csv file.
