@@ -158,7 +158,7 @@ and how many of any language you own for this specific printing (including foil 
 
 You can hide cards on a seller’s offer page
 
-![image.png](attachment:fe955fe3-ed65-48bd-86de-eda06c1349fc:image.png)
+![image.png](doc/1.10.0_Format Filter.png)
 
 - Version until before 1.9.0
     
