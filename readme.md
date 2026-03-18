@@ -136,11 +136,11 @@ The “Price” field of the form gets filled out automatically by comparing the
 
 Next to the “Purchase price” a stock market emoji is shown depending on if it is higher or lower than the automatically determined price from above.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/690f368b-b966-4603-8d4d-ef38e2e316fc/Untitled.png)
+![Untitled](doc/Products_Singles.png)
 
 ## Offers Singles
 
-![image.png](attachment:90258efa-6e96-48ac-8a9d-7b6ac5040e8b:image.png)
+![image.png](doc/Offers_Singles.png)
 
 ### Metrics
 
@@ -186,6 +186,6 @@ Within 10% it’s orange, if the offering is cheaper than that it is green, if i
 
 .0)
 
-![Wants-List_Export.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/c7776845-cf49-466c-9c77-2766f00fa2c1/Wants-List_Export.png)
+![Wants-List_Export.png](doc/Wants-List_Export.png)
 
 With a click on the “Export as .csv”-Button you can export your currently shown Wants-List as a csv file.
