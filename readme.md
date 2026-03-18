@@ -8,6 +8,20 @@ This Firefox-Addon is supposed to help in your everyday life with cardmarket.com
 
 This add-on is not affiliated with, endorsed by, or in any way officially connected to Cardmarket. It is an independent, unofficial tool created to enhance the user experience on cardmarket.com
 
+## License
+
+This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** license.
+
+**You are free to:**
+- Share, copy, and redistribute the material in any medium or format
+- Remix, transform, and build upon the material
+
+**Under these terms:**
+- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made
+- **NonCommercial** — You may not use the material for commercial purposes
+
+For more information, see the [LICENSE](LICENSE) file or visit [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/)
+
 ## [Release Notes / Changelog](CHANGELOG.md)
 
 ## Bug Reports / Feature Requests / Feedback
