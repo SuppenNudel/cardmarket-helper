@@ -82,7 +82,7 @@ Some Features of this addon have been inspired by existing addons. So I wanted t
 
  ## Display Thumbnails
 
-![Before](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/6906faae-74bb-4b20-8fc8-0ae990fcaad5/Untitled.png)
+![Before](doc/Thumbnail_Before.png)
 
 Before
 
@@ -92,21 +92,20 @@ This change is made everywhere on cardmarket where you would see those photo cam
 
 ⚠️ Temporarily Disabled as of 1.9.0: Since 1.1.0: In the settings menu you can adjust the size of the Thumbnail and toggle this feature on/off
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/0aeb29d0-e84b-44ba-9a67-047ebe0d4a73/Untitled.png)
 
-![After](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/0bf20798-823b-42a5-b655-a044a598fabc/Untitled.png)
+![After](doc/Thumbnail_After.png)
 
 After
 
 ## Upload ManaBox collection
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/d09d575b-1ff4-4d0d-ad26-30160c335d2e/Untitled.png)
+![Untitled](doc/Upload_ManaBox.png)
 
 When you select your ManaBox file, its content gets loaded and the page automatically gets reloaded in order to fill out the page with all the necessary info.
 
 ℹ️ There will be a pop-up alert with “<filename>: undefined”. This is unwanted behavior but does not impact functionality.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/6d228fa7-c59f-482f-97aa-cfa2373a22f5/Untitled.png)
+![Untitled](doc/ManaBox_Export.png)
 
 To export your collection from ManaBox go into the top right menu and select “Export” (you need to confirm the following popup with another click on “Export”)
 
@@ -117,8 +116,6 @@ Then select where the export should go to. I always use Google Drive.
 ### Printings of the current card that you own
 
 When on a "Singles" page, and you have loaded your ManaBox collection, a table gets created which displays which printings of the card you are currently looking at you own.
-
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/6928c969-d9a4-4302-887e-3c47a240c890/Untitled.png)
 
 ### Go To (does not work currently 17. September 2025 )
 
@@ -160,16 +157,16 @@ You can hide cards on a seller’s offer page
 
 ![image.png](doc/1.10.0_Format_Filter.png)
 
-- Version until before 1.9.0
-    
-    ⚠️ Disabled as of 1.9.0: You can modify which formats to analyze by going into the extension settings (left column)
-    
-    ![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/6282666e-c60f-43d5-964d-0f9e5851672e/c866dcf0-eae5-42cc-9388-b37ee056c3a4/Untitled.png)
-    
-    With the right column you can let the extension hide rows if the card is not legal in one of the selected formats.
-    
-    This function is turned of if no format is selected.
-    
+<details>
+<summary>Version until before 1.9.0</summary>
+⚠️ Disabled as of 1.9.0: You can modify which formats to analyze by going into the extension settings (left column)
+
+![Untitled](doc/Format_Filter_Outdated.png)
+
+With the right column you can let the extension hide rows if the card is not legal in one of the selected formats.
+
+This function is turned of if no format is selected.
+</details>
 
 ### Prices
 
@@ -182,9 +179,7 @@ You can hide cards on a seller’s offer page
 The coloring is dependend on the ratio between the offered price respective low/average/trend price
 Within 10% it’s orange, if the offering is cheaper than that it is green, if it is more expensie it is red
 
-## Export Wants-List (since 1.2
-
-.0)
+## Export Wants-List (since 1.2.0)
 
 ![Wants-List_Export.png](doc/Wants-List_Export.png)
 
