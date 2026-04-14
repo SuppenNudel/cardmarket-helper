@@ -196,7 +196,8 @@ jobs:
           data = {
               "release_notes": {
                 "en-US": release_notes
-              }
+              },
+              "is_android": True
             }
           
           try:
@@ -228,7 +229,7 @@ jobs:
                 elif response.status_code >= 500:
                   print("Note: AMO server error - release notes may update automatically")
               else:
-                print("Release notes updated successfully!")
+                print("Release notes and Android support updated successfully!")
           except Exception as e:
               print(f"Could not update release notes: {e}")
               print("Note: Release notes will need to be updated manually or will be available after AMO processes the upload")
