@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.4.1.0] - 2026-04-14
+
+### Added
+- Ability to import format staples that are missing from your collection into a wishlist
+
 ## [2026.3.3.2] - 2026-03-15
 
 ### Fixed
