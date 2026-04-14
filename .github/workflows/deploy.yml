@@ -188,7 +188,7 @@ jobs:
           token = jwt.encode(payload, secret, algorithm="HS256")
           
           # Update release notes on AMO
-            url = f"https://addons.mozilla.org/api/v5/addons/addon/{addon_id_encoded}/versions/{version}/"
+          url = f"https://addons.mozilla.org/api/v5/addons/addon/{addon_id_encoded}/versions/{version}/"
           headers = {
               "Authorization": f"JWT {token}",
               "Content-Type": "application/json"
