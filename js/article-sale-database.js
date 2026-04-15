@@ -121,7 +121,9 @@ async function saveArticleSaleTimestamp(articleId, timestamp) {
         const db = await openArticleSaleDatabase();
         const transaction = db.transaction(ARTICLE_SALES_STORE, 'readwrite');
         const store = transaction.objectStore(ARTICLE_SALES_STORE);
+        const existing = await idbRequestToPromise(store.get(String(articleId)));
         store.put({
+            ...(existing || {}),
             articleId: String(articleId),
             listedAt: normalizedTimestamp
         });
@@ -163,6 +165,93 @@ async function cleanupOldArticleSaleTimestamps() {
     }
 }
 
+async function getArticleLastModified(articleId) {
+    if (!articleId) {
+        return null;
+    }
+
+    try {
+        const db = await openArticleSaleDatabase();
+        const transaction = db.transaction(ARTICLE_SALES_STORE, 'readonly');
+        const store = transaction.objectStore(ARTICLE_SALES_STORE);
+        const record = await idbRequestToPromise(store.get(String(articleId)));
+        db.close();
+
+        return record && typeof record.lastModifiedAt === 'string' ? record.lastModifiedAt : null;
+    } catch (error) {
+        console.error('Error loading article last modified:', error);
+        return null;
+    }
+}
+
+async function saveArticleLastModified(articleId, timestamp) {
+    if (!articleId || !timestamp) {
+        return;
+    }
+
+    const normalizedTimestamp = normalizeArticleSaleTimestamp(timestamp);
+    if (!normalizedTimestamp) {
+        return;
+    }
+
+    try {
+        const db = await openArticleSaleDatabase();
+        const transaction = db.transaction(ARTICLE_SALES_STORE, 'readwrite');
+        const store = transaction.objectStore(ARTICLE_SALES_STORE);
+        const existing = await idbRequestToPromise(store.get(String(articleId)));
+        store.put({
+            ...(existing || {}),
+            articleId: String(articleId),
+            lastModifiedAt: normalizedTimestamp
+        });
+        await idbTransactionDone(transaction);
+        db.close();
+    } catch (error) {
+        console.error('Error saving article last modified:', error);
+    }
+}
+
+async function getArticleModificationComment(articleId) {
+    if (!articleId) {
+        return null;
+    }
+
+    try {
+        const db = await openArticleSaleDatabase();
+        const transaction = db.transaction(ARTICLE_SALES_STORE, 'readonly');
+        const store = transaction.objectStore(ARTICLE_SALES_STORE);
+        const record = await idbRequestToPromise(store.get(String(articleId)));
+        db.close();
+
+        return record && typeof record.modificationComment === 'string' ? record.modificationComment : null;
+    } catch (error) {
+        console.error('Error loading article modification comment:', error);
+        return null;
+    }
+}
+
+async function saveArticleModificationComment(articleId, comment) {
+    if (!articleId || !comment) {
+        return;
+    }
+
+    try {
+        const db = await openArticleSaleDatabase();
+        const transaction = db.transaction(ARTICLE_SALES_STORE, 'readwrite');
+        const store = transaction.objectStore(ARTICLE_SALES_STORE);
+        const existing = await idbRequestToPromise(store.get(String(articleId)));
+        store.put({
+            ...(existing || {}),
+            articleId: String(articleId),
+            modificationComment: String(comment)
+        });
+        await idbTransactionDone(transaction);
+        db.close();
+    } catch (error) {
+        console.error('Error saving article modification comment:', error);
+    }
+}
+
 async function savePendingArticleSale(pendingArticleSale) {
     if (!pendingArticleSale || !pendingArticleSale.createdAt) {
         return;
@@ -179,7 +268,10 @@ async function savePendingArticleSale(pendingArticleSale) {
             createdAt: normalizedTimestamp,
             productId: pendingArticleSale.productId ? String(pendingArticleSale.productId) : null,
             isFoil: pendingArticleSale.isFoil || 'N',
-            path: pendingArticleSale.path || null
+            path: pendingArticleSale.path || null,
+            knownArticleIds: Array.isArray(pendingArticleSale.knownArticleIds)
+                ? pendingArticleSale.knownArticleIds.map((articleId) => String(articleId)).filter(Boolean)
+                : []
         }
     };
 

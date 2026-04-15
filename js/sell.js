@@ -299,6 +299,43 @@ function isPendingSaleForCurrentProduct(pendingArticleSale) {
         && String(pendingArticleSale.isFoil || 'N') === String(currentContext.isFoil || 'N');
 }
 
+function getVisibleArticleIds() {
+    const table = document.getElementById('table');
+    if (!table) {
+        return [];
+    }
+
+    return Array.from(table.getElementsByClassName('article-row'))
+        .map((articleRow) => extractArticleId(articleRow.id))
+        .filter(Boolean);
+}
+
+function getPendingSaleCandidateRows(articleRows, userName, articleSaleTimestamps, pendingArticleSale) {
+    const unsavedRows = Array.from(articleRows).filter((articleRow) => {
+        const articleId = extractArticleId(articleRow.id);
+        return Boolean(articleId)
+            && isCurrentUsersArticleRow(articleRow, userName)
+            && !articleSaleTimestamps[articleId];
+    });
+
+    const knownArticleIds = new Set(
+        Array.isArray(pendingArticleSale && pendingArticleSale.knownArticleIds)
+            ? pendingArticleSale.knownArticleIds.map((articleId) => String(articleId))
+            : []
+    );
+
+    const newRows = unsavedRows.filter((articleRow) => {
+        const articleId = extractArticleId(articleRow.id);
+        return articleId && !knownArticleIds.has(String(articleId));
+    });
+
+    if (newRows.length > 0) {
+        return newRows;
+    }
+
+    return unsavedRows;
+}
+
 async function savePendingSaleForCurrentProduct() {
     const currentContext = getCurrentSellContext();
     if (!currentContext.productId) {
@@ -309,7 +346,8 @@ async function savePendingSaleForCurrentProduct() {
         createdAt: new Date().toISOString(),
         productId: currentContext.productId,
         isFoil: currentContext.isFoil,
-        path: currentContext.path
+        path: currentContext.path,
+        knownArticleIds: getVisibleArticleIds()
     });
 }
 
@@ -319,18 +357,48 @@ function registerPendingSaleTracking() {
         return;
     }
 
-    const markPendingSale = () => {
-        savePendingSaleForCurrentProduct().catch((error) => {
-            console.error('Error storing pending article sale:', error);
-        });
-    };
-
-    listProductForm.addEventListener('submit', markPendingSale, true);
+    let isResubmitting = false;
+    let pendingSubmitter = null;
 
     const submitButtons = listProductForm.querySelectorAll('input[type="submit"], button[type="submit"]');
     for (const submitButton of submitButtons) {
-        submitButton.addEventListener('click', markPendingSale, true);
+        submitButton.addEventListener('click', () => {
+            pendingSubmitter = submitButton;
+        }, true);
     }
+
+    listProductForm.addEventListener('submit', (event) => {
+        if (isResubmitting) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const submitter = event.submitter || pendingSubmitter;
+        savePendingSaleForCurrentProduct()
+            .catch((error) => {
+                console.error('Error storing pending article sale:', error);
+            })
+            .finally(() => {
+                isResubmitting = true;
+
+                try {
+                    if (typeof listProductForm.requestSubmit === 'function') {
+                        if (submitter instanceof HTMLButtonElement
+                            || (submitter instanceof HTMLInputElement && submitter.type === 'submit')) {
+                            listProductForm.requestSubmit(submitter);
+                        } else {
+                            listProductForm.requestSubmit();
+                        }
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error resubmitting form with requestSubmit:', error);
+                }
+
+                listProductForm.submit();
+            });
+    }, true);
 }
 
 async function tryResolvePendingSaleFromRows(articleRows, userName) {
@@ -340,12 +408,12 @@ async function tryResolvePendingSaleFromRows(articleRows, userName) {
     }
 
     const articleSaleTimestamps = await getArticleSaleTimestamps();
-    const candidateRows = Array.from(articleRows).filter((articleRow) => {
-        const articleId = extractArticleId(articleRow.id);
-        return Boolean(articleId)
-            && isCurrentUsersArticleRow(articleRow, userName)
-            && !articleSaleTimestamps[articleId];
-    });
+    const candidateRows = getPendingSaleCandidateRows(
+        articleRows,
+        userName,
+        articleSaleTimestamps,
+        pendingArticleSale
+    );
 
     if (candidateRows.length !== 1) {
         return false;
@@ -389,6 +457,11 @@ async function observeArticleRowsForPendingSale(userName) {
                     for (const articleRow of candidateRows) {
                         const articleId = extractArticleId(articleRow.id);
                         if (!articleId || articleSaleTimestamps[articleId]) {
+                            continue;
+                        }
+
+                        if (Array.isArray(pendingArticleSale.knownArticleIds)
+                            && pendingArticleSale.knownArticleIds.includes(String(articleId))) {
                             continue;
                         }
 

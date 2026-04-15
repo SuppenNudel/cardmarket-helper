@@ -163,8 +163,8 @@ function formatRelativeArticleSaleTime(timestamp) {
     return formatter.format(elapsedYears, 'year');
 }
 
-function appendArticleSaleTimestamp(articleRow, articleSaleTimestamp) {
-    if (!articleSaleTimestamp || articleRow.querySelector('.cm-helper-listed-at')) {
+function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificationComment) {
+    if (!listedAt && !lastModifiedAt) {
         return;
     }
 
@@ -173,24 +173,83 @@ function appendArticleSaleTimestamp(articleRow, articleSaleTimestamp) {
         return;
     }
 
-    const formattedTimestamp = formatArticleSaleTimestamp(articleSaleTimestamp);
-    if (!formattedTimestamp) {
-        return;
+    articleRow.querySelectorAll('.cm-helper-listed-at, .cm-helper-modified-at, .cm-helper-modification-comment')
+        .forEach((element) => element.remove());
+
+    if (listedAt) {
+        const formattedTimestamp = formatArticleSaleTimestamp(listedAt);
+        const relativeTimestamp = formatRelativeArticleSaleTime(listedAt);
+        if (relativeTimestamp) {
+            const listedAtElement = document.createElement('div');
+            listedAtElement.className = 'cm-helper-listed-at';
+            listedAtElement.innerText = 'Listed: ' + relativeTimestamp;
+            listedAtElement.title = formattedTimestamp || '';
+            listedAtElement.style.color = 'gray';
+            listedAtElement.style.fontSize = '0.8em';
+            listedAtElement.style.marginTop = '0.25rem';
+            listedAtElement.style.cursor = 'default';
+            priceContainer.appendChild(listedAtElement);
+        }
     }
 
-    const relativeTimestamp = formatRelativeArticleSaleTime(articleSaleTimestamp);
+    if (lastModifiedAt) {
+        const formattedModified = formatArticleSaleTimestamp(lastModifiedAt);
+        const relativeModified = formatRelativeArticleSaleTime(lastModifiedAt);
+        if (relativeModified) {
+            const modifiedAtElement = document.createElement('div');
+            modifiedAtElement.className = 'cm-helper-modified-at';
+            modifiedAtElement.innerText = 'Modified: ' + relativeModified;
+            modifiedAtElement.title = formattedModified || '';
+            modifiedAtElement.style.color = 'gray';
+            modifiedAtElement.style.fontSize = '0.8em';
+            modifiedAtElement.style.cursor = 'default';
+            priceContainer.appendChild(modifiedAtElement);
 
-    const listedAtElement = document.createElement('div');
-    listedAtElement.className = 'cm-helper-listed-at';
-    listedAtElement.innerText = 'Listed: ' + formattedTimestamp + (relativeTimestamp ? ' (' + relativeTimestamp + ')' : '');
-    listedAtElement.style.color = 'gray';
-    listedAtElement.style.fontSize = '0.8em';
-    listedAtElement.style.marginTop = '0.25rem';
-    priceContainer.appendChild(listedAtElement);
+            if (modificationComment) {
+                const commentElement = document.createElement('div');
+                commentElement.className = 'cm-helper-modification-comment';
+                commentElement.innerText = modificationComment;
+                commentElement.style.color = 'gray';
+                commentElement.style.fontSize = '0.8em';
+                commentElement.style.cursor = 'default';
+                priceContainer.appendChild(commentElement);
+            }
+        }
+    }
+}
+
+function extractArticleRowData(articleRow) {
+    if (!articleRow) return null;
+    
+    const quantityEl = articleRow.querySelector('.item-count');
+    const quantity = quantityEl ? quantityEl.textContent.trim() : null;
+    
+    const priceEl = articleRow.querySelector('.price-container .align-items-center span[class*="text-end"]');
+    const price = priceEl ? priceEl.textContent.trim() : null;
+    
+    return { quantity, price };
+}
+
+function detectRowChanges(oldData, newData) {
+    if (!oldData || !newData) return null;
+    
+    const changes = [];
+    
+    if (oldData.quantity !== newData.quantity) {
+        changes.push(`qty ${oldData.quantity}→${newData.quantity}`);
+    }
+    if (oldData.price !== newData.price) {
+        changes.push(`price ${oldData.price}→${newData.price}`);
+    }
+    
+    return changes.length > 0 ? changes.join(', ') : null;
 }
 
 function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
     var priceContainer = articleRow.querySelector(".price-container .flex-column");
+    if (!priceContainer) {
+        return;
+    }
     if(!mkmid) {
         const noMkmIdDiv = document.createElement("div");
         priceContainer.appendChild(noMkmIdDiv);
@@ -256,15 +315,31 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
 
 function updateContentOfCard(articleRow, pricePromise) {
     const element = articleRow.querySelector("span.thumbnail-icon");
-    showThumbnail(element).then(image => {
-        const mkmId = image.getAttribute("mkmId");
-        checkPriceWithCardmarket(articleRow, mkmId, pricePromise);
-    });
+    if (element) {
+        showThumbnail(element)
+            .then(image => {
+                if (!image) {
+                    return;
+                }
+
+                const mkmId = image.getAttribute("mkmId");
+                checkPriceWithCardmarket(articleRow, mkmId, pricePromise);
+            })
+            .catch((error) => {
+                console.error('Error showing thumbnail:', error);
+            });
+    }
 
     const articleId = extractArticleId(articleRow.id);
     if (articleId) {
-        getArticleSaleTimestamp(articleId).then((articleSaleTimestamp) => {
-            appendArticleSaleTimestamp(articleRow, articleSaleTimestamp);
+        Promise.all([
+            getArticleSaleTimestamp(articleId),
+            getArticleLastModified(articleId),
+            getArticleModificationComment(articleId)
+        ]).then(([listedAt, lastModifiedAt, comment]) => {
+            appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, comment);
+        }).catch((error) => {
+            console.error('Error loading article timestamps:', error);
         });
     }
 
@@ -292,8 +367,70 @@ function forceOfferCommentIcon(articleRow) {
     mobileIcon.classList.remove('d-lg-none');
 }
 
+function observeArticleRowModifications(table) {
+    const knownArticleIds = new Set(
+        Array.from(table.getElementsByClassName('article-row'))
+            .map(row => extractArticleId(row.id))
+            .filter(Boolean)
+    );
+
+    // Store old row data during removal so we can compare on addition
+    const removedRowData = new Map();
+
+    // Ignore mutations caused by our own initial DOM enrichment
+    let initializing = true;
+    setTimeout(() => { initializing = false; }, 2000);
+
+    const observer = new MutationObserver((mutations) => {
+        if (initializing) {
+            return;
+        }
+
+        for (const mutation of mutations) {
+            // First pass: capture old row data during removal
+            for (const node of mutation.removedNodes) {
+                if (!(node instanceof HTMLElement)) continue;
+                const id = extractArticleId(node.id);
+                if (id && knownArticleIds.has(id)) {
+                    const oldData = extractArticleRowData(node);
+                    removedRowData.set(id, oldData);
+                }
+            }
+
+            // Second pass: detect new rows and compare with removed data
+            for (const node of mutation.addedNodes) {
+                if (!(node instanceof HTMLElement)) continue;
+                const id = extractArticleId(node.id);
+                if (id && removedRowData.has(id)) {
+                    const oldData = removedRowData.get(id);
+                    const newData = extractArticleRowData(node);
+                    const changeComment = detectRowChanges(oldData, newData);
+                    
+                    const now = new Date().toISOString();
+                    Promise.all([
+                        saveArticleLastModified(id, now),
+                        changeComment ? saveArticleModificationComment(id, changeComment) : Promise.resolve()
+                    ])
+                        .then(() => {
+                            updateContentOfCard(node, pricePromise);
+                        })
+                        .catch(err => console.error('Error handling row modification:', err));
+                    
+                    removedRowData.delete(id);
+                }
+            }
+        }
+    });
+
+    observer.observe(table, { childList: true, subtree: true });
+}
+
 function updateContent() {
     const table = document.getElementById("UserOffersTable"); // div
+    if (!table) {
+        return;
+    }
+
     const thumbnailHeader = table.querySelector("div.table-header div.col-thumbnail");
     if (thumbnailHeader) {
         thumbnailHeader.style.width = '10rem';
@@ -306,6 +443,8 @@ function updateContent() {
     for (const articleRow of articleRows) {
         updateContentOfCard(articleRow, pricePromise);
     }
+
+    observeArticleRowModifications(table);
 }
 
 (async function main() {
