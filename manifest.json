@@ -161,6 +161,9 @@
             "matches": [
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
             ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Magic/Stock/Offers/Singles*"
+            ],
             "js": [
                 "js/mtgtop8-data.js",
                 "js/cardmarket-util.js",
