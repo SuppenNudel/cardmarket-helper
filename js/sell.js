@@ -246,14 +246,172 @@ const HEADERS = ["Go to / Fill", "Quantity", "Set code", "Collector number", "Fo
 var currentURL = window.location.href;
 // Create a URL object
 var url = new URL(currentURL);
-function hasListProductSubmitButton() {
-    const listProductForm = document.getElementById("ListProductForm")
+function getListProductForm() {
+    return document.getElementById("ListProductForm")
         || document.querySelector('form[action*="/PostGetAction/Article_ListProduct"]');
+}
+
+function hasListProductSubmitButton() {
+    const listProductForm = getListProductForm();
     if (!listProductForm) {
         return false;
     }
 
     return Boolean(listProductForm.querySelector('input[type="submit"], button[type="submit"]'));
+}
+
+function getCurrentSellContext() {
+    const productIdElement = document.querySelector('#FilterForm > input[name="idProduct"]');
+
+    return {
+        productId: productIdElement ? String(productIdElement.value) : null,
+        isFoil: url.searchParams.get('isFoil') || 'N',
+        path: window.location.pathname
+    };
+}
+
+function extractArticleId(articleRowId) {
+    if (typeof articleRowId !== 'string') {
+        return null;
+    }
+
+    const match = articleRowId.match(/^articleRow(\d+)$/);
+    return match ? match[1] : null;
+}
+
+function isCurrentUsersArticleRow(articleRow, userName) {
+    if (!articleRow || !userName) {
+        return false;
+    }
+
+    const sellerNameElement = articleRow.querySelector('.seller-name a');
+    return Boolean(sellerNameElement) && sellerNameElement.textContent.trim() === userName;
+}
+
+function isPendingSaleForCurrentProduct(pendingArticleSale) {
+    if (!pendingArticleSale) {
+        return false;
+    }
+
+    const currentContext = getCurrentSellContext();
+    return Boolean(currentContext.productId)
+        && pendingArticleSale.productId === currentContext.productId
+        && String(pendingArticleSale.isFoil || 'N') === String(currentContext.isFoil || 'N');
+}
+
+async function savePendingSaleForCurrentProduct() {
+    const currentContext = getCurrentSellContext();
+    if (!currentContext.productId) {
+        return;
+    }
+
+    await savePendingArticleSale({
+        createdAt: new Date().toISOString(),
+        productId: currentContext.productId,
+        isFoil: currentContext.isFoil,
+        path: currentContext.path
+    });
+}
+
+function registerPendingSaleTracking() {
+    const listProductForm = getListProductForm();
+    if (!listProductForm) {
+        return;
+    }
+
+    const markPendingSale = () => {
+        savePendingSaleForCurrentProduct().catch((error) => {
+            console.error('Error storing pending article sale:', error);
+        });
+    };
+
+    listProductForm.addEventListener('submit', markPendingSale, true);
+
+    const submitButtons = listProductForm.querySelectorAll('input[type="submit"], button[type="submit"]');
+    for (const submitButton of submitButtons) {
+        submitButton.addEventListener('click', markPendingSale, true);
+    }
+}
+
+async function tryResolvePendingSaleFromRows(articleRows, userName) {
+    const pendingArticleSale = await getPendingArticleSale();
+    if (!isPendingSaleForCurrentProduct(pendingArticleSale)) {
+        return false;
+    }
+
+    const articleSaleTimestamps = await getArticleSaleTimestamps();
+    const candidateRows = Array.from(articleRows).filter((articleRow) => {
+        const articleId = extractArticleId(articleRow.id);
+        return Boolean(articleId)
+            && isCurrentUsersArticleRow(articleRow, userName)
+            && !articleSaleTimestamps[articleId];
+    });
+
+    if (candidateRows.length !== 1) {
+        return false;
+    }
+
+    const articleId = extractArticleId(candidateRows[0].id);
+    await saveArticleSaleTimestamp(articleId, pendingArticleSale.createdAt);
+    await clearPendingArticleSale();
+    return true;
+}
+
+async function observeArticleRowsForPendingSale(userName) {
+    const table = document.getElementById('table');
+    if (!table) {
+        return;
+    }
+
+    await tryResolvePendingSaleFromRows(table.getElementsByClassName('article-row'), userName);
+
+    const observer = new MutationObserver((mutations) => {
+        const resolvePendingSale = async () => {
+            const pendingArticleSale = await getPendingArticleSale();
+            if (!isPendingSaleForCurrentProduct(pendingArticleSale)) {
+                return;
+            }
+
+            const articleSaleTimestamps = await getArticleSaleTimestamps();
+            for (const mutation of mutations) {
+                for (const addedNode of mutation.addedNodes) {
+                    if (!(addedNode instanceof HTMLElement)) {
+                        continue;
+                    }
+
+                    const candidateRows = [];
+                    if (addedNode.classList.contains('article-row')) {
+                        candidateRows.push(addedNode);
+                    }
+
+                    candidateRows.push(...addedNode.querySelectorAll('.article-row'));
+
+                    for (const articleRow of candidateRows) {
+                        const articleId = extractArticleId(articleRow.id);
+                        if (!articleId || articleSaleTimestamps[articleId]) {
+                            continue;
+                        }
+
+                        if (!isCurrentUsersArticleRow(articleRow, userName)) {
+                            continue;
+                        }
+
+                        await saveArticleSaleTimestamp(articleId, pendingArticleSale.createdAt);
+                        await clearPendingArticleSale();
+                        return;
+                    }
+                }
+            }
+
+            await tryResolvePendingSaleFromRows(table.getElementsByClassName('article-row'), userName);
+        };
+
+        resolvePendingSale().catch((error) => {
+            console.error('Error resolving pending article sale:', error);
+        });
+    });
+
+    observer.observe(table, { childList: true, subtree: true });
 }
 
 function checkForRedirect(newURL) {
@@ -600,6 +758,8 @@ function getUserName() {
 (async function main() {
     console.log("sell.js");
 
+    registerPendingSaleTracking();
+
     // --- Add toggle and table container before loading starts ---
     var mainContent = document.getElementById("mainContent");
 
@@ -708,12 +868,16 @@ function getUserName() {
 
     applyUrlFiltersToForm();
 
+    const userName = getUserName();
+    observeArticleRowsForPendingSale(userName).catch((error) => {
+        console.error('Error observing article rows:', error);
+    });
+
     [pricedata, productdata] = await getCardmarketData();
 
     const priceField = document.getElementById("price");
     if (priceField && priceToggleInput.checked) {
         var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
-        const userName = getUserName();
         const computedPrice = parseFloat(calcMyPrice(mkmId, userName));
         myPrice = computedPrice;
         priceField.value = computedPrice.toFixed(2);

@@ -91,6 +91,104 @@ function getPricesByMkmId(priceGuides, mkmId) {
     return priceGuides[id] || null;
 }
 
+function extractArticleId(articleRowId) {
+    if (typeof articleRowId !== 'string') {
+        return null;
+    }
+
+    const match = articleRowId.match(/^articleRow(\d+)$/);
+    return match ? match[1] : null;
+}
+
+function formatArticleSaleTimestamp(timestamp) {
+    if (!timestamp) {
+        return null;
+    }
+
+    const listedAt = new Date(timestamp);
+    if (Number.isNaN(listedAt.getTime())) {
+        return null;
+    }
+
+    const locale = (document.documentElement.lang || navigator.language || 'en').replace('_', '-');
+    return listedAt.toLocaleString(locale, {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function formatRelativeArticleSaleTime(timestamp) {
+    if (!timestamp) {
+        return null;
+    }
+
+    const listedAt = new Date(timestamp);
+    if (Number.isNaN(listedAt.getTime())) {
+        return null;
+    }
+
+    const locale = (document.documentElement.lang || navigator.language || 'en').replace('_', '-');
+    const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    const elapsedSeconds = Math.round((listedAt.getTime() - Date.now()) / 1000);
+    const absoluteElapsedSeconds = Math.abs(elapsedSeconds);
+
+    if (absoluteElapsedSeconds < 60) {
+        return formatter.format(elapsedSeconds, 'second');
+    }
+
+    const elapsedMinutes = Math.round(elapsedSeconds / 60);
+    if (Math.abs(elapsedMinutes) < 60) {
+        return formatter.format(elapsedMinutes, 'minute');
+    }
+
+    const elapsedHours = Math.round(elapsedMinutes / 60);
+    if (Math.abs(elapsedHours) < 24) {
+        return formatter.format(elapsedHours, 'hour');
+    }
+
+    const elapsedDays = Math.round(elapsedHours / 24);
+    if (Math.abs(elapsedDays) < 30) {
+        return formatter.format(elapsedDays, 'day');
+    }
+
+    const elapsedMonths = Math.round(elapsedDays / 30);
+    if (Math.abs(elapsedMonths) < 12) {
+        return formatter.format(elapsedMonths, 'month');
+    }
+
+    const elapsedYears = Math.round(elapsedDays / 365);
+    return formatter.format(elapsedYears, 'year');
+}
+
+function appendArticleSaleTimestamp(articleRow, articleSaleTimestamp) {
+    if (!articleSaleTimestamp || articleRow.querySelector('.cm-helper-listed-at')) {
+        return;
+    }
+
+    const priceContainer = articleRow.querySelector('.price-container .flex-column');
+    if (!priceContainer) {
+        return;
+    }
+
+    const formattedTimestamp = formatArticleSaleTimestamp(articleSaleTimestamp);
+    if (!formattedTimestamp) {
+        return;
+    }
+
+    const relativeTimestamp = formatRelativeArticleSaleTime(articleSaleTimestamp);
+
+    const listedAtElement = document.createElement('div');
+    listedAtElement.className = 'cm-helper-listed-at';
+    listedAtElement.innerText = 'Listed: ' + formattedTimestamp + (relativeTimestamp ? ' (' + relativeTimestamp + ')' : '');
+    listedAtElement.style.color = 'gray';
+    listedAtElement.style.fontSize = '0.8em';
+    listedAtElement.style.marginTop = '0.25rem';
+    priceContainer.appendChild(listedAtElement);
+}
+
 function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
     var priceContainer = articleRow.querySelector(".price-container .flex-column");
     if(!mkmid) {
@@ -162,6 +260,13 @@ function updateContentOfCard(articleRow, pricePromise) {
         const mkmId = image.getAttribute("mkmId");
         checkPriceWithCardmarket(articleRow, mkmId, pricePromise);
     });
+
+    const articleId = extractArticleId(articleRow.id);
+    if (articleId) {
+        getArticleSaleTimestamp(articleId).then((articleSaleTimestamp) => {
+            appendArticleSaleTimestamp(articleRow, articleSaleTimestamp);
+        });
+    }
 
     forceOfferCommentIcon(articleRow);
 }

@@ -60,6 +60,7 @@
             ],
             "js": [
                 "js/config.js",
+                "js/article-sale-database.js",
                 "js/update-notification.js",
                 "js/fetch-helper.js",
                 "js/load-price-data.js",
