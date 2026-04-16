@@ -224,7 +224,51 @@ async function saveArticleLastModified(articleId, timestamp) {
     }
 }
 
-async function getArticleModificationComment(articleId) {
+function normalizeArticleModificationData(value) {
+    if (!value) {
+        return null;
+    }
+
+    if (typeof value === 'object' && !Array.isArray(value)) {
+        const summaryLines = Array.isArray(value.summaryLines)
+            ? value.summaryLines.map((line) => String(line).trim()).filter(Boolean)
+            : [];
+        const detailLines = Array.isArray(value.detailLines)
+            ? value.detailLines.map((line) => String(line).trim()).filter(Boolean)
+            : [];
+
+        if (summaryLines.length === 0) {
+            return null;
+        }
+
+        return { summaryLines, detailLines };
+    }
+
+    if (typeof value === 'string') {
+        const [commentText, commentDetails] = value.split('||', 2);
+        const summaryLines = String(commentText || value)
+            .split(/\s*\|\s*|,\s+/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+
+        if (summaryLines.length === 0) {
+            return null;
+        }
+
+        const detailLines = commentDetails
+            ? String(commentDetails)
+                .split(/\s*\|\s*/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+            : [];
+
+        return { summaryLines, detailLines };
+    }
+
+    return null;
+}
+
+async function getArticleModificationData(articleId) {
     if (!articleId) {
         return null;
     }
@@ -236,15 +280,28 @@ async function getArticleModificationComment(articleId) {
         const record = await idbRequestToPromise(store.get(String(articleId)));
         db.close();
 
-        return record && typeof record.modificationComment === 'string' ? record.modificationComment : null;
+        if (!record) {
+            return null;
+        }
+
+        if (record.modificationData) {
+            return normalizeArticleModificationData(record.modificationData);
+        }
+
+        return normalizeArticleModificationData(record.modificationComment);
     } catch (error) {
-        console.error('Error loading article modification comment:', error);
+        console.error('Error loading article modification data:', error);
         return null;
     }
 }
 
-async function saveArticleModificationComment(articleId, comment) {
-    if (!articleId || !comment) {
+async function saveArticleModificationData(articleId, modificationData) {
+    if (!articleId || !modificationData) {
+        return;
+    }
+
+    const normalizedData = normalizeArticleModificationData(modificationData);
+    if (!normalizedData) {
         return;
     }
 
@@ -256,13 +313,27 @@ async function saveArticleModificationComment(articleId, comment) {
         store.put({
             ...(existing || {}),
             articleId: String(articleId),
-            modificationComment: String(comment)
+            modificationData: normalizedData,
+            modificationComment: null
         });
         await idbTransactionDone(transaction);
         db.close();
     } catch (error) {
-        console.error('Error saving article modification comment:', error);
+        console.error('Error saving article modification data:', error);
     }
+}
+
+async function getArticleModificationComment(articleId) {
+    const data = await getArticleModificationData(articleId);
+    if (!data || !Array.isArray(data.summaryLines) || data.summaryLines.length === 0) {
+        return null;
+    }
+
+    return data.summaryLines.join(', ');
+}
+
+async function saveArticleModificationComment(articleId, comment) {
+    return saveArticleModificationData(articleId, comment);
 }
 
 async function savePendingArticleSale(pendingArticleSale) {

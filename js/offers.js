@@ -163,7 +163,7 @@ function formatRelativeArticleSaleTime(timestamp) {
     return formatter.format(elapsedYears, 'year');
 }
 
-function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificationComment) {
+function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificationData) {
     if (!listedAt && !lastModifiedAt) {
         return;
     }
@@ -189,14 +189,14 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
         wrapper.appendChild(actionsContainer);
     }
 
-    const relativeParts = [];
+    const relativeLines = [];
     const titleParts = [];
 
     if (listedAt) {
         const formattedTimestamp = formatArticleSaleTimestamp(listedAt);
         const relativeTimestamp = formatRelativeArticleSaleTime(listedAt);
         if (relativeTimestamp) {
-            relativeParts.push('Listed: ' + relativeTimestamp);
+            relativeLines.push('Listed: ' + relativeTimestamp);
         }
         if (formattedTimestamp) {
             titleParts.push('Listed: ' + formattedTimestamp);
@@ -207,28 +207,36 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
         const formattedModified = formatArticleSaleTimestamp(lastModifiedAt);
         const relativeModified = formatRelativeArticleSaleTime(lastModifiedAt);
         if (relativeModified) {
-            relativeParts.push('Modified: ' + relativeModified);
+            relativeLines.push('Modified: ' + relativeModified);
         }
         if (formattedModified) {
             titleParts.push('Modified: ' + formattedModified);
         }
     }
 
-    if (modificationComment) {
-        const [commentText, commentDetails] = String(modificationComment).split('||', 2);
-        relativeParts.push(commentText || modificationComment);
-        if (commentDetails) {
-            titleParts.push(commentDetails);
+    if (modificationData) {
+        const summaryLines = Array.isArray(modificationData.summaryLines)
+            ? modificationData.summaryLines.map((line) => String(line).trim()).filter(Boolean)
+            : [];
+        const detailLines = Array.isArray(modificationData.detailLines)
+            ? modificationData.detailLines.map((line) => String(line).trim()).filter(Boolean)
+            : [];
+
+        if (summaryLines.length > 0) {
+            relativeLines.push(...summaryLines);
+        }
+        if (detailLines.length > 0) {
+            titleParts.push(...detailLines);
         }
     }
 
-    if (relativeParts.length === 0) {
+    if (relativeLines.length === 0) {
         return;
     }
 
     const metaElement = document.createElement('div');
     metaElement.className = 'cm-helper-article-meta';
-    metaElement.innerText = relativeParts.join(' | ');
+    metaElement.innerText = relativeLines.join('\n');
     if (titleParts.length > 0) {
         metaElement.title = titleParts.join('\n');
     }
@@ -237,6 +245,13 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
     metaElement.style.marginTop = '0.25rem';
     metaElement.style.cursor = 'default';
     metaElement.style.textAlign = 'right';
+    const actionsWidth = actionsContainer.getBoundingClientRect().width;
+    if (actionsWidth > 0) {
+        metaElement.style.maxWidth = `${Math.floor(actionsWidth)}px`;
+    }
+    metaElement.style.whiteSpace = 'pre-line';
+    metaElement.style.wordBreak = 'break-word';
+    metaElement.style.overflowWrap = 'anywhere';
     wrapper.appendChild(metaElement);
 }
 
@@ -304,16 +319,15 @@ function getAttributeDiffDetail(oldValue, newValue) {
     return parts.join(' | ') || 'attributes changed';
 }
 
-function createChangeComment(changes, details) {
+function createModificationData(changes, details) {
     if (!changes || changes.length === 0) {
         return null;
     }
 
-    if (!details || details.length === 0) {
-        return changes.join(', ');
-    }
-
-    return `${changes.join(', ')}||${details.join(' | ')}`;
+    return {
+        summaryLines: changes,
+        detailLines: details || []
+    };
 }
 
 function detectRowChanges(oldData, newData) {
@@ -337,7 +351,7 @@ function detectRowChanges(oldData, newData) {
         details.push(`comment: ${formatChangeValue(oldData.comment)} -> ${formatChangeValue(newData.comment)}`);
     }
     
-    return createChangeComment(changes, details);
+    return createModificationData(changes, details);
 }
 
 function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
@@ -430,9 +444,9 @@ function updateContentOfCard(articleRow, pricePromise) {
         Promise.all([
             getArticleSaleTimestamp(articleId),
             getArticleLastModified(articleId),
-            getArticleModificationComment(articleId)
-        ]).then(([listedAt, lastModifiedAt, comment]) => {
-            appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, comment);
+            getArticleModificationData(articleId)
+        ]).then(([listedAt, lastModifiedAt, modificationData]) => {
+            appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificationData);
         }).catch((error) => {
             console.error('Error loading article timestamps:', error);
         });
@@ -499,12 +513,12 @@ function observeArticleRowModifications(table) {
                 if (id && removedRowData.has(id)) {
                     const oldData = removedRowData.get(id);
                     const newData = extractArticleRowData(node);
-                    const changeComment = detectRowChanges(oldData, newData);
+                    const changeData = detectRowChanges(oldData, newData);
                     
                     const now = new Date().toISOString();
                     Promise.all([
                         saveArticleLastModified(id, now),
-                        changeComment ? saveArticleModificationComment(id, changeComment) : Promise.resolve()
+                        changeData ? saveArticleModificationData(id, changeData) : Promise.resolve()
                     ])
                         .then(() => {
                             updateContentOfCard(node, pricePromise);
@@ -520,28 +534,6 @@ function observeArticleRowModifications(table) {
     observer.observe(table, { childList: true, subtree: true });
 }
 
-function adjustOfferTableColumnWidths(table) {
-    if (!table) {
-        return;
-    }
-
-    const infoColumns = table.querySelectorAll('.col-sellerProductInfo .col-product');
-    const isDesktop = window.innerWidth >= 992;
-
-    for (const column of infoColumns) {
-        if (isDesktop) {
-            // Keep this subtle: just narrow the info column a bit so offer/actions get more room.
-            column.style.flex = '0 0 11.5rem';
-            column.style.maxWidth = '11.5rem';
-            column.style.width = '11.5rem';
-        } else {
-            column.style.flex = '';
-            column.style.maxWidth = '';
-            column.style.width = '';
-        }
-    }
-}
-
 function updateContent() {
     const table = document.getElementById("UserOffersTable"); // div
     if (!table) {
@@ -552,8 +544,6 @@ function updateContent() {
     if (thumbnailHeader) {
         thumbnailHeader.style.width = '10rem';
     }
-
-    adjustOfferTableColumnWidths(table);
 
     // Fetch price data (same price guide covers singles, non-singles, and accessories)
     pricePromise = getAllPriceData();

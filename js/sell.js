@@ -608,16 +608,15 @@ function getSellAttributeDiffDetail(oldValue, newValue) {
     return parts.join(' | ') || 'attributes changed';
 }
 
-function createSellChangeComment(changes, details) {
+function createSellModificationData(changes, details) {
     if (!changes || changes.length === 0) {
         return null;
     }
 
-    if (!details || details.length === 0) {
-        return changes.join(', ');
-    }
-
-    return `${changes.join(', ')}||${details.join(' | ')}`;
+    return {
+        summaryLines: changes,
+        detailLines: details || []
+    };
 }
 
 function detectSellRowChanges(oldData, newData) {
@@ -642,7 +641,7 @@ function detectSellRowChanges(oldData, newData) {
         details.push(`comment: ${formatSellChangeValue(oldData.comment)} -> ${formatSellChangeValue(newData.comment)}`);
     }
 
-    return createSellChangeComment(changes, details);
+    return createSellModificationData(changes, details);
 }
 
 function observeArticleRowModificationsOnProducts(userName) {
@@ -713,16 +712,19 @@ function observeArticleRowModificationsOnProducts(userName) {
                     }
 
                     const newData = extractSellRowData(addedRow);
-                    const changeComment = detectSellRowChanges(oldData, newData) || 'Updated listing';
+                    const changeData = detectSellRowChanges(oldData, newData) || {
+                        summaryLines: ['Updated listing'],
+                        detailLines: []
+                    };
                     const now = new Date().toISOString();
 
                     Promise.all([
                         saveArticleLastModified(articleId, now),
-                        saveArticleModificationComment(articleId, changeComment)
+                        saveArticleModificationData(articleId, changeData)
                     ]).then(() => {
                         console.debug('[modification] Saved from products page:', {
                             articleId,
-                            changeComment
+                            changeData
                         });
                     }).catch((error) => {
                         console.error('[modification] Error saving products page modification:', {

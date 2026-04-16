@@ -83,7 +83,7 @@ input:checked + .slider:before {
 
     #UserOffersTable .col-sellerProductInfo .col-product.col-lg {
         flex: 0 0 auto;
-        min-width: 180px;
+        min-width: 165px;
         width: auto;
         max-width: none;
     }
@@ -103,9 +103,9 @@ input:checked + .slider:before {
     }
 
     #UserOffersTable .col-offer {
-        flex: 0 0 220px;
-        min-width: 220px;
-        width: 220px;
+        flex: 0 0 20rem;
+        min-width: 20rem;
+        width: 20rem;
         max-width: none;
     }
 
