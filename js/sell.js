@@ -181,7 +181,7 @@ function calcMyPrice(mkmid, userName) {
                 sellerNameElement.textContent = "🤺 " + sellerNameElement.textContent;
             }
         } else {
-            console.log("couln't find sellCountData for ", sellerNameElement.textContent);
+            console.debug("couln't find sellCountData for ", sellerNameElement.textContent);
         }
     }
 
@@ -329,7 +329,7 @@ function getPendingSaleCandidateRows(articleRows, userName, articleSaleTimestamp
         return articleId && !knownArticleIds.has(String(articleId));
     });
 
-    console.log('[pending-sale] Candidate evaluation:', {
+    console.debug('[pending-sale] Candidate evaluation:', {
         unsavedCount: unsavedRows.length,
         unsavedIds: unsavedRows.map((row) => extractArticleId(row.id)),
         knownArticleIds: Array.from(knownArticleIds),
@@ -371,12 +371,12 @@ function pickBestPendingSaleCandidate(candidateRows) {
 async function savePendingSaleForCurrentProduct() {
     const currentContext = getCurrentSellContext();
     if (!currentContext.productId) {
-        console.log('[pending-sale] No productId found, skipping save.');
+        console.debug('[pending-sale] No productId found, skipping save.');
         return;
     }
 
     const knownArticleIds = getVisibleArticleIds();
-    console.log('[pending-sale] Saving pending sale:', { currentContext, knownArticleIds });
+    console.debug('[pending-sale] Saving pending sale:', { currentContext, knownArticleIds });
 
     await savePendingArticleSale({
         createdAt: new Date().toISOString(),
@@ -386,7 +386,7 @@ async function savePendingSaleForCurrentProduct() {
         knownArticleIds
     });
 
-    console.log('[pending-sale] Pending sale saved successfully.');
+    console.debug('[pending-sale] Pending sale saved successfully.');
 }
 
 function registerPendingSaleTracking() {
@@ -411,7 +411,7 @@ function registerPendingSaleTracking() {
             listProductForm.appendChild(hiddenInput);
         }
 
-        console.log('[pending-sale] Form submit intercepted, saving before navigation...');
+        console.debug('[pending-sale] Form submit intercepted, saving before navigation...');
         savePendingSaleForCurrentProduct()
             .catch((error) => {
                 console.error('[pending-sale] Error storing pending article sale:', error);
@@ -420,7 +420,7 @@ function registerPendingSaleTracking() {
                 if (hiddenInput) {
                     listProductForm.removeChild(hiddenInput);
                 }
-                console.log('[pending-sale] Proceeding with form submit.');
+                console.debug('[pending-sale] Proceeding with form submit.');
                 // form.submit() does not fire the submit event, so no recursion
                 listProductForm.submit();
             });
@@ -429,9 +429,9 @@ function registerPendingSaleTracking() {
 
 async function tryResolvePendingSaleFromRows(articleRows, userName) {
     const pendingArticleSale = await getPendingArticleSale();
-    console.log('[pending-sale] tryResolvePendingSaleFromRows pending:', pendingArticleSale);
+    console.debug('[pending-sale] tryResolvePendingSaleFromRows pending:', pendingArticleSale);
     if (!isPendingSaleForCurrentProduct(pendingArticleSale)) {
-        console.log('[pending-sale] Pending sale does not match current product/context.');
+        console.debug('[pending-sale] Pending sale does not match current product/context.');
         return false;
     }
 
@@ -443,36 +443,36 @@ async function tryResolvePendingSaleFromRows(articleRows, userName) {
         pendingArticleSale
     );
 
-    console.log('[pending-sale] tryResolve candidates:', {
+    console.debug('[pending-sale] tryResolve candidates:', {
         count: candidateRows.length,
         ids: candidateRows.map((row) => extractArticleId(row.id))
     });
 
     const selectedRow = pickBestPendingSaleCandidate(candidateRows);
     if (!selectedRow) {
-        console.log('[pending-sale] Could not resolve candidate row.');
+        console.debug('[pending-sale] Could not resolve candidate row.');
         return false;
     }
 
     if (candidateRows.length > 1) {
-        console.log('[pending-sale] Multiple candidates found, selected highest articleId:', {
+        console.debug('[pending-sale] Multiple candidates found, selected highest articleId:', {
             selectedArticleId: extractArticleId(selectedRow.id),
             candidateIds: candidateRows.map((row) => extractArticleId(row.id))
         });
     }
 
     const articleId = extractArticleId(selectedRow.id);
-    console.log('[pending-sale] Resolving pending sale to articleId:', articleId, pendingArticleSale);
+    console.debug('[pending-sale] Resolving pending sale to articleId:', articleId, pendingArticleSale);
     await saveArticleSaleTimestamp(articleId, pendingArticleSale.createdAt);
     await clearPendingArticleSale();
-    console.log('[pending-sale] Listed-at timestamp saved for articleId:', articleId);
+    console.debug('[pending-sale] Listed-at timestamp saved for articleId:', articleId);
     return true;
 }
 
 async function observeArticleRowsForPendingSale(userName) {
     const table = document.getElementById('table');
     if (!table) {
-        console.log('[pending-sale] No table found for observing rows.');
+        console.debug('[pending-sale] No table found for observing rows.');
         return;
     }
 
@@ -481,9 +481,9 @@ async function observeArticleRowsForPendingSale(userName) {
     const observer = new MutationObserver((mutations) => {
         const resolvePendingSale = async () => {
             const pendingArticleSale = await getPendingArticleSale();
-            console.log('[pending-sale] observer pending:', pendingArticleSale);
+            console.debug('[pending-sale] observer pending:', pendingArticleSale);
             if (!isPendingSaleForCurrentProduct(pendingArticleSale)) {
-                console.log('[pending-sale] Observer pending sale does not match current product/context.');
+                console.debug('[pending-sale] Observer pending sale does not match current product/context.');
                 return;
             }
 
@@ -505,25 +505,25 @@ async function observeArticleRowsForPendingSale(userName) {
                         const articleId = extractArticleId(articleRow.id);
                         if (!articleId || articleSaleTimestamps[articleId]) {
                             if (articleId && articleSaleTimestamps[articleId]) {
-                                console.log('[pending-sale] Observer skipping already-timestamped articleId:', articleId);
+                                console.debug('[pending-sale] Observer skipping already-timestamped articleId:', articleId);
                             }
                             continue;
                         }
 
                         if (Array.isArray(pendingArticleSale.knownArticleIds)
                             && pendingArticleSale.knownArticleIds.includes(String(articleId))) {
-                            console.log('[pending-sale] Observer skipping known pre-submit articleId:', articleId);
+                            console.debug('[pending-sale] Observer skipping known pre-submit articleId:', articleId);
                             continue;
                         }
 
                         if (!isCurrentUsersArticleRow(articleRow, userName)) {
-                            console.log('[pending-sale] Observer skipping non-user articleId:', articleId);
+                            console.debug('[pending-sale] Observer skipping non-user articleId:', articleId);
                             continue;
                         }
 
                         await saveArticleSaleTimestamp(articleId, pendingArticleSale.createdAt);
                         await clearPendingArticleSale();
-                        console.log('[pending-sale] Listed-at timestamp saved from observer for articleId:', articleId);
+                        console.debug('[pending-sale] Listed-at timestamp saved from observer for articleId:', articleId);
                         return;
                     }
                 }
@@ -548,10 +548,76 @@ function extractSellRowData(articleRow) {
     const quantityElement = articleRow.querySelector('.col-offer .item-count, .item-count');
     const priceElement = articleRow.querySelector('.price-container .align-items-center span[class*="text-end"]');
 
+    const attributes = Array.from(articleRow.querySelectorAll('.product-attributes [aria-label], .product-attributes [title], .product-attributes [data-bs-original-title]'))
+        .map((element) => (
+            element.getAttribute('aria-label')
+            || element.getAttribute('data-bs-original-title')
+            || element.getAttribute('title')
+            || ''
+        ).trim())
+        .filter(Boolean)
+        .join('|');
+
+    const commentWrapper = articleRow.querySelector('.product-comments');
+    const comment = commentWrapper
+        ? (
+            commentWrapper.getAttribute('data-bs-original-title')
+            || commentWrapper.getAttribute('title')
+            || commentWrapper.textContent
+            || ''
+        ).trim().replace(/\s+/g, ' ')
+        : null;
+
     return {
         quantity: quantityElement ? quantityElement.textContent.trim() : null,
-        price: priceElement ? priceElement.textContent.trim() : null
+        price: priceElement ? priceElement.textContent.trim() : null,
+        attributes,
+        comment
     };
+}
+
+function formatSellChangeValue(value) {
+    const normalized = (value || '').trim().replace(/\s+/g, ' ');
+    return normalized || '(none)';
+}
+
+function splitSellAttributeValues(value) {
+    return new Set(
+        String(value || '')
+            .split('|')
+            .map((entry) => entry.trim())
+            .filter(Boolean)
+    );
+}
+
+function getSellAttributeDiffDetail(oldValue, newValue) {
+    const oldSet = splitSellAttributeValues(oldValue);
+    const newSet = splitSellAttributeValues(newValue);
+
+    const added = Array.from(newSet).filter((entry) => !oldSet.has(entry));
+    const removed = Array.from(oldSet).filter((entry) => !newSet.has(entry));
+
+    const parts = [];
+    if (added.length > 0) {
+        parts.push(`added: ${added.join(', ')}`);
+    }
+    if (removed.length > 0) {
+        parts.push(`removed: ${removed.join(', ')}`);
+    }
+
+    return parts.join(' | ') || 'attributes changed';
+}
+
+function createSellChangeComment(changes, details) {
+    if (!changes || changes.length === 0) {
+        return null;
+    }
+
+    if (!details || details.length === 0) {
+        return changes.join(', ');
+    }
+
+    return `${changes.join(', ')}||${details.join(' | ')}`;
 }
 
 function detectSellRowChanges(oldData, newData) {
@@ -560,14 +626,23 @@ function detectSellRowChanges(oldData, newData) {
     }
 
     const changes = [];
+    const details = [];
     if (oldData.quantity !== newData.quantity) {
         changes.push(`qty ${oldData.quantity}→${newData.quantity}`);
     }
     if (oldData.price !== newData.price) {
         changes.push(`price ${oldData.price}→${newData.price}`);
     }
+    if (oldData.attributes !== newData.attributes) {
+        changes.push('attributes updated');
+        details.push(`attributes: ${getSellAttributeDiffDetail(oldData.attributes, newData.attributes)}`);
+    }
+    if (oldData.comment !== newData.comment) {
+        changes.push('comment updated');
+        details.push(`comment: ${formatSellChangeValue(oldData.comment)} -> ${formatSellChangeValue(newData.comment)}`);
+    }
 
-    return changes.length > 0 ? changes.join(', ') : null;
+    return createSellChangeComment(changes, details);
 }
 
 function observeArticleRowModificationsOnProducts(userName) {
@@ -645,7 +720,7 @@ function observeArticleRowModificationsOnProducts(userName) {
                         saveArticleLastModified(articleId, now),
                         saveArticleModificationComment(articleId, changeComment)
                     ]).then(() => {
-                        console.log('[modification] Saved from products page:', {
+                        console.debug('[modification] Saved from products page:', {
                             articleId,
                             changeComment
                         });
@@ -1005,7 +1080,7 @@ function getUserName() {
 }
 
 (async function main() {
-    console.log("sell.js");
+    console.debug("sell.js");
 
     registerPendingSaleTracking();
 

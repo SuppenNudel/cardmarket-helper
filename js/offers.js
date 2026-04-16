@@ -173,8 +173,8 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
         return;
     }
 
-    // Remove old timestamp elements so re-enrichment updates them cleanly
-    articleRow.querySelectorAll('.cm-helper-listed-at, .cm-helper-modified-at, .cm-helper-modification-comment')
+    // Remove old metadata elements so re-enrichment updates them cleanly
+    articleRow.querySelectorAll('.cm-helper-listed-at, .cm-helper-modified-at, .cm-helper-modification-comment, .cm-helper-article-meta')
         .forEach((element) => element.remove());
 
     // Wrap actions-container in a flex-column div so timestamps appear below the buttons
@@ -189,21 +189,17 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
         wrapper.appendChild(actionsContainer);
     }
 
-    const container = wrapper;
+    const relativeParts = [];
+    const titleParts = [];
 
     if (listedAt) {
         const formattedTimestamp = formatArticleSaleTimestamp(listedAt);
         const relativeTimestamp = formatRelativeArticleSaleTime(listedAt);
         if (relativeTimestamp) {
-            const listedAtElement = document.createElement('div');
-            listedAtElement.className = 'cm-helper-listed-at';
-            listedAtElement.innerText = 'Listed: ' + relativeTimestamp;
-            listedAtElement.title = formattedTimestamp || '';
-            listedAtElement.style.color = 'gray';
-            listedAtElement.style.fontSize = '0.8em';
-            listedAtElement.style.marginTop = '0.25rem';
-            listedAtElement.style.cursor = 'default';
-            container.appendChild(listedAtElement);
+            relativeParts.push('Listed: ' + relativeTimestamp);
+        }
+        if (formattedTimestamp) {
+            titleParts.push('Listed: ' + formattedTimestamp);
         }
     }
 
@@ -211,26 +207,37 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
         const formattedModified = formatArticleSaleTimestamp(lastModifiedAt);
         const relativeModified = formatRelativeArticleSaleTime(lastModifiedAt);
         if (relativeModified) {
-            const modifiedAtElement = document.createElement('div');
-            modifiedAtElement.className = 'cm-helper-modified-at';
-            modifiedAtElement.innerText = 'Modified: ' + relativeModified;
-            modifiedAtElement.title = formattedModified || '';
-            modifiedAtElement.style.color = 'gray';
-            modifiedAtElement.style.fontSize = '0.8em';
-            modifiedAtElement.style.cursor = 'default';
-            container.appendChild(modifiedAtElement);
-
-            if (modificationComment) {
-                const commentElement = document.createElement('div');
-                commentElement.className = 'cm-helper-modification-comment';
-                commentElement.innerText = modificationComment;
-                commentElement.style.color = 'gray';
-                commentElement.style.fontSize = '0.8em';
-                commentElement.style.cursor = 'default';
-                container.appendChild(commentElement);
-            }
+            relativeParts.push('Modified: ' + relativeModified);
+        }
+        if (formattedModified) {
+            titleParts.push('Modified: ' + formattedModified);
         }
     }
+
+    if (modificationComment) {
+        const [commentText, commentDetails] = String(modificationComment).split('||', 2);
+        relativeParts.push(commentText || modificationComment);
+        if (commentDetails) {
+            titleParts.push(commentDetails);
+        }
+    }
+
+    if (relativeParts.length === 0) {
+        return;
+    }
+
+    const metaElement = document.createElement('div');
+    metaElement.className = 'cm-helper-article-meta';
+    metaElement.innerText = relativeParts.join(' | ');
+    if (titleParts.length > 0) {
+        metaElement.title = titleParts.join('\n');
+    }
+    metaElement.style.color = 'gray';
+    metaElement.style.fontSize = '0.8em';
+    metaElement.style.marginTop = '0.25rem';
+    metaElement.style.cursor = 'default';
+    metaElement.style.textAlign = 'right';
+    wrapper.appendChild(metaElement);
 }
 
 function extractArticleRowData(articleRow) {
@@ -241,14 +248,79 @@ function extractArticleRowData(articleRow) {
     
     const priceEl = articleRow.querySelector('.price-container .align-items-center span[class*="text-end"]');
     const price = priceEl ? priceEl.textContent.trim() : null;
+
+    const attributes = Array.from(articleRow.querySelectorAll('.product-attributes [aria-label], .product-attributes [title], .product-attributes [data-bs-original-title]'))
+        .map((element) => (
+            element.getAttribute('aria-label')
+            || element.getAttribute('data-bs-original-title')
+            || element.getAttribute('title')
+            || ''
+        ).trim())
+        .filter(Boolean)
+        .join('|');
+
+    const commentWrapper = articleRow.querySelector('.product-comments');
+    const comment = commentWrapper
+        ? (
+            commentWrapper.getAttribute('data-bs-original-title')
+            || commentWrapper.getAttribute('title')
+            || commentWrapper.textContent
+            || ''
+        ).trim().replace(/\s+/g, ' ')
+        : null;
     
-    return { quantity, price };
+    return { quantity, price, attributes, comment };
+}
+
+function formatChangeValue(value) {
+    const normalized = (value || '').trim().replace(/\s+/g, ' ');
+    return normalized || '(none)';
+}
+
+function splitAttributeValues(value) {
+    return new Set(
+        String(value || '')
+            .split('|')
+            .map((entry) => entry.trim())
+            .filter(Boolean)
+    );
+}
+
+function getAttributeDiffDetail(oldValue, newValue) {
+    const oldSet = splitAttributeValues(oldValue);
+    const newSet = splitAttributeValues(newValue);
+
+    const added = Array.from(newSet).filter((entry) => !oldSet.has(entry));
+    const removed = Array.from(oldSet).filter((entry) => !newSet.has(entry));
+
+    const parts = [];
+    if (added.length > 0) {
+        parts.push(`added: ${added.join(', ')}`);
+    }
+    if (removed.length > 0) {
+        parts.push(`removed: ${removed.join(', ')}`);
+    }
+
+    return parts.join(' | ') || 'attributes changed';
+}
+
+function createChangeComment(changes, details) {
+    if (!changes || changes.length === 0) {
+        return null;
+    }
+
+    if (!details || details.length === 0) {
+        return changes.join(', ');
+    }
+
+    return `${changes.join(', ')}||${details.join(' | ')}`;
 }
 
 function detectRowChanges(oldData, newData) {
     if (!oldData || !newData) return null;
     
     const changes = [];
+    const details = [];
     
     if (oldData.quantity !== newData.quantity) {
         changes.push(`qty ${oldData.quantity}→${newData.quantity}`);
@@ -256,8 +328,16 @@ function detectRowChanges(oldData, newData) {
     if (oldData.price !== newData.price) {
         changes.push(`price ${oldData.price}→${newData.price}`);
     }
+    if (oldData.attributes !== newData.attributes) {
+        changes.push('attributes updated');
+        details.push(`attributes: ${getAttributeDiffDetail(oldData.attributes, newData.attributes)}`);
+    }
+    if (oldData.comment !== newData.comment) {
+        changes.push('comment updated');
+        details.push(`comment: ${formatChangeValue(oldData.comment)} -> ${formatChangeValue(newData.comment)}`);
+    }
     
-    return changes.length > 0 ? changes.join(', ') : null;
+    return createChangeComment(changes, details);
 }
 
 function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
@@ -440,6 +520,28 @@ function observeArticleRowModifications(table) {
     observer.observe(table, { childList: true, subtree: true });
 }
 
+function adjustOfferTableColumnWidths(table) {
+    if (!table) {
+        return;
+    }
+
+    const infoColumns = table.querySelectorAll('.col-sellerProductInfo .col-product');
+    const isDesktop = window.innerWidth >= 992;
+
+    for (const column of infoColumns) {
+        if (isDesktop) {
+            // Keep this subtle: just narrow the info column a bit so offer/actions get more room.
+            column.style.flex = '0 0 11.5rem';
+            column.style.maxWidth = '11.5rem';
+            column.style.width = '11.5rem';
+        } else {
+            column.style.flex = '';
+            column.style.maxWidth = '';
+            column.style.width = '';
+        }
+    }
+}
+
 function updateContent() {
     const table = document.getElementById("UserOffersTable"); // div
     if (!table) {
@@ -450,6 +552,8 @@ function updateContent() {
     if (thumbnailHeader) {
         thumbnailHeader.style.width = '10rem';
     }
+
+    adjustOfferTableColumnWidths(table);
 
     // Fetch price data (same price guide covers singles, non-singles, and accessories)
     pricePromise = getAllPriceData();
@@ -463,6 +567,6 @@ function updateContent() {
 }
 
 (async function main() {
-    console.log("offers.js");
+    console.debug("offers.js");
     updateContent();
 })();

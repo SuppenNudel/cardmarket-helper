@@ -118,7 +118,7 @@ async function saveArticleSaleTimestamp(articleId, timestamp) {
     }
 
     try {
-        console.log('[pending-sale] Saving listed-at timestamp:', {
+        console.debug('[pending-sale] Saving listed-at timestamp:', {
             articleId: String(articleId),
             listedAt: normalizedTimestamp
         });
@@ -135,7 +135,7 @@ async function saveArticleSaleTimestamp(articleId, timestamp) {
         await idbTransactionDone(transaction);
         db.close();
 
-        console.log('[pending-sale] Listed-at timestamp saved:', {
+        console.debug('[pending-sale] Listed-at timestamp saved:', {
             articleId: String(articleId),
             listedAt: normalizedTimestamp
         });
