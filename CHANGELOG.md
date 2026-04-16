@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.4.2.0] - 2026-04-16
+
+### Added
+- Listing and modification timestamps on your Offers page, shown below the action buttons
+- Change tracking on your Offers and Products pages: when you edit an article (price, quantity, condition, language, foil status, or comment), the change is recorded and shown in the metadata below the action buttons
+- Change details are visible as a tooltip on hover
+
+### Changed
+- Offer table column widths adjusted to give the price comparison area more space
+
 ## [2026.4.1.0] - 2026-04-14
 
 ### Added
