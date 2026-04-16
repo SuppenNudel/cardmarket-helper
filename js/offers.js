@@ -96,7 +96,7 @@ function extractArticleId(articleRowId) {
         return null;
     }
 
-    const match = articleRowId.match(/^articleRow(\d+)$/);
+    const match = articleRowId.match(/^(?:articleRow|stockRow)(\d+)$/);
     return match ? match[1] : null;
 }
 
@@ -168,13 +168,28 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
         return;
     }
 
-    const priceContainer = articleRow.querySelector('.price-container .flex-column');
-    if (!priceContainer) {
+    const actionsContainer = articleRow.querySelector('.actions-container');
+    if (!actionsContainer) {
         return;
     }
 
+    // Remove old timestamp elements so re-enrichment updates them cleanly
     articleRow.querySelectorAll('.cm-helper-listed-at, .cm-helper-modified-at, .cm-helper-modification-comment')
         .forEach((element) => element.remove());
+
+    // Wrap actions-container in a flex-column div so timestamps appear below the buttons
+    let wrapper = actionsContainer.closest('.cm-helper-actions-wrapper');
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.className = 'cm-helper-actions-wrapper';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.alignItems = 'flex-end';
+        actionsContainer.parentNode.insertBefore(wrapper, actionsContainer);
+        wrapper.appendChild(actionsContainer);
+    }
+
+    const container = wrapper;
 
     if (listedAt) {
         const formattedTimestamp = formatArticleSaleTimestamp(listedAt);
@@ -188,7 +203,7 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
             listedAtElement.style.fontSize = '0.8em';
             listedAtElement.style.marginTop = '0.25rem';
             listedAtElement.style.cursor = 'default';
-            priceContainer.appendChild(listedAtElement);
+            container.appendChild(listedAtElement);
         }
     }
 
@@ -203,7 +218,7 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
             modifiedAtElement.style.color = 'gray';
             modifiedAtElement.style.fontSize = '0.8em';
             modifiedAtElement.style.cursor = 'default';
-            priceContainer.appendChild(modifiedAtElement);
+            container.appendChild(modifiedAtElement);
 
             if (modificationComment) {
                 const commentElement = document.createElement('div');
@@ -212,7 +227,7 @@ function appendArticleTimestamps(articleRow, listedAt, lastModifiedAt, modificat
                 commentElement.style.color = 'gray';
                 commentElement.style.fontSize = '0.8em';
                 commentElement.style.cursor = 'default';
-                priceContainer.appendChild(commentElement);
+                container.appendChild(commentElement);
             }
         }
     }

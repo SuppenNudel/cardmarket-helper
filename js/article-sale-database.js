@@ -118,6 +118,11 @@ async function saveArticleSaleTimestamp(articleId, timestamp) {
     }
 
     try {
+        console.log('[pending-sale] Saving listed-at timestamp:', {
+            articleId: String(articleId),
+            listedAt: normalizedTimestamp
+        });
+
         const db = await openArticleSaleDatabase();
         const transaction = db.transaction(ARTICLE_SALES_STORE, 'readwrite');
         const store = transaction.objectStore(ARTICLE_SALES_STORE);
@@ -130,9 +135,17 @@ async function saveArticleSaleTimestamp(articleId, timestamp) {
         await idbTransactionDone(transaction);
         db.close();
 
+        console.log('[pending-sale] Listed-at timestamp saved:', {
+            articleId: String(articleId),
+            listedAt: normalizedTimestamp
+        });
+
         await cleanupOldArticleSaleTimestamps();
     } catch (error) {
-        console.error('Error saving article sale timestamp:', error);
+        console.error('[pending-sale] Error saving article sale timestamp:', {
+            articleId: String(articleId),
+            error
+        });
     }
 }
 
