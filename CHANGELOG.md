@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.5.1.0] - 2026-05-08
+### Fixed
+- Offer modifications are now tracked only for your own listings (adding other sellers' products to your shopping cart no longer creates modification entries)
+
 ## [2026.4.2.0] - 2026-04-16
 
 ### Added

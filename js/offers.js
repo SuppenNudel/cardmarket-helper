@@ -100,6 +100,11 @@ function extractArticleId(articleRowId) {
     return match ? match[1] : null;
 }
 
+function isOwnStockOffersPage() {
+    const pathname = window.location.pathname || '';
+    return /\/Magic\/Stock\/Offers\//.test(pathname);
+}
+
 function formatArticleSaleTimestamp(timestamp) {
     if (!timestamp) {
         return null;
@@ -553,7 +558,9 @@ function updateContent() {
         updateContentOfCard(articleRow, pricePromise);
     }
 
-    observeArticleRowModifications(table);
+    if (isOwnStockOffersPage()) {
+        observeArticleRowModifications(table);
+    }
 }
 
 (async function main() {
