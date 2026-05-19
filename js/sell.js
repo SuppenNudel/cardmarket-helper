@@ -1,31 +1,8 @@
-const FROM = {
-    'en': "From",
-    'de': 'ab'
-}
-const PRICE_TREND = {
-    'en': "Price Trend",
-    'de': "Preis-Trend"
-}
-const AVG_30 = {
-    'en': "30-days average price",
-    'de': "30-Tages-Durchschnitt"
-}
-const AVG_7 = {
-    'en': "7-days average price",
-    'de': "7-Tages-Durchschnitt"
-}
-const AVG_1 = {
-    'en': "1-day average price",
-    'de': "1-Tages-Durchschnitt"
-}
-const ITEMS = {
-    'en': "Available items",
-    'de': "Verfügbare Artikel"
-}
+let myPrice = null;
 
-const SELL_BUTTON_TEXT = {
-    'en': "Put for sale",
-    'de': "Zum Verkauf stellen"
+function getHighlightColor() {
+    const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    return isDarkMode ? 'darkgreen' : 'lightgreen';
 }
 
 function waitForAttribute(element, attributeName) {
@@ -53,19 +30,10 @@ function waitForAttribute(element, attributeName) {
 }
 
 function calculateMedian(numbers) {
-    numbers.sort(function (a, b) {
-        return a - b;
-    });
-
-    var length = numbers.length;
-    var middle = Math.floor(length / 2);
-
-    if (length % 2 === 0) {
-        return numbers[middle];
-        //return (numbers[middle - 1] + numbers[middle]) / 2;
-    } else {
-        return numbers[middle];
-    }
+    const sorted = [...numbers].sort((a, b) => a - b); // Don't mutate original
+    const length = sorted.length;
+    const middle = Math.floor(length / 2);
+    return sorted[middle];
 }
 
 
@@ -82,20 +50,102 @@ function parseCurrencyStringToDouble(currencyString) {
     }
 }
 
-function createPriceDictionary(keys, values) {
-    var resultDictionary = {};
-    for (var i = 0; i < keys.length; i++) {
-        var key = keys[i].textContent.trim();
-        var value = values[i].textContent.trim();
-        if ([FROM[language], PRICE_TREND[language], AVG_1[language], AVG_7[language], AVG_30[language]].includes(key)) {
-            value = parseCurrencyStringToDouble(value);
-        }
-        resultDictionary[key] = value;
+function parseNumberFromText(value) {
+    if (value === null || value === undefined) {
+        return Number.NaN;
     }
-    return resultDictionary;
+
+    const normalized = String(value)
+        .trim()
+        .replace(/\s/g, "")
+        .replace(/€/g, "")
+        .replace(/,/g, ".")
+        .replace(/[^0-9.-]/g, "");
+
+    return Number.parseFloat(normalized);
 }
 
-function calcMyPrice(mkmid) {
+function formatCurrencyValue(amount, currencyCode) {
+    const locale = (document.documentElement.lang || navigator.language || "en").replace("_", "-");
+    const normalizedCurrency = /^[A-Za-z]{3}$/.test(String(currencyCode || ""))
+        ? String(currencyCode).toUpperCase()
+        : "EUR";
+
+    try {
+        return amount.toLocaleString(locale, {
+            style: "currency",
+            currency: normalizedCurrency
+        });
+    } catch (error) {
+        return amount.toLocaleString("en", {
+            style: "currency",
+            currency: "EUR"
+        });
+    }
+}
+
+function createPriceDictionary() {
+    // Language-independent extraction: anchor to the "Reprints/Versions" row and
+    // parse the following rows by stable position in Cardmarket's info list.
+    const infoList = document.querySelector(".info-list-container dl.labeled");
+    if (!infoList) {
+        return {};
+    }
+
+    const dtNodes = Array.from(infoList.querySelectorAll(":scope > dt"));
+    const ddNodes = Array.from(infoList.querySelectorAll(":scope > dd"));
+    const pairCount = Math.min(dtNodes.length, ddNodes.length);
+    if (pairCount === 0) {
+        return {};
+    }
+
+    const pairs = [];
+    for (let i = 0; i < pairCount; i++) {
+        pairs.push({ dd: ddNodes[i], value: ddNodes[i].textContent.trim() });
+    }
+
+    const reprintsIndex = pairs.findIndex(pair => pair.dd.querySelector('a[href*="/Versions"], a[href*="isFoil="]'));
+    if (reprintsIndex < 0 || reprintsIndex + 1 >= pairs.length) {
+        return {};
+    }
+
+    const nextRows = pairs.slice(reprintsIndex + 1, reprintsIndex + 7).map(pair => pair.value);
+    if (nextRows.length === 0) {
+        return {};
+    }
+
+    const result = {};
+    const [availableItems, fromValue, ...remainingPriceRows] = nextRows;
+
+    if (availableItems !== undefined) {
+        result.items = Number.parseInt(availableItems.replace(/[^0-9]/g, ""), 10);
+    }
+
+    if (fromValue !== undefined) {
+        result.from = fromValue === "N/A" ? null : parseCurrencyStringToDouble(fromValue);
+    }
+
+    const priceRows = remainingPriceRows
+        .map(value => (value === "N/A" ? null : parseCurrencyStringToDouble(value)))
+        .filter(value => value !== null && !Number.isNaN(value));
+
+    if (priceRows.length === 4) {
+        result.trend = priceRows[0];
+        result.avg30 = priceRows[1];
+        result.avg7 = priceRows[2];
+        result.avg1 = priceRows[3];
+    } else if (priceRows.length === 3) {
+        result.avg30 = priceRows[0];
+        result.avg7 = priceRows[1];
+        result.avg1 = priceRows[2];
+    } else if (priceRows.length > 0) {
+        [result.avg30, result.avg7, result.avg1] = priceRows;
+    }
+
+    return result;
+}
+
+function calcMyPrice(mkmid, userName) {
     const inclinePercentage = 0.15; // 15% relative incline threshold
     const maxQuantityThreshold = 10;  // Threshold for how high of a quantity of a rival seller you don't want to compete with
     const rivalsToLookAt = 10;
@@ -108,13 +158,15 @@ function calcMyPrice(mkmid) {
     for (var i = 0; i < articleRows.length && rivalSellers.length < rivalsToLookAt; i++) {
         row = articleRows[i];
         const sellerNameElement = row.querySelector(".seller-name a");
-        sellerName = sellerNameElement.innerText;
-        if (sellerName == "NudelForce") {
+        var sellerName = sellerNameElement.textContent.trim();
+        if (sellerName == userName) {
             continue;
         }
-        const priceContainer = row.getElementsByClassName("price-container")[0];
-        const price = parseCurrencyStringToDouble(priceContainer.innerText);
-        const quantity = row.getElementsByClassName("col-offer")[0].getElementsByClassName("item-count")[0].innerText;
+
+        // Cache class names or use more specific queries:
+        const priceContainer = row.querySelector(".price-container");
+        const price = parseCurrencyStringToDouble(priceContainer.textContent.trim());
+        const quantity = row.querySelector(".col-offer .item-count").textContent.trim();
         const sellCountElement = row.querySelector(".col-sellerProductInfo .seller-extended .sell-count");
         let sellCountText = sellCountElement.getAttribute("data-bs-original-title");
         if (!sellCountText) {
@@ -126,10 +178,10 @@ function calcMyPrice(mkmid) {
 
             if (sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
                 rivalSellers.push({ quantity: quantity, price: price, sales: sales, availableItems: availableItems });
-                sellerNameElement.innerText = "🤺 " + sellerNameElement.innerText;
+                sellerNameElement.textContent = "🤺 " + sellerNameElement.textContent;
             }
         } else {
-            console.log("couln't find sellCountData for ", sellerNameElement.textContent);
+            console.debug("couln't find sellCountData for ", sellerNameElement.textContent);
         }
     }
 
@@ -174,6 +226,10 @@ function calcMyPrice(mkmid) {
 }
 
 function parseMkmIdFromImgSrc(imgSrc) {
+    if (!imgSrc || typeof imgSrc !== 'string') {
+        throw new Error("Invalid imgSrc: expected a non-empty string, got " + typeof imgSrc);
+    }
+    
     var matches = imgSrc.match(/\/(\w+)\/(\d+)\//);
     if (matches && matches.length === 3) {
         var setCode = matches[1]; // "LCC"
@@ -184,27 +240,511 @@ function parseMkmIdFromImgSrc(imgSrc) {
     }
 }
 
-const HEADERS = ["Fill / Go to", "Quantity", "Set code", "Collector number", "Foil", "Binder Name", "Purchase price", "Misprint", "Altered", "Condition", "Language"];
+const HEADERS = ["Go to / Fill", "Quantity", "Set code", "Collector number", "Foil", "Condition", "Language", "Misprint", "Altered", "Binder Name", "Purchase price"];
 
 // Get the current URL
 var currentURL = window.location.href;
 // Create a URL object
 var url = new URL(currentURL);
-// Get pathname from URL
-var pathname = url.pathname;
-// Split the pathname by '/'
-var parts = pathname.split("/");
-// Extract language from parts
-var language = parts[1]; // Assuming "de" is at index 1
+function getListProductForm() {
+    return document.getElementById("ListProductForm")
+        || document.querySelector('form[action*="/PostGetAction/Article_ListProduct"]');
+}
+
+function hasListProductSubmitButton() {
+    const listProductForm = getListProductForm();
+    if (!listProductForm) {
+        return false;
+    }
+
+    return Boolean(listProductForm.querySelector('input[type="submit"], button[type="submit"]'));
+}
+
+function getCurrentSellContext() {
+    const productIdElement = document.querySelector('#FilterForm > input[name="idProduct"]');
+
+    return {
+        productId: productIdElement ? String(productIdElement.value) : null,
+        isFoil: url.searchParams.get('isFoil') || 'N',
+        path: window.location.pathname
+    };
+}
+
+function extractArticleId(articleRowId) {
+    if (typeof articleRowId !== 'string') {
+        return null;
+    }
+
+    const match = articleRowId.match(/^(?:articleRow|stockRow)(\d+)$/);
+    return match ? match[1] : null;
+}
+
+function isCurrentUsersArticleRow(articleRow, userName) {
+    if (!articleRow || !userName) {
+        return false;
+    }
+
+    const sellerNameElement = articleRow.querySelector('.seller-name a');
+    return Boolean(sellerNameElement) && sellerNameElement.textContent.trim() === userName;
+}
+
+function isPendingSaleForCurrentProduct(pendingArticleSale) {
+    if (!pendingArticleSale) {
+        return false;
+    }
+
+    const currentContext = getCurrentSellContext();
+    return Boolean(currentContext.productId)
+        && pendingArticleSale.productId === currentContext.productId
+        && String(pendingArticleSale.isFoil || 'N') === String(currentContext.isFoil || 'N');
+}
+
+function getVisibleArticleIds() {
+    const table = document.getElementById('table');
+    if (!table) {
+        return [];
+    }
+
+    return Array.from(table.getElementsByClassName('article-row'))
+        .map((articleRow) => extractArticleId(articleRow.id))
+        .filter(Boolean);
+}
+
+function getPendingSaleCandidateRows(articleRows, userName, articleSaleTimestamps, pendingArticleSale) {
+    const unsavedRows = Array.from(articleRows).filter((articleRow) => {
+        const articleId = extractArticleId(articleRow.id);
+        return Boolean(articleId)
+            && isCurrentUsersArticleRow(articleRow, userName)
+            && !articleSaleTimestamps[articleId];
+    });
+
+    const knownArticleIds = new Set(
+        Array.isArray(pendingArticleSale && pendingArticleSale.knownArticleIds)
+            ? pendingArticleSale.knownArticleIds.map((articleId) => String(articleId))
+            : []
+    );
+
+    const newRows = unsavedRows.filter((articleRow) => {
+        const articleId = extractArticleId(articleRow.id);
+        return articleId && !knownArticleIds.has(String(articleId));
+    });
+
+    console.debug('[pending-sale] Candidate evaluation:', {
+        unsavedCount: unsavedRows.length,
+        unsavedIds: unsavedRows.map((row) => extractArticleId(row.id)),
+        knownArticleIds: Array.from(knownArticleIds),
+        newCount: newRows.length,
+        newIds: newRows.map((row) => extractArticleId(row.id))
+    });
+
+    if (newRows.length > 0) {
+        return newRows;
+    }
+
+    return unsavedRows;
+}
+
+function pickBestPendingSaleCandidate(candidateRows) {
+    if (!Array.isArray(candidateRows) || candidateRows.length === 0) {
+        return null;
+    }
+
+    if (candidateRows.length === 1) {
+        return candidateRows[0];
+    }
+
+    // Prefer the highest numeric articleId as it is typically the most recently created listing.
+    const sorted = [...candidateRows].sort((left, right) => {
+        const leftId = Number.parseInt(extractArticleId(left.id), 10);
+        const rightId = Number.parseInt(extractArticleId(right.id), 10);
+
+        if (Number.isNaN(leftId) || Number.isNaN(rightId)) {
+            return 0;
+        }
+
+        return rightId - leftId;
+    });
+
+    return sorted[0];
+}
+
+async function savePendingSaleForCurrentProduct() {
+    const currentContext = getCurrentSellContext();
+    if (!currentContext.productId) {
+        console.debug('[pending-sale] No productId found, skipping save.');
+        return;
+    }
+
+    const knownArticleIds = getVisibleArticleIds();
+    console.debug('[pending-sale] Saving pending sale:', { currentContext, knownArticleIds });
+
+    await savePendingArticleSale({
+        createdAt: new Date().toISOString(),
+        productId: currentContext.productId,
+        isFoil: currentContext.isFoil,
+        path: currentContext.path,
+        knownArticleIds
+    });
+
+    console.debug('[pending-sale] Pending sale saved successfully.');
+}
+
+function registerPendingSaleTracking() {
+    const listProductForm = getListProductForm();
+    if (!listProductForm) {
+        return;
+    }
+
+    listProductForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Capture which submit button triggered the form so we can include
+        // its name/value by adding a temporary hidden input before submit.
+        const submitter = event.submitter;
+        let hiddenInput = null;
+        if (submitter && submitter.name) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = submitter.name;
+            hiddenInput.value = submitter.value || '';
+            listProductForm.appendChild(hiddenInput);
+        }
+
+        console.debug('[pending-sale] Form submit intercepted, saving before navigation...');
+        savePendingSaleForCurrentProduct()
+            .catch((error) => {
+                console.error('[pending-sale] Error storing pending article sale:', error);
+            })
+            .finally(() => {
+                if (hiddenInput) {
+                    listProductForm.removeChild(hiddenInput);
+                }
+                console.debug('[pending-sale] Proceeding with form submit.');
+                // form.submit() does not fire the submit event, so no recursion
+                listProductForm.submit();
+            });
+    });
+}
+
+async function tryResolvePendingSaleFromRows(articleRows, userName) {
+    const pendingArticleSale = await getPendingArticleSale();
+    console.debug('[pending-sale] tryResolvePendingSaleFromRows pending:', pendingArticleSale);
+    if (!isPendingSaleForCurrentProduct(pendingArticleSale)) {
+        console.debug('[pending-sale] Pending sale does not match current product/context.');
+        return false;
+    }
+
+    const articleSaleTimestamps = await getArticleSaleTimestamps();
+    const candidateRows = getPendingSaleCandidateRows(
+        articleRows,
+        userName,
+        articleSaleTimestamps,
+        pendingArticleSale
+    );
+
+    console.debug('[pending-sale] tryResolve candidates:', {
+        count: candidateRows.length,
+        ids: candidateRows.map((row) => extractArticleId(row.id))
+    });
+
+    const selectedRow = pickBestPendingSaleCandidate(candidateRows);
+    if (!selectedRow) {
+        console.debug('[pending-sale] Could not resolve candidate row.');
+        return false;
+    }
+
+    if (candidateRows.length > 1) {
+        console.debug('[pending-sale] Multiple candidates found, selected highest articleId:', {
+            selectedArticleId: extractArticleId(selectedRow.id),
+            candidateIds: candidateRows.map((row) => extractArticleId(row.id))
+        });
+    }
+
+    const articleId = extractArticleId(selectedRow.id);
+    console.debug('[pending-sale] Resolving pending sale to articleId:', articleId, pendingArticleSale);
+    await saveArticleSaleTimestamp(articleId, pendingArticleSale.createdAt);
+    await clearPendingArticleSale();
+    console.debug('[pending-sale] Listed-at timestamp saved for articleId:', articleId);
+    return true;
+}
+
+async function observeArticleRowsForPendingSale(userName) {
+    const table = document.getElementById('table');
+    if (!table) {
+        console.debug('[pending-sale] No table found for observing rows.');
+        return;
+    }
+
+    await tryResolvePendingSaleFromRows(table.getElementsByClassName('article-row'), userName);
+
+    const observer = new MutationObserver((mutations) => {
+        const resolvePendingSale = async () => {
+            const pendingArticleSale = await getPendingArticleSale();
+            console.debug('[pending-sale] observer pending:', pendingArticleSale);
+            if (!isPendingSaleForCurrentProduct(pendingArticleSale)) {
+                console.debug('[pending-sale] Observer pending sale does not match current product/context.');
+                return;
+            }
+
+            const articleSaleTimestamps = await getArticleSaleTimestamps();
+            for (const mutation of mutations) {
+                for (const addedNode of mutation.addedNodes) {
+                    if (!(addedNode instanceof HTMLElement)) {
+                        continue;
+                    }
+
+                    const candidateRows = [];
+                    if (addedNode.classList.contains('article-row')) {
+                        candidateRows.push(addedNode);
+                    }
+
+                    candidateRows.push(...addedNode.querySelectorAll('.article-row'));
+
+                    for (const articleRow of candidateRows) {
+                        const articleId = extractArticleId(articleRow.id);
+                        if (!articleId || articleSaleTimestamps[articleId]) {
+                            if (articleId && articleSaleTimestamps[articleId]) {
+                                console.debug('[pending-sale] Observer skipping already-timestamped articleId:', articleId);
+                            }
+                            continue;
+                        }
+
+                        if (Array.isArray(pendingArticleSale.knownArticleIds)
+                            && pendingArticleSale.knownArticleIds.includes(String(articleId))) {
+                            console.debug('[pending-sale] Observer skipping known pre-submit articleId:', articleId);
+                            continue;
+                        }
+
+                        if (!isCurrentUsersArticleRow(articleRow, userName)) {
+                            console.debug('[pending-sale] Observer skipping non-user articleId:', articleId);
+                            continue;
+                        }
+
+                        await saveArticleSaleTimestamp(articleId, pendingArticleSale.createdAt);
+                        await clearPendingArticleSale();
+                        console.debug('[pending-sale] Listed-at timestamp saved from observer for articleId:', articleId);
+                        return;
+                    }
+                }
+            }
+
+            await tryResolvePendingSaleFromRows(table.getElementsByClassName('article-row'), userName);
+        };
+
+        resolvePendingSale().catch((error) => {
+            console.error('Error resolving pending article sale:', error);
+        });
+    });
+
+    observer.observe(table, { childList: true, subtree: true });
+}
+
+function extractSellRowData(articleRow) {
+    if (!articleRow) {
+        return null;
+    }
+
+    const quantityElement = articleRow.querySelector('.col-offer .item-count, .item-count');
+    const priceElement = articleRow.querySelector('.price-container .align-items-center span[class*="text-end"]');
+
+    const attributes = Array.from(articleRow.querySelectorAll('.product-attributes [aria-label], .product-attributes [title], .product-attributes [data-bs-original-title]'))
+        .map((element) => (
+            element.getAttribute('aria-label')
+            || element.getAttribute('data-bs-original-title')
+            || element.getAttribute('title')
+            || ''
+        ).trim())
+        .filter(Boolean)
+        .join('|');
+
+    const commentWrapper = articleRow.querySelector('.product-comments');
+    const comment = commentWrapper
+        ? (
+            commentWrapper.getAttribute('data-bs-original-title')
+            || commentWrapper.getAttribute('title')
+            || commentWrapper.textContent
+            || ''
+        ).trim().replace(/\s+/g, ' ')
+        : null;
+
+    return {
+        quantity: quantityElement ? quantityElement.textContent.trim() : null,
+        price: priceElement ? priceElement.textContent.trim() : null,
+        attributes,
+        comment
+    };
+}
+
+function formatSellChangeValue(value) {
+    const normalized = (value || '').trim().replace(/\s+/g, ' ');
+    return normalized || '(none)';
+}
+
+function splitSellAttributeValues(value) {
+    return new Set(
+        String(value || '')
+            .split('|')
+            .map((entry) => entry.trim())
+            .filter(Boolean)
+    );
+}
+
+function getSellAttributeDiffDetail(oldValue, newValue) {
+    const oldSet = splitSellAttributeValues(oldValue);
+    const newSet = splitSellAttributeValues(newValue);
+
+    const added = Array.from(newSet).filter((entry) => !oldSet.has(entry));
+    const removed = Array.from(oldSet).filter((entry) => !newSet.has(entry));
+
+    const parts = [];
+    if (added.length > 0) {
+        parts.push(`added: ${added.join(', ')}`);
+    }
+    if (removed.length > 0) {
+        parts.push(`removed: ${removed.join(', ')}`);
+    }
+
+    return parts.join(' | ') || 'attributes changed';
+}
+
+function createSellModificationData(changes, details) {
+    if (!changes || changes.length === 0) {
+        return null;
+    }
+
+    return {
+        summaryLines: changes,
+        detailLines: details || []
+    };
+}
+
+function detectSellRowChanges(oldData, newData) {
+    if (!oldData || !newData) {
+        return null;
+    }
+
+    const changes = [];
+    const details = [];
+    if (oldData.quantity !== newData.quantity) {
+        changes.push(`qty ${oldData.quantity}→${newData.quantity}`);
+    }
+    if (oldData.price !== newData.price) {
+        changes.push(`price ${oldData.price}→${newData.price}`);
+    }
+    if (oldData.attributes !== newData.attributes) {
+        changes.push('attributes updated');
+        details.push(`attributes: ${getSellAttributeDiffDetail(oldData.attributes, newData.attributes)}`);
+    }
+    if (oldData.comment !== newData.comment) {
+        changes.push('comment updated');
+        details.push(`comment: ${formatSellChangeValue(oldData.comment)} -> ${formatSellChangeValue(newData.comment)}`);
+    }
+
+    return createSellModificationData(changes, details);
+}
+
+function observeArticleRowModificationsOnProducts(userName) {
+    const table = document.getElementById('table');
+    if (!table) {
+        return;
+    }
+
+    const removedRowSnapshots = new Map();
+
+    // Ignore initial DOM adjustments to reduce false positives.
+    let initializing = true;
+    setTimeout(() => { initializing = false; }, 2000);
+
+    const observer = new MutationObserver((mutations) => {
+        if (initializing) {
+            return;
+        }
+
+        for (const mutation of mutations) {
+            for (const removedNode of mutation.removedNodes) {
+                if (!(removedNode instanceof HTMLElement)) {
+                    continue;
+                }
+
+                const removedRows = [];
+                if (removedNode.classList.contains('article-row')) {
+                    removedRows.push(removedNode);
+                }
+                removedRows.push(...removedNode.querySelectorAll('.article-row'));
+
+                for (const removedRow of removedRows) {
+                    const articleId = extractArticleId(removedRow.id);
+                    if (!articleId || !isCurrentUsersArticleRow(removedRow, userName)) {
+                        continue;
+                    }
+
+                    removedRowSnapshots.set(articleId, extractSellRowData(removedRow));
+                }
+            }
+
+            for (const addedNode of mutation.addedNodes) {
+                if (!(addedNode instanceof HTMLElement)) {
+                    continue;
+                }
+
+                const addedRows = [];
+                if (addedNode.classList.contains('article-row')) {
+                    addedRows.push(addedNode);
+                }
+                addedRows.push(...addedNode.querySelectorAll('.article-row'));
+
+                for (const addedRow of addedRows) {
+                    const articleId = extractArticleId(addedRow.id);
+                    if (!articleId) {
+                        continue;
+                    }
+
+                    const oldData = removedRowSnapshots.get(articleId);
+                    if (!oldData) {
+                        continue;
+                    }
+
+                    removedRowSnapshots.delete(articleId);
+
+                    if (!isCurrentUsersArticleRow(addedRow, userName)) {
+                        continue;
+                    }
+
+                    const newData = extractSellRowData(addedRow);
+                    const changeData = detectSellRowChanges(oldData, newData) || {
+                        summaryLines: ['Updated listing'],
+                        detailLines: []
+                    };
+                    const now = new Date().toISOString();
+
+                    Promise.all([
+                        saveArticleLastModified(articleId, now),
+                        saveArticleModificationData(articleId, changeData)
+                    ]).then(() => {
+                        console.debug('[modification] Saved from products page:', {
+                            articleId,
+                            changeData
+                        });
+                    }).catch((error) => {
+                        console.error('[modification] Error saving products page modification:', {
+                            articleId,
+                            error
+                        });
+                    });
+                }
+            }
+        }
+    });
+
+    observer.observe(table, { childList: true, subtree: true });
+}
 
 function checkForRedirect(newURL) {
-    const newSplit = new URL(newURL).pathname.split("/");
-    for (idx in parts) {
-        if (idx != 1 && newSplit[idx] != parts[idx]) {
-            return true;
-        }
+    let currentIsFoil = url.searchParams.get('isFoil');
+    if(currentIsFoil == null) {
+        currentIsFoil = 'N';
     }
-    const currentIsFoil = url.searchParams.get('isFoil');
     const newIsFoil = new URL(newURL).searchParams.get('isFoil');
     if (currentIsFoil != newIsFoil) {
         return true;
@@ -212,7 +752,8 @@ function checkForRedirect(newURL) {
     return false;
 }
 
-async function generateTable(cards) { // id of same printing
+async function generateTable(mkmId, cards) { // id of same printing
+    const scryfallCard = await cardByMkmId(mkmId);
     const table = document.createElement('table');
 
     table.style.borderCollapse = 'collapse';
@@ -227,50 +768,66 @@ async function generateTable(cards) { // id of same printing
 
     for (const header of HEADERS) {
         const th = document.createElement('th');
-        th.textContent = header == "Misprint" ? "Listed" : header;
+        if (header === "Collector number") {
+            th.textContent = "CN";
+        } else if (header === "Quantity") {
+            th.textContent = "Qty";
+        } else {
+            th.textContent = header;
+        }
         headerRow.appendChild(th);
     }
     thead.appendChild(headerRow);
     table.appendChild(thead);
-
-    // const sortedArray = cards.sort((cardA, cardB) => (cardB['Scryfall ID'] === scryfallId) - (cardA['Scryfall ID'] === scryfallId));
 
     // Get the value of the 'isFoil' parameter
     var isFoilParam = url.searchParams.get('isFoil') == 'Y';
 
     // Create tbody
     const tbody = document.createElement('tbody');
+    const fragment = document.createDocumentFragment();
     for (const card of cards) {
         if (card["Binder Type"] == "list") {
             continue;
         }
         const row = document.createElement('tr');
 
-        // row.value = card;
-        // if(card['Condition'] != 'mint') {
-        // row.addEventListener("click", function () {
-        //     row.style.cursor = 'pointer';
-        //     fillMetrics(card);
-        // });
-        // }
-
-        // if (card['Scryfall ID'] == scryfallId && isFoilParam == (card.Foil == "foil")) {
-        //     row.style.backgroundColor = 'lightgreen';
-        // }
+        var canFill = false;
+        
+        if (card['Scryfall ID'] == scryfallCard.id) {
+            row.style.backgroundColor = getHighlightColor();
+            row.classList.add('highlight-row');
+            if(isFoilParam == (card.Foil != "normal")) {
+                canFill = true;
+            }
+        }
         for (const key of HEADERS) {
             const td = document.createElement('td');
             row.appendChild(td);
-            if (key == "Fill / Go to") {
-                if (card['Scryfall ID'] == "NOT USING SCRYFALL ID") {
-                    if (isFoilParam == (card.Foil == "foil")) {
-                        // Create a new button element
+            if (key == "Go to / Fill") {
+                const newURL = await generateCardmarketUrl(card);
+                if (newURL) {
+                    // compare new url to currentUrl
+                    const needRedirect = checkForRedirect(newURL);
+                    
+                    // Always show Go To link
+                    link = document.createElement("a");
+                    link.textContent = "Go To";
+                    link.setAttribute("href", newURL);
+                    td.appendChild(link);
+                    
+                    // Additionally show Fill button if canFill is true
+                    if (!needRedirect && canFill) {
+                        const spacer = document.createElement("span");
+                        spacer.textContent = " | ";
+                        td.appendChild(spacer);
+                        
                         var button = document.createElement("button");
-                        // Set button attributes and content
                         button.style.width = "70px";
                         button.style.height = "25px";
                         button.style.setProperty('--bs-btn-padding-x', 'initial');
                         button.innerHTML = "Fill";
-                        if (!document.querySelector(`[title="${SELL_BUTTON_TEXT[language]}"]`)) {
+                        if (!hasListProductSubmitButton()) {
                             button.disabled = true;
                         } else {
                             button.addEventListener("click", function () {
@@ -280,53 +837,13 @@ async function generateTable(cards) { // id of same printing
                         button.setAttribute("id", "myButton");
                         button.setAttribute("class", "btn btn-outline-primary");
                         td.appendChild(button);
-                    } else {
-                        const currentURL = new URL(window.location.href);
-                        currentURL.searchParams.set('isFoil', card.Foil == "foil" ? 'Y' : 'N');
-                        const link = document.createElement("a");
-                        link.innerText = "Go To";
-                        link.setAttribute("href", currentURL);
-                        td.appendChild(link);
                     }
                 } else {
-                    const newURL = await generateCardmarketUrl(card);
-                    if (newURL) {
-                        // compare new url to currentUrl
-                        const needRedirect = checkForRedirect(newURL);
-                        if (needRedirect) {
-                            link = document.createElement("a");
-                            link.innerText = "Go To";
-                            // Get the current URL
-                            // Create a URL object
-                            link.setAttribute("href", newURL);
-                            td.appendChild(link);
-                        } else {
-                            // card is same and can be filled
-
-                            // Create a new button element
-                            var button = document.createElement("button");
-                            // Set button attributes and content
-                            button.style.width = "70px";
-                            button.style.height = "25px";
-                            button.style.setProperty('--bs-btn-padding-x', 'initial');
-                            button.innerHTML = "Fill";
-                            if (!document.querySelector(`[title="${SELL_BUTTON_TEXT[language]}"]`)) {
-                                button.disabled = true;
-                            } else {
-                                button.addEventListener("click", function () {
-                                    fillMetrics(card);
-                                });
-                            }
-                            button.setAttribute("id", "myButton");
-                            button.setAttribute("class", "btn btn-outline-primary");
-                            td.appendChild(button);
-                        }
-                    } else {
-                        link = document.createElement("div");
-                        link.innerText = "undefined";
-                        td.appendChild(link);
-                    }
+                    link = document.createElement("div");
+                    link.textContent = "undefined";
+                    td.appendChild(link);
                 }
+                // }
                 continue;
             }
 
@@ -334,24 +851,9 @@ async function generateTable(cards) { // id of same printing
             row.appendChild(td);
             var element = undefined;
             if (key == "Language") {
-                element = document.createElement('span');
-                element.style.display = "inline-block";
-                element.style.width = "16px";
-                element.style.height = "16px";
-                element.style.backgroundImage = "url('//static.cardmarket.com/img/949ba8e63eca06832acdfff64020fea8/spriteSheets/ssMain2.png')";
-                element.style.backgroundPosition = LANG_POS_MAP[value];
+                element = createLanguageIcon(value);
             } else if (key == "Condition") {
-                if (value == "mint") {
-                    td.textContent = "❓";
-                } else {
-                    element = document.createElement('span');
-                    element.classList.add("article-condition");
-                    element.classList.add(`condition-${CONDITION_MAP[value].toLowerCase()}`);
-                    const childSpan = document.createElement('span');
-                    childSpan.classList.add("badge");
-                    childSpan.textContent = CONDITION_MAP[value];
-                    element.appendChild(childSpan);
-                }
+                element = createConditionIcon(CONDITION_MAP_ID[value]);
             } else {
                 // only text change
                 td.textContent = value;
@@ -372,7 +874,14 @@ async function generateTable(cards) { // id of same printing
                 }
                 if (key == "Misprint") {
                     if (value == "true") {
-                        td.textContent = "🗒️";
+                        td.textContent = "❔";
+                    } else {
+                        td.textContent = "❌";
+                    }
+                }
+                if (key == "Altered") {
+                    if (value == "true") {
+                        td.textContent = "🖌️";
                     } else {
                         td.textContent = "❌";
                     }
@@ -384,12 +893,17 @@ async function generateTable(cards) { // id of same printing
                     }
                 }
                 if (key == "Purchase price") {
-                    td.textContent = parseFloat(td.textContent).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-                    if (myPrice > value) {
-                        ;
-                        td.textContent = "📈 " + td.textContent;
-                    } else {
-                        td.textContent = "📉 " + td.textContent;
+                    const purchasePrice = parseNumberFromText(td.textContent);
+                    const purchaseCurrency = String(card["Purchase price currency"] || "EUR").trim();
+                    if (!Number.isNaN(purchasePrice)) {
+                        td.textContent = formatCurrencyValue(purchasePrice, purchaseCurrency);
+                    }
+                    if (typeof myPrice === 'number' && !Number.isNaN(myPrice) && !Number.isNaN(purchasePrice)) {
+                        if (myPrice > purchasePrice) {
+                            td.textContent = "📈 " + td.textContent;
+                        } else {
+                            td.textContent = "📉 " + td.textContent;
+                        }
                     }
                 }
                 if (key == "Set code") {
@@ -416,9 +930,19 @@ async function generateTable(cards) { // id of same printing
                 td.appendChild(element);
             }
         }
-        tbody.appendChild(row);
+        fragment.appendChild(row);
     }
+    tbody.appendChild(fragment);
     table.appendChild(tbody);
+
+    // Observe theme changes and update row colors
+    const observer = new MutationObserver(() => {
+        const highlightRows = table.querySelectorAll('.highlight-row');
+        highlightRows.forEach(row => {
+            row.style.backgroundColor = getHighlightColor();
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
 
     return table;
 }
@@ -428,26 +952,89 @@ function setValue(elementName, type, value) {
     input[type] = value;
 }
 
+function getSingleQueryParam(paramName) {
+    const value = url.searchParams.get(paramName);
+    if (!value || value.includes(',')) {
+        return null;
+    }
+    return value;
+}
+
+function applyUrlFiltersToForm() {
+    const languageParam = getSingleQueryParam('language');
+    if (languageParam) {
+        const languageSelect = document.getElementById("idLanguage");
+        if (languageSelect) {
+            languageSelect.value = languageParam;
+            languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    const conditionParam = getSingleQueryParam('minCondition') || getSingleQueryParam('condition');
+    if (conditionParam) {
+        const conditionSelect = document.getElementById("idCondition");
+        if (conditionSelect) {
+            conditionSelect.value = conditionParam;
+            conditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    const isFoilParam = getSingleQueryParam('isFoil');
+    if (isFoilParam) {
+        const isFoil = isFoilParam === 'Y' || isFoilParam === '1' || isFoilParam === 'true';
+        setValue("isFoil", "checked", isFoil);
+    }
+
+    const quantityParam = getSingleQueryParam('quantity');
+    if (quantityParam) {
+        setValue("amount", "value", quantityParam);
+    }
+}
+
 function fillMetrics(card) {
+    if (!card) {
+        console.warn("fillMetrics: card object is undefined or null");
+        return;
+    }
+
     var isFoil;
     if (card.Foil == "normal") { // foil
         isFoil = false;
     } else if (card.Foil == "foil" || card.Foil == "etched") {
         isFoil = true;
+    } else if (card.Foil === undefined) {
+        console.warn("fillMetrics: Foil property is missing from card object");
+        return;
     } else {
         throw new Error("Foil value is not valid: " + card.Foil);
     }
     setValue("isFoil", "checked", isFoil);
     setValue("amount", "value", card.Quantity);
 
-    document.getElementById("idLanguage").value = LANG_MAP[card.Language];
-    document.getElementById("idCondition").value = CONDITION_MAP_ID[card.Condition];
+    const languageSelect = document.getElementById("idLanguage");
+    if (card.Language && LANG_MAP[card.Language]) {
+        languageSelect.value = LANG_MAP[card.Language];
+    } else {
+        console.warn("fillMetrics: Invalid language:", card.Language);
+    }
+    languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+
+    const conditionSelect = document.getElementById("idCondition");
+    if (card.Condition && CONDITION_MAP_ID[card.Condition]) {
+        conditionSelect.value = CONDITION_MAP_ID[card.Condition];
+    } else {
+        console.warn("fillMetrics: Invalid condition:", card.Condition);
+    }
+    conditionSelect.dispatchEvent(new Event("change", { bubbles: true }));
 
     var isAltered;
     if (card.Altered == "false") { // altered
         isAltered = false;
     } else if (card.Altered == "true") {
         isAltered = true;
+    } else if (card.Altered === undefined) {
+        console.warn("fillMetrics: Altered property is missing from card object");
+        return;
     } else {
         throw new Error("Altered value is not valid: " + card.Altered);
     }
@@ -455,13 +1042,14 @@ function fillMetrics(card) {
 }
 
 function collectionLoaded(collection, tableContainer, loadingDiv) {
-    loadingDiv.remove();
-
     // info if collection not loaded
     if (!collection) {
         const span = document.createElement('span');
-        span.innerText = "Collection not loaded.";
+        span.textContent = "Collection not loaded.";
         tableContainer.appendChild(span);
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
         return;
     }
     var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
@@ -478,17 +1066,25 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     tableContainer.innerHTML = ""; // Clear previous content
     if (collectionCards.length == 0) {
         const span = document.createElement('span');
-        span.innerText = "You don't own any printing of this card.";
+        span.textContent = "You don't own any printing of this card.";
         tableContainer.appendChild(span);
     } else {
-        generateTable(collectionCards).then(table => {
+        generateTable(mkmId, collectionCards).then(table => {
             tableContainer.appendChild(table);
         });
     }
+
+    loadingDiv.remove();
+}
+
+function getUserName() {
+    return document.querySelector('#account-dropdown > div.line-height115 > span').textContent.trim();
 }
 
 (async function main() {
-    console.log("sell.js");
+    console.debug("sell.js");
+
+    registerPendingSaleTracking();
 
     // --- Add toggle and table container before loading starts ---
     var mainContent = document.getElementById("mainContent");
@@ -501,6 +1097,8 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     // Create toggle label structure
     var toggleDiv = document.createElement('div');
     toggleDiv.style.marginBottom = '10px';
+    toggleDiv.style.display = 'flex';
+    toggleDiv.style.gap = '12px';
 
     var toggleLabel = document.createElement('label');
     toggleLabel.className = "switch-button";
@@ -531,6 +1129,32 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
     toggleLabel.appendChild(valuesSpan);
     toggleLabel.appendChild(labelSpan);
     toggleDiv.appendChild(toggleLabel);
+
+    var priceToggleLabel = document.createElement('label');
+    priceToggleLabel.className = "switch-button";
+    priceToggleLabel.style.cursor = "pointer";
+
+    var priceToggleInput = document.createElement('input');
+    priceToggleInput.type = "checkbox";
+    priceToggleInput.name = "priceAutofillToggle";
+
+    var priceSwitchSpan = document.createElement('span');
+    priceSwitchSpan.className = "switch";
+
+    var priceValuesSpan = document.createElement('span');
+    priceValuesSpan.className = "values";
+    priceValuesSpan.innerHTML = `<span class="yes">On</span><span class="no">Off</span>`;
+
+    var priceLabelSpan = document.createElement('span');
+    priceLabelSpan.className = "label";
+    priceLabelSpan.textContent = "Price Autofill";
+
+    priceToggleLabel.appendChild(priceToggleInput);
+    priceToggleLabel.appendChild(priceSwitchSpan);
+    priceToggleLabel.appendChild(priceValuesSpan);
+    priceToggleLabel.appendChild(priceLabelSpan);
+    toggleDiv.appendChild(priceToggleLabel);
+
     wrapperDiv.appendChild(toggleDiv);
 
     // Create table container
@@ -540,16 +1164,21 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
 
     // Load toggle state from storage
     let tableVisible = true;
+    let priceAutofillEnabled = true;
     try {
-        const result = await browser.storage.local.get('collectionTableVisible');
+        const result = await browser.storage.local.get(['collectionTableVisible', 'priceAutofillEnabled']);
         if (typeof result.collectionTableVisible === 'boolean') {
             tableVisible = result.collectionTableVisible;
+        }
+        if (typeof result.priceAutofillEnabled === 'boolean') {
+            priceAutofillEnabled = result.priceAutofillEnabled;
         }
     } catch (e) {
         console.error('Error loading toggle state:', e);
     }
     toggleInput.checked = tableVisible;
     tableContainer.style.display = tableVisible ? '' : 'none';
+    priceToggleInput.checked = priceAutofillEnabled;
 
     // Toggle logic
     toggleInput.onchange = function () {
@@ -558,25 +1187,39 @@ function collectionLoaded(collection, tableContainer, loadingDiv) {
         browser.storage.local.set({ collectionTableVisible: visible });
     };
 
+    priceToggleInput.onchange = function () {
+        const enabled = priceToggleInput.checked;
+        browser.storage.local.set({ priceAutofillEnabled: enabled });
+    };
+
+    applyUrlFiltersToForm();
+
+    const userName = getUserName();
+    observeArticleRowsForPendingSale(userName).catch((error) => {
+        console.error('Error observing article rows:', error);
+    });
+    observeArticleRowModificationsOnProducts(userName);
+
     [pricedata, productdata] = await getCardmarketData();
 
     const priceField = document.getElementById("price");
-    if (priceField) {
+    if (priceField && priceToggleInput.checked) {
         var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
-        myPrice = calcMyPrice(mkmId);
-        priceField.value = myPrice;
+        const computedPrice = parseFloat(calcMyPrice(mkmId, userName));
+        myPrice = computedPrice;
+        priceField.value = computedPrice.toFixed(2);
     }
+    // Add loading indicator
+    var loadingDiv = document.createElement("div");
+    loadingDiv.textContent = "loading collection...";
+    loadingDiv.id = 'loading';
+    wrapperDiv.appendChild(loadingDiv);
 
     // Retrieve data from local storage
     browser.storage.local.get(['collection'])
         .then((result) => {
             const collection = result.collection;
 
-            // Add loading indicator
-            var loadingDiv = document.createElement("div");
-            loadingDiv.textContent = "loading collection...";
-            loadingDiv.id = 'loading';
-            wrapperDiv.appendChild(loadingDiv);
             collectionLoaded(collection, tableContainer, loadingDiv);
         })
         .catch((error) => {

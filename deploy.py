@@ -2,7 +2,7 @@ import os
 import zipfile
 from gitignore_parser import parse_gitignore
 
-# This script zips the current directory into 'cardmarket-assistant.zip',
+# This script zips the current directory into 'cardmarket-helper.zip',
 # excluding files and directories specified in the '.deployignore' file.
 # The zip is to be uploaded to https://addons.mozilla.org/en-US/developers/addons
 

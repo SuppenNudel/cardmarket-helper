@@ -1,14 +1,13 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "Cardmarket Helper",
-    "version": "1.12.2",
+    "version": "2026.5.1.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
-    "browser_action": {
+    "action": {
         "default_icon": {
             "32": "images/geschaft-32.png"
         },
-        "default_title": "Cardmarket Helper",
-        "default_popup": "config/config.html"
+        "default_title": "Cardmarket Helper"
     },
     "icons": {
         "32": "images/geschaft-32.png",
@@ -16,27 +15,44 @@
     },
     "browser_specific_settings": {
         "gecko": {
-            "id": "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
+            "id": "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}",
+            "data_collection_permissions": {
+                "required": [
+                    "none"
+                ]
+            }
         }
     },
     "permissions": [
-        "storage",
-        "https://api.scryfall.com/",
-        "https://downloads.s3.cardmarket.com/",
-        "https://api.notion.com/"
+        "storage"
     ],
-    "options_ui": {
-        "page": "config/config.html",
-        "browser_style": true
+    "host_permissions": [
+        "https://api.scryfall.com/*",
+        "https://downloads.s3.cardmarket.com/*",
+        "https://raw.githubusercontent.com/*"
+    ],
+    "background": {
+        "scripts": [
+            "js/background.js"
+        ]
     },
     "web_accessible_resources": [
-        "html/popup.html",
-        "config/config.html",
-        "config/config.js",
-        "css/keyrune.min.css",
-        "fonts/*"
+        {
+            "resources": [
+                "html/popup.html",
+                "css/keyrune.min.css",
+                "fonts/*",
+                "resources/table.html",
+                "resources/table-filter-tr-template.html"
+            ],
+            "matches": [
+                "https://www.cardmarket.com/*"
+            ]
+        }
     ],
-    "content_security_policy": "script-src 'self'; object-src 'self'",
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    },
     "content_scripts": [
         {
             "matches": [
@@ -44,8 +60,9 @@
             ],
             "js": [
                 "js/config.js",
-                "js/expansion-symbol-fix.js",
+                "js/article-sale-database.js",
                 "js/update-notification.js",
+                "js/fetch-helper.js",
                 "js/load-price-data.js",
                 "js/pagination-control.js"
             ]
@@ -69,6 +86,7 @@
                 "https://www.cardmarket.com/*/Magic/*"
             ],
             "js": [
+                "js/fetch-helper.js",
                 "js/scryfall.js",
                 "lib/papaparse.min.js",
                 "js/upload-csv.js"
@@ -78,8 +96,12 @@
             "matches": [
                 "https://www.cardmarket.com/*/*/Orders/*"
             ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Magic/Orders/*"
+            ],
             "js": [
                 "lib/papaparse.min.js",
+                "js/cardmarket-util.js",
                 "js/export-articles.js"
             ]
         },
@@ -91,8 +113,10 @@
                 "https://www.cardmarket.com/*/Orders/Sales/Paid"
             ],
             "js": [
+                "lib/papaparse.min.js",
                 "js/get-thumbnail.js",
                 "js/cardmarket-util.js",
+                "js/export-articles.js",
                 "js/orders.js"
             ]
         },
@@ -125,19 +149,23 @@
         },
         {
             "matches": [
-                "https://www.cardmarket.com/*/Offers/Singles*"
+                "https://www.cardmarket.com/*/Offers/*"
             ],
             "js": [
                 "js/get-thumbnail.js",
-                "js/notion.js",
-                "js/offers-singles.js"
+                "js/fetch-helper.js",
+                "js/offers.js"
             ]
         },
         {
             "matches": [
                 "https://www.cardmarket.com/*/Magic/*/Offers/Singles*"
             ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/Magic/Stock/Offers/Singles*"
+            ],
             "js": [
+                "js/mtgtop8-data.js",
                 "js/cardmarket-util.js",
                 "js/offers-singles-magic.js"
             ],
@@ -151,7 +179,8 @@
             ],
             "js": [
                 "js/cardmarket-util.js",
-                "js/sell.js"
+                "js/sell.js",
+                "js/sell-metric-icons.js"
             ],
             "css": [
                 "css/keyrune.min.css"

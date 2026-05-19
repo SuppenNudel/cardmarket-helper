@@ -30,12 +30,30 @@ const LANG_MAP = {
     "zh_TW": 11
 }
 
+function createConditionIcon(conditionId) {
+    const short = CONDITION_ID_MAP_SHORT[conditionId];
+    const a = document.createElement('a');
+    const pageLang = (document.documentElement.lang || "en").split("-")[0];
+    a.href = `https://help.cardmarket.com/${pageLang}/CardCondition`;
+    a.target = "_blank";
+    a.dataset.bsToggle = "tooltip";
+    a.dataset.bsHtml = "true";
+    a.dataset.bsPlacement = "bottom";
+    a.dataset.bsOriginalTitle = CONDITION_ID_MAP_LONG[conditionId];
+    a.className = `article-condition condition-${short.toLowerCase()} me-1`;
+    const span = document.createElement('span');
+    span.className = "badge";
+    span.textContent = short;
+    a.appendChild(span);
+    return a;
+}
+
 function createLanguageIcon(lang) {
     const icon = document.createElement('span');
     icon.style.display = "inline-block";
     icon.style.width = "16px";
     icon.style.height = "16px";
-    icon.style.backgroundImage = "url('//static.cardmarket.com/img/1de15dd3f9a7fa49c1f2feb09a3608a5/spriteSheets/ssMain2.png')";
+    icon.style.backgroundImage = "url('//static.cardmarket.com/img/0fa565750d09bba2fc85059ebf12e9ac/spriteSheets/ssMain2.png')";
     icon.style.backgroundPosition = LANG_POS_MAP[lang];
     icon.style.paddingTop = "0px";
     icon.style.paddingRight = "0px";
@@ -57,6 +75,26 @@ const CONDITION_SHORT_MAP_ID = {
     "PO": 7
 }
 
+const CONDITION_ID_MAP_SHORT = {
+    1: "MT",
+    2: "NM",
+    3: "EX",
+    4: "GD",
+    5: "LP",
+    6: "PL",
+    7: "PO"
+}
+
+const CONDITION_ID_MAP_LONG = {
+    1: "Mint",
+    2: "Near Mint",
+    3: "Excellent",
+    4: "Good",
+    5: "Light Played",
+    6: "Played",
+    7: "Poor"
+}
+
 const CONDITION_MAP_ID = {
     "mint": 1,
     "near_mint": 2,
@@ -75,4 +113,64 @@ const CONDITION_MAP = {
     "light_played": "LP",
     "played": "PL",
     "poor": "PO"
+}
+
+function normalizeManaBoxLanguageCode(langCode) {
+    const normalized = String(langCode || "").trim().replace("-", "_").toLowerCase();
+    if (!normalized) return null;
+
+    for (const key of Object.keys(LANG_MAP)) {
+        if (key.toLowerCase() === normalized) {
+            return key;
+        }
+    }
+
+    return null;
+}
+
+function getLanguageCodeFromBackgroundPosition(backgroundPosition) {
+    const normalizedPos = String(backgroundPosition || "").replace(/\s+/g, " ").trim();
+    if (!normalizedPos) return null;
+
+    for (const [langCode, position] of Object.entries(LANG_POS_MAP)) {
+        const normalizedCandidate = String(position || "").replace(/\s+/g, " ").trim();
+        if (normalizedCandidate === normalizedPos) {
+            return langCode;
+        }
+    }
+
+    return null;
+}
+
+function getLanguageIdFromCode(langCode) {
+    const normalizedCode = normalizeManaBoxLanguageCode(langCode);
+    if (!normalizedCode) return null;
+    return LANG_MAP[normalizedCode] || null;
+}
+
+function getLanguageCodeFromId(languageId) {
+    const id = String(languageId || "").trim();
+    if (!id) return null;
+
+    for (const [langCode, mappedId] of Object.entries(LANG_MAP)) {
+        if (String(mappedId) === id) {
+            return langCode;
+        }
+    }
+
+    return null;
+}
+
+function parseCardmarketCurrency(currencyString) {
+    const text = String(currencyString || "").trim();
+    if (!text) return null;
+
+    if (text.includes('\n(PPU: ')) {
+        const ppuPart = text.split('\n(PPU: ')[1] || "";
+        const parsed = Number.parseFloat(ppuPart.replace(' €)', '').replace(',', '.'));
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    const parsed = Number.parseFloat(text.replace(' €', '').replace(',', '.'));
+    return Number.isNaN(parsed) ? null : parsed;
 }

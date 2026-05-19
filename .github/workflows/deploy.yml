@@ -1,0 +1,269 @@
+name: Deploy to Firefox Addons
+
+on:
+  push:
+    branches:
+      - 'deploy/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Set version from branch name
+        id: branch_version
+        run: |
+          VERSION="${GITHUB_REF_NAME#deploy/}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            echo "Branch name must be deploy/<version>. Got: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          export VERSION
+          python - <<PY
+          import os
+          import re
+          import json
+          from pathlib import Path
+
+          version = os.environ.get("VERSION", "").strip()
+          if not re.fullmatch(r"(0|[1-9]\d{0,8})(\.(0|[1-9]\d{0,8})){0,3}", version):
+            raise SystemExit(f"Invalid version format: {version}")
+
+          path = Path("manifest.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          if "version" not in data:
+            raise SystemExit("version field not found in manifest.json")
+          data["version"] = version
+          path.write_text(json.dumps(data, indent=4) + "\n", encoding="utf-8")
+          PY
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit updated manifest.json
+        run: |
+          if git diff --quiet -- manifest.json; then
+            echo "No changes to commit for manifest.json"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore: bump manifest version to ${{ steps.branch_version.outputs.version }} [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+      
+      - name: Install dependencies
+        run: pip install gitignore-parser
+      
+      - name: Build extension zip
+        run: python deploy.py
+      
+      - name: Extract version
+        id: version
+        run: |
+          echo "version=${{ steps.branch_version.outputs.version }}" >> $GITHUB_OUTPUT
+      
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Extract the section for this version from CHANGELOG.md
+          # Finds content between "## [VERSION]" and the next "## [" or end of file
+          sed -n "/^## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$d' > release_notes.txt
+          
+          # Fail if no release notes were found
+          if [ ! -s release_notes.txt ]; then
+            echo "No release notes found for version $VERSION in CHANGELOG.md" >&2
+            exit 1
+          fi
+          
+          echo "Detected release notes for $VERSION:"
+          cat release_notes.txt
+          
+          # Use multiline output for the release body
+          {
+            echo 'changelog<<EOF'
+            cat release_notes.txt
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+      
+      - name: Sign and upload to Firefox Addons
+        id: amo_sign
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          ADDON_ID: "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
+        run: |
+          npm install -g web-ext
+          LOG_FILE=$(mktemp)
+
+          set +e
+          web-ext sign \
+            --channel=listed \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET" \
+            --source-dir=. \
+            --artifacts-dir=./web-ext-artifacts 2>&1 | tee "$LOG_FILE"
+          SIGN_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$SIGN_EXIT" -eq 0 ]; then
+            echo "amo_upload_skipped=false" >> "$GITHUB_OUTPUT"
+          elif grep -Eq "Submission failed \(2\): Conflict|Version .* already exists\." "$LOG_FILE"; then
+            echo "AMO version already exists. Continuing workflow and skipping XPI-dependent steps."
+            echo "amo_upload_skipped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web-ext sign failed with an unexpected error."
+            exit "$SIGN_EXIT"
+          fi
+      
+      - name: List artifacts directory
+        if: steps.amo_sign.outputs.amo_upload_skipped != 'true'
+        run: |
+          echo "Contents of ./web-ext-artifacts/:"
+          ls -la ./web-ext-artifacts/ || echo "Directory does not exist"
+          echo ""
+          echo "Finding .xpi files:"
+          find ./web-ext-artifacts/ -name "*.xpi" -o -name "*.zip" 2>/dev/null || echo "No .xpi or .zip files found"
+      
+      - name: Rename XPI file
+        if: steps.amo_sign.outputs.amo_upload_skipped != 'true'
+        run: |
+          XPI_FILE=$(find ./web-ext-artifacts/ -name "*.xpi" | head -1)
+          if [ -z "$XPI_FILE" ]; then
+            echo "No .xpi file found in ./web-ext-artifacts/"
+            exit 1
+          fi
+          echo "Found XPI file: $XPI_FILE"
+          mv "$XPI_FILE" ./web-ext-artifacts/cardmarket-helper.xpi
+          echo "Renamed to: ./web-ext-artifacts/cardmarket-helper.xpi"
+      
+      - name: Update release notes on Firefox AMO
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          ADDON_ID: "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python -m pip install PyJWT requests typing_extensions --quiet
+          
+          python << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import time
+          from urllib.parse import quote
+          import jwt
+          import requests
+          
+          iss = os.environ.get("AMO_JWT_ISSUER")
+          secret = os.environ.get("AMO_JWT_SECRET")
+          addon_id = os.environ.get("ADDON_ID", "").strip()
+          version = os.environ.get("VERSION")
+          addon_id_encoded = quote(addon_id, safe="")
+          
+          # Read release notes
+          with open("release_notes.txt", "r") as f:
+              release_notes = f.read().strip()
+          
+          # Create JWT token
+          now = int(time.time())
+          payload = {
+              "iss": iss,
+              "jti": f"{now}000",
+              "iat": now,
+              "exp": now + 300
+          }
+          
+          token = jwt.encode(payload, secret, algorithm="HS256")
+          
+          # Update release notes on AMO
+          url = f"https://addons.mozilla.org/api/v5/addons/addon/{addon_id_encoded}/versions/{version}/"
+          headers = {
+              "Authorization": f"JWT {token}",
+              "Content-Type": "application/json"
+          }
+          data = {
+              "release_notes": {
+                "en-US": release_notes
+              },
+              "compatibility": [
+                "android",
+                "firefox"
+              ]
+            }
+          
+          try:
+              # Wait until the version is available on AMO before patching
+              version_available = False
+              for attempt in range(1, 31):
+                check = requests.get(url, headers=headers, timeout=30)
+                if check.status_code == 200:
+                  version_available = True
+                  print(f"Version {version} is available on AMO (attempt {attempt}).")
+                  break
+                if check.status_code == 404:
+                  print(f"Version not available yet on AMO (attempt {attempt}/30). Waiting...")
+                else:
+                  print(f"Version check failed (attempt {attempt}): {check.status_code}")
+                  print(f"Response: {check.text}")
+                time.sleep(20)
+
+              if not version_available:
+                print("Version was not available on AMO within wait window; skipping release-notes PATCH for now.")
+                raise SystemExit(0)
+
+              response = requests.patch(url, json=data, headers=headers, timeout=30)
+              print(f"Response status: {response.status_code}")
+              if response.status_code >= 400:
+                print(f"Response: {response.text}")
+                if response.status_code == 404:
+                  print("Note: Addon version not found on AMO yet - it may be available after initial processing")
+                elif response.status_code >= 500:
+                  print("Note: AMO server error - release notes may update automatically")
+              else:
+                print("Release notes and compatibility updated successfully!")
+                try:
+                  body = response.json()
+                  print(f"Compatibility in AMO response: {json.dumps(body.get('compatibility', {}), indent=2)}")
+                except Exception:
+                  print("Compatibility update response was not JSON.")
+          except Exception as e:
+              print(f"Could not update release notes: {e}")
+              print("Note: Release notes will need to be updated manually or will be available after AMO processes the upload")
+          PYTHON_SCRIPT
+      
+      - name: Create GitHub Release and Upload Assets
+        if: steps.amo_sign.outputs.amo_upload_skipped != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create \
+            "v${{ steps.version.outputs.version }}" \
+            ./web-ext-artifacts/cardmarket-helper.xpi \
+            --title "Release v${{ steps.version.outputs.version }}" \
+            --notes-file release_notes.txt \
+            --repo "$GITHUB_REPOSITORY"
+
+      - name: Merge deploy branch into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          git merge --no-ff "origin/${GITHUB_REF_NAME}" -m "chore: merge ${GITHUB_REF_NAME}"
+          git push origin main
+
+      - name: Delete deploy branch
+        run: |
+          git push origin --delete "${GITHUB_REF_NAME}"

@@ -28,19 +28,42 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     const thumbnail = result.thumbnail;
 
     if (thumbnail != 0) {
+        const imageHeight = thumbnail ? Number(thumbnail) : 150;
+        const imageWidth = imageHeight / 1.4;
+
         if (!thumbnail) {
-            theImage.height = 150;
-            theImage.width = 150 / 1.4;
+            theImage.height = imageHeight;
+            theImage.width = imageWidth;
         } else {
-            theImage.height = thumbnail;
-            theImage.width = thumbnail / 1.4;
+            theImage.height = imageHeight;
+            theImage.width = imageWidth;
         }
 
-        const parent = thumbnailIcon.parentNode;
+        // Replace only the camera icon inside the thumbnailIcon span, keeping tooltip functionality
+        thumbnailIcon.innerHTML = '';
+        thumbnailIcon.appendChild(theImage);
 
-        parent.innerHTML = '';
-        parent.appendChild(theImage);
-        parent.style.width = "10rem";
+        // Override Cardmarket's icon sizing so the wrapper grows with the injected image.
+        thumbnailIcon.classList.remove('is-24x24');
+        thumbnailIcon.style.display = 'inline-block';
+        thumbnailIcon.style.overflow = 'visible';
+        thumbnailIcon.style.height = `${imageHeight}px`;
+        thumbnailIcon.style.width = `${imageWidth}px`;
+        
+        // Keep table or grid rows aligned to the custom thumbnail height.
+        const parent = thumbnailIcon.closest('td, .col-thumbnail');
+        if (parent) {
+            parent.style.height = `${imageHeight}px`;
+            parent.style.minHeight = `${imageHeight}px`;
+            parent.style.width = '10rem';
+            parent.style.verticalAlign = 'top';
+        }
+
+        const row = thumbnailIcon.closest('tr');
+        if (row) {
+            row.style.height = `${imageHeight}px`;
+            row.style.minHeight = `${imageHeight}px`;
+        }
     }
 
     return theImage;
@@ -53,6 +76,20 @@ function* iterateThumbnails() {
     }
 }
 
+function extractMkmId(imgTag) {
+    if (!imgTag) {
+        return null;
+    }
+
+    // Prefer the image src URL when an <img ...> tag is provided.
+    const srcMatch = imgTag.match(/src\s*=\s*["']([^"']+)["']/i);
+    const source = srcMatch ? srcMatch[1] : imgTag;
+
+    // Capture the numeric filename just before the extension, e.g. /294805.jpg -> 294805
+    const fileMatch = source.match(/\/(\d+)\.[^\/.?]+(?:\?|$)/);
+    return fileMatch ? fileMatch[1] : null;
+}
+
 async function showThumbnail(thumbnailIcon) {
     let imgTag = thumbnailIcon.title;
     if (!imgTag) {
@@ -61,10 +98,7 @@ async function showThumbnail(thumbnailIcon) {
     if (!imgTag) {
         imgTag = thumbnailIcon.getAttribute("data-bs-title");
     }
-    var matches = imgTag.match(/(\d+)\.jpg/);
-    if (matches) {
-        var mkmId = matches[1];
-    }
+    const mkmId = extractMkmId(imgTag);
     const theImage = await changePreviewImage(thumbnailIcon, imgTag);
     if (mkmId) {
         theImage.setAttribute("mkmId", mkmId);

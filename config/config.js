@@ -1,7 +1,5 @@
 document.getElementById('openConfig').addEventListener('click', () => {
     browser.runtime.openOptionsPage();
-    const optionsUrl = browser.runtime.getURL('config/config.html');
-    window.open(optionsUrl, '_blank');
 });
 
 async function initStorage(storageKey, defaultValue) {
@@ -85,17 +83,17 @@ function setupThumbnailSize() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    // initFormats().then(formats => {
-    //     for(const [format, value] of Object.entries(formats)) {
-    //         document.getElementById('mtgtop8-'+format).checked = value.mtgtop8;
-    //         document.getElementById('hide-'+format).checked = value.hideIfNotLegalIn;
-    //     }
-    // });
+    initFormats().then(formats => {
+        for(const [format, value] of Object.entries(formats)) {
+            document.getElementById('mtgtop8-'+format).checked = value.mtgtop8;
+            document.getElementById('hide-'+format).checked = value.hideIfNotLegalIn;
+        }
+    });
 
-    // for(var format in formatsDefault) {
-    //     setupAnalyseToggle(format);
-    //     setupHideToggle(format);
-    // }
+    for(var format in formatsDefault) {
+        setupAnalyseToggle(format);
+        setupHideToggle(format);
+    }
 
     setupThumbnailSize();
 });

@@ -1,44 +1,37 @@
-const mkmToScryfallIds = {
-    '609877': '640be32d-dcc8-408a-b8a6-077472f1e70b'
-}
+// Scryfall API - uses background script for rate-limited requests
 
-const scryfallIdToUrls = {
-    '640be32d-dcc8-408a-b8a6-077472f1e70b': 'https://www.cardmarket.com/en/Magic/Products/Singles/Secret-Lair-Extra-Life-2021/Craterhoof-Behemoth-V2'
-}
-
-// - map cardmarket to manabox for ownership check
-// - check how to rotate the thumbnail
 async function cardByMkmId(mkmId) {
-    var response;
-    if (mkmId in mkmToScryfallIds) {
-        const scryfallId = mkmToScryfallIds[mkmId]
-        response = await fetch(`https://api.scryfall.com/cards/${scryfallId}`,
-            {
+    try {
+        const cardObject = await browser.runtime.sendMessage({
+            action: 'scryfallRequest',
+            path: `/cards/cardmarket/${mkmId}`,
+            options: {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                    'Accept': '*/*'
-                },
-                mode: 'cors'
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5'
+                }
             }
-        );
-    } else {
-        response = await fetch(`https://api.scryfall.com/cards/cardmarket/${mkmId}`,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                    'Accept': '*/*'
-                },
-                mode: 'cors'
+        });
+        
+        if (!cardObject) {
+            throw new Error('No response from background script');
+        }
+        
+        if (cardObject.success === false) {
+            const errorMsg = cardObject.error || 'Unknown error';
+            if (errorMsg.includes('404')) {
+                return null;
             }
-        );
+            throw new Error(errorMsg);
+        }
+        
+        return cardObject.success ? cardObject.data : cardObject;
+    } catch (error) {
+        const message = String(error && error.message ? error.message : error);
+        if (message.includes('404')) {
+            return null;
+        }
+        throw error;
     }
-    const cardObject = await response.json();
-    if (mkmId in mkmToScryfallIds && cardObject.object == "card" && cardObject.cardmarket_id) {
-        console.log(`Unnecessary id in scryfall_data:`, mkmId);
-    }
-    return cardObject;
 }
 
 const rot90Layout = ["split"];
@@ -63,12 +56,11 @@ async function getScryfallCardFromImage(theImage) {
     }
     const scryfallCard = await cardByMkmId(mkmId);
     //rotateCard(theImage, scryfallCard);
-    if (scryfallCard.id) {
+    if (scryfallCard && scryfallCard.id) {
         return scryfallCard;
     }
 }
 
-// to get legality
 async function cardById(scryfallId) {
     return scryfallRequest(`/cards/${scryfallId}`);
 }
@@ -79,74 +71,86 @@ async function scryfallSearch(query) {
 
 async function scryfallCardsCollection(cardNames) {
     const url = "https://api.scryfall.com/cards/collection";
-    const headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-        'Accept': '*/*',
-            mode: 'cors'
-    };
+    
+    try {
+        const cardNameArray = Array.from(cardNames);
+        
+        const batches = [];
+        while (cardNameArray.length > 0) {
+            batches.push(cardNameArray.splice(0, 75));
+        }
+        
+        const fetchBatch = async (batch) => {
+            const body = JSON.stringify({
+                identifiers: batch.map(name => ({ name })),
+            });
 
-    // Convert the Set of card names into an array
-    const cardNameArray = Array.from(cardNames);
+            const result = await browser.runtime.sendMessage({
+                action: 'scryfallRequest',
+                path: url,
+                options: {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5'
+                    },
+                    body: body
+                }
+            });
+            
+            if (!result) {
+                throw new Error('No response from background script');
+            }
+            
+            if (result.success === false) {
+                throw new Error(result.error || 'Unknown error');
+            }
+            
+            return result.success ? result.data : result;
+        };
 
-    // Split the card names into batches of 75
-    const batches = [];
-    while (cardNameArray.length > 0) {
-        batches.push(cardNameArray.splice(0, 75));
-    }
-
-    // Function to fetch a single batch of cards
-    const fetchBatch = async (batch) => {
-        const body = JSON.stringify({
-            identifiers: batch.map(name => ({ name })),
-        });
-
-        const response = await fetch(url, {
-            method: "POST",
-            headers: headers,
-            body: body
-        });
-
-        if (!response.ok) {
-            const errorDetails = await response.json();
-            console.error("Error Details:", errorDetails);
-            throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        const allResults = [];
+        for (const batch of batches) {
+            const result = await fetchBatch(batch);
+            allResults.push(...result.data);
         }
 
-        return response.json();
-    };
-
-    // Fetch all batches and combine the results
-    const allResults = [];
-    for (const batch of batches) {
-        const result = await fetchBatch(batch);
-        allResults.push(...result.data); // `data` contains the fetched card information
+        return allResults;
+    } catch (error) {
+        console.error("Error fetching Scryfall card collection:", error);
+        return null;
     }
-
-    return allResults;
 }
 
-
 async function scryfallRequest(path) {
-    const response = await fetch(`https://api.scryfall.com${path}`,
-        {
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5',
-                'Accept': '*/*'
-            },
-            mode: 'cors'
+    try {
+        const result = await browser.runtime.sendMessage({
+            action: 'scryfallRequest',
+            path: path,
+            options: {
+                headers: {
+                    'User-Agent': 'NudelForceFirefoxCardmarket/1.1.5'
+                }
+            }
+        });
+        
+        if (!result) {
+            throw new Error('No response from background script');
         }
-    );
-    const json = await response.json();
-    if (response.ok) {
-        return json; // aka scryfallCard
-    } else {
-        throw json;
+        
+        if (result.success === false) {
+            throw new Error(result.error || 'Unknown error');
+        }
+        
+        return result.success ? result.data : result;
+    } catch (error) {
+        console.error("Error in scryfallRequest:", error);
+        throw error;
     }
 }
 
 async function generateCardmarketUrl(manaBoxCard) {
+    const pageLang = (document.documentElement.lang || "en").split("-")[0];
     var scryfallCard = await cardById(manaBoxCard['Scryfall ID']);
 
     if (['7ED'].includes(manaBoxCard['Set code'])) {
@@ -158,10 +162,8 @@ async function generateCardmarketUrl(manaBoxCard) {
     var cardmarketUrl = scryfallCard['purchase_uris']['cardmarket'];
 
     if (cardmarketUrl.includes('Search')) {
-        if (scryfallIdToUrls[scryfallCard.id]) {
-            cardmarketUrl = scryfallIdToUrls[scryfallCard.id];
-        } else if (manaBoxCard['Set code'] == "GN3") {
-            cardmarketUrl = `https://www.cardmarket.com/en/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ', '-')}`;
+        if (manaBoxCard['Set code'] == "GN3") {
+            cardmarketUrl = `https://www.cardmarket.com/${pageLang}/Magic/Products/Singles/Game-Night-2022/${manaBoxCard['Name'].replace(' ', '-')}`;
         } else {
             return null;
         }
@@ -173,7 +175,9 @@ async function generateCardmarketUrl(manaBoxCard) {
         url.searchParams.append(key, value);
     });
 
-    url.searchParams.set('isFoil', manaBoxCard.Foil == "foil" ? 'Y' : 'N');
+    url.searchParams.set('language', LANG_MAP[manaBoxCard['Language']]);
+    url.searchParams.set('minCondition', CONDITION_MAP_ID[manaBoxCard['Condition']]);
+    url.searchParams.set('isFoil', manaBoxCard.Foil == "normal" ? 'N' : 'Y');
 
     return url.toString();
 }

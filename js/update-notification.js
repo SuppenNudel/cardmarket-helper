@@ -30,9 +30,9 @@ function createAlert(text, version) {
     h4.textContent = text;
 
     const a = document.createElement("a");
-    a.href = "https://nudelforce.notion.site/e9ed9bd81c684952ade7985944f87f17";
+    a.href = "https://github.com/SuppenNudel/cardmarket-helper";
     a.target = "_blank";
-    a.textContent = "Check out the Homepage for Changelogs ↗️";
+    a.textContent = "Check out the GitHub page for Changelogs ↗️";
 
     divContent.append(h4, a);
 
@@ -56,7 +56,7 @@ function makeAnnouncement(text, version) {
         .then((result) => {
             const lastAckedVersion = result.lastAckedVersion;
             if(!lastAckedVersion || lastAckedVersion != version) {
-                makeAnnouncement(`Cardmarket Assistant, new Version: ${version}`, version);
+                makeAnnouncement(`Cardmarket Helper, new Version: ${version}`, version);
             }
         })
         .catch((error) => {
