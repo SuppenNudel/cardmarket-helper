@@ -27,16 +27,17 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     }
     const thumbnail = result.thumbnail;
 
-    if (thumbnail != 0) {
-        const imageHeight = thumbnail ? Number(thumbnail) : 150;
-        const imageWidth = imageHeight / 1.4;
+    const thumbnailEnabled = Number(thumbnail) > 0;
+    const imageHeight = thumbnailEnabled ? Number(thumbnail) : 150;
+    const imageWidth = imageHeight / 1.4;
 
-        if (!thumbnail) {
-            theImage.height = imageHeight;
-            theImage.width = imageWidth;
-        } else {
-            theImage.height = imageHeight;
-            theImage.width = imageWidth;
+    theImage.height = imageHeight;
+    theImage.width = imageWidth;
+
+    if (thumbnailEnabled) {
+        // Save the original icon markup once so it can be restored if the setting is disabled later.
+        if (!thumbnailIcon.dataset.originalHtml) {
+            thumbnailIcon.dataset.originalHtml = thumbnailIcon.innerHTML;
         }
 
         // Replace only the camera icon inside the thumbnailIcon span, keeping tooltip functionality
@@ -106,6 +107,50 @@ async function showThumbnail(thumbnailIcon) {
     return theImage;
 }
 
+function restoreThumbnails() {
+    for (const thumbnailIcon of document.querySelectorAll('span.thumbnail-icon')) {
+        if (!thumbnailIcon.dataset.originalHtml) {
+            continue;
+        }
+
+        thumbnailIcon.innerHTML = thumbnailIcon.dataset.originalHtml;
+
+        // Reset injected styles.
+        thumbnailIcon.classList.add('is-24x24');
+        thumbnailIcon.style.display = '';
+        thumbnailIcon.style.overflow = '';
+        thumbnailIcon.style.height = '';
+        thumbnailIcon.style.width = '';
+
+        const parent = thumbnailIcon.closest('td, .col-thumbnail');
+        if (parent) {
+            parent.style.height = '';
+            parent.style.minHeight = '';
+            parent.style.width = '';
+            parent.style.verticalAlign = '';
+        }
+
+        const row = thumbnailIcon.closest('tr');
+        if (row) {
+            row.style.height = '';
+            row.style.minHeight = '';
+        }
+    }
+}
+
 (async function main() {
     console.log("get-thumbnail.js");
+
+    browser.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'sync' || !('thumbnail' in changes)) {
+            return;
+        }
+
+        const nextValue = Number(changes.thumbnail.newValue);
+        if (Number.isFinite(nextValue) && nextValue > 0) {
+            showThumbnails();
+        } else {
+            restoreThumbnails();
+        }
+    });
 })();

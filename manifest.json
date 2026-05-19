@@ -1,13 +1,14 @@
 {
     "manifest_version": 3,
     "name": "Cardmarket Helper",
-    "version": "2026.5.1.0",
+    "version": "2026.5.2.0",
     "description": "An Add-On to enhance the user experience on cardmarket",
     "action": {
         "default_icon": {
             "32": "images/geschaft-32.png"
         },
-        "default_title": "Cardmarket Helper"
+        "default_title": "Cardmarket Helper",
+        "default_popup": "config/config.html"
     },
     "icons": {
         "32": "images/geschaft-32.png",
@@ -26,6 +27,11 @@
     "permissions": [
         "storage"
     ],
+    "options_ui": {
+        "page": "config/config.html",
+        "browser_style": true,
+        "open_in_tab": true
+    },
     "host_permissions": [
         "https://api.scryfall.com/*",
         "https://downloads.s3.cardmarket.com/*",
@@ -40,6 +46,8 @@
         {
             "resources": [
                 "html/popup.html",
+                "config/config.html",
+                "config/config.js",
                 "css/keyrune.min.css",
                 "fonts/*",
                 "resources/table.html",

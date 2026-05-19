@@ -8,16 +8,12 @@ function addConfigButton() {
         settingsItem.className = 'nav-item hvr-sweep-to-right';
         
         const settingsLink = document.createElement('a');
-        settingsLink.href = '#';
+        settingsLink.href = browser.runtime.getURL('config/config.html');
+        settingsLink.target = '_blank';
+        settingsLink.rel = 'noopener noreferrer';
         settingsLink.title = 'Helper Extension Settings';
         settingsLink.className = 'nav-link';
         settingsLink.textContent = 'Helper Extension Settings';
-        
-        settingsLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            const optionsUrl = browser.runtime.getURL('config/config.html');
-            window.open(optionsUrl, '_blank');
-        });
         
         settingsItem.appendChild(settingsLink);
         offcanvasNav.appendChild(settingsItem);

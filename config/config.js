@@ -1,7 +1,3 @@
-document.getElementById('openConfig').addEventListener('click', () => {
-    browser.runtime.openOptionsPage();
-});
-
 async function initStorage(storageKey, defaultValue) {
     try {
         let storageData = await browser.storage.sync.get(storageKey);
@@ -60,40 +56,36 @@ function setupThumbnailSize() {
     const thumbnailSwitch = document.getElementById("thumbnail-switch");
     const slider = document.getElementById("thumbnail-range");
     const output = document.getElementById("output");
+
+    function syncThumbnailUi(isEnabled) {
+        slider.disabled = !isEnabled;
+        output.textContent = slider.value;
+    }
+
     browser.storage.sync.get('thumbnail').then(storageData => {
-        const value = storageData.thumbnail;
-        if(value == 0) {
-            thumbnailSwitch.checked = false;
-        } else {
-            output.innerText = value ? value : 150;
-            slider.value = value ? value : 150;
-            thumbnailSwitch.checked = true;
+        const storedValue = Number(storageData.thumbnail);
+        const hasCustomValue = Number.isFinite(storedValue) && storedValue > 0;
+
+        if (hasCustomValue) {
+            slider.value = String(storedValue);
         }
+
+        thumbnailSwitch.checked = hasCustomValue;
+        syncThumbnailUi(hasCustomValue);
     });
 
     slider.oninput = async function() {
-        output.innerText = this.value;
-        thumbnailSwitch.checked = true;
+        output.textContent = this.value;
         await browser.storage.sync.set({ 'thumbnail': this.value });
     }
+
     thumbnailSwitch.onchange = async function(event) {
         const checked = event.target.checked;
+        syncThumbnailUi(checked);
         await browser.storage.sync.set({ 'thumbnail': checked ? slider.value : 0 });
     }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    initFormats().then(formats => {
-        for(const [format, value] of Object.entries(formats)) {
-            document.getElementById('mtgtop8-'+format).checked = value.mtgtop8;
-            document.getElementById('hide-'+format).checked = value.hideIfNotLegalIn;
-        }
-    });
-
-    for(var format in formatsDefault) {
-        setupAnalyseToggle(format);
-        setupHideToggle(format);
-    }
-
     setupThumbnailSize();
 });

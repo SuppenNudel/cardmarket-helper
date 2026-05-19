@@ -5,42 +5,201 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cardmarket Helper Configuration</title>
-    <!-- <link rel="stylesheet" href="../css/popup.css"> -->
-    <!-- <style>
-        table {
-            border-collapse: collapse;
+    <style>
+        :root {
+            --bg-start: #f3f7fb;
+            --bg-end: #e8eef6;
+            --card-bg: #ffffff;
+            --text-main: #172538;
+            --text-muted: #5d6c80;
+            --accent: #1776d2;
+            --accent-soft: #cfe6fb;
+            --surface-border: #d6e0ea;
+            --shadow: 0 14px 40px rgba(14, 35, 61, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", "Trebuchet MS", "Helvetica Neue", sans-serif;
+            background: radial-gradient(circle at 15% 15%, #ffffff 0%, var(--bg-start) 45%, var(--bg-end) 100%);
+            color: var(--text-main);
+            padding: 24px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .settings-card {
+            width: min(720px, 100%);
+            background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .settings-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--surface-border);
+            background: linear-gradient(90deg, #f8fbff 0%, #eef5fc 100%);
+        }
+
+        .settings-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .settings-subtitle {
+            margin: 6px 0 0;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .settings-content {
+            padding: 22px;
+        }
+
+        .setting-row {
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            background: var(--card-bg);
+            padding: 14px;
+        }
+
+        .setting-row + .setting-row {
+            margin-top: 12px;
+        }
+
+        .setting-label {
+            margin: 0 0 8px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: block;
+        }
+
+        .setting-controls {
+            display: grid;
+            grid-template-columns: auto 64px 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .value-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--surface-border);
+            background: #f7faff;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        input[type="range"] {
             width: 100%;
+            accent-color: var(--accent);
         }
 
-        th,
-        td {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
         }
 
-        th {
-            background-color: #f2f2f2;
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
-    </style> -->
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #c8d6e5;
+            transition: 0.2s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #ffffff;
+            transition: 0.2s;
+            border-radius: 50%;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .settings-note {
+            margin: 12px 0 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            background: var(--accent-soft);
+            border: 1px solid #b7d9f8;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        @media (max-width: 600px) {
+            .settings-content {
+                padding: 16px;
+            }
+
+            .setting-controls {
+                grid-template-columns: auto 56px 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <button id="openConfig">Open Config</button>
-    <br><br>
-    <label for="thumbnail-range">Thumbnail size (height)</label>
-    <table>
-        <tr>
-            <td>
-                <label class="switch">
-                    <input id="thumbnail-switch" type="checkbox">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td style="width: 50px;"><span id="output">150</span></td>
-            <td><input type="range" step="25" min="50" max="200" value="150" id="thumbnail-range"></td>
-        </tr>
-    </table>
+    <main class="settings-card">
+        <header class="settings-header">
+            <h1 class="settings-title">Cardmarket Helper Settings</h1>
+            <p class="settings-subtitle">Fine-tune the extension behavior for your browsing workflow.</p>
+        </header>
+
+        <section class="settings-content">
+            <div class="setting-row">
+                <label class="setting-label" for="thumbnail-range">Thumbnail size (height)</label>
+                <div class="setting-controls">
+                    <label class="switch" aria-label="Enable product thumbnails">
+                        <input id="thumbnail-switch" type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                    <span id="output" class="value-badge">150</span>
+                    <input type="range" step="25" min="50" max="300" value="150" id="thumbnail-range">
+                </div>
+            </div>
+
+            <p class="settings-note">Changes are saved automatically.</p>
+        </section>
+    </main>
     <!-- <br> -->
     <!-- <table>
         <tr>
