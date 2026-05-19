@@ -86,6 +86,62 @@ function setupThumbnailSize() {
     }
 }
 
+const PRICE_AUTOFILL_DEFAULTS = {
+    minRivalSales: 300,
+    minRivalAvailableItems: 250,
+    priceSource: 'lowestRival',
+    undercutMode: 'fixed',
+    undercutValue: 0.01,
+    minimumPrice: 0.05,
+    includeCalculatedRivals: true,
+    includePowersellers: true,
+    includeProfessional: false
+};
+
+function setupPriceAutofill() {
+    const numericFields = [
+        'minRivalSales',
+        'minRivalAvailableItems',
+        'undercutValue',
+        'minimumPrice'
+    ];
+    const selectFields = ['priceSource', 'undercutMode'];
+    const checkboxFields = ['includeCalculatedRivals', 'includePowersellers', 'includeProfessional'];
+    const allFields = [...numericFields, ...selectFields, ...checkboxFields];
+
+    browser.storage.sync.get('priceAutofill').then(result => {
+        const stored = result.priceAutofill || {};
+        for (const key of allFields) {
+            const el = document.getElementById(`pa-${key}`);
+            if (!el) continue;
+            
+            if (checkboxFields.includes(key)) {
+                el.checked = stored[key] ?? PRICE_AUTOFILL_DEFAULTS[key];
+            } else {
+                el.value = stored[key] ?? PRICE_AUTOFILL_DEFAULTS[key];
+            }
+        }
+    });
+
+    for (const key of allFields) {
+        const el = document.getElementById(`pa-${key}`);
+        if (!el) continue;
+        
+        el.addEventListener('change', async () => {
+            const result = await browser.storage.sync.get('priceAutofill');
+            const current = result.priceAutofill || {};
+            const value = checkboxFields.includes(key)
+                ? el.checked
+                : selectFields.includes(key)
+                    ? el.value
+                    : Number(el.value);
+            const updated = { ...PRICE_AUTOFILL_DEFAULTS, ...current, [key]: value };
+            await browser.storage.sync.set({ priceAutofill: updated });
+        });
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     setupThumbnailSize();
+    setupPriceAutofill();
 });

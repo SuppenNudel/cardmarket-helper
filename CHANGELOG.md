@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.5.2.0] - 2026-05-19
+### Added
+- Settings are now accessible from three entry points:
+    - extension icon in the browser toolbar
+    - "Helper Extension Settings" item in the Cardmarket burger menu
+    - "Settings" button next to the price input on Product Singles pages
+- Available settings include:
+    - Thumbnail size toggle and slider
+    - Price source (Lowest Rival, LOW, AVG7, AVG30, AVG1, TREND)
+    - Undercut mode (fixed amount or percentage)
+    - Undercut value and minimum price
+    - Rival definition thresholds (minimum rival sales and minimum rival stock)
+    - Seller type filters (calculated rivals, powersellers, professional sellers)
+
 ## [2026.5.1.0] - 2026-05-08
 ### Fixed
 - Offer modifications are now tracked only for your own listings (adding other sellers' products to your shopping cart no longer creates modification entries)

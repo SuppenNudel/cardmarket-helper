@@ -145,20 +145,54 @@ function createPriceDictionary() {
     return result;
 }
 
-function calcMyPrice(mkmid, userName) {
-    const inclinePercentage = 0.15; // 15% relative incline threshold
-    const maxQuantityThreshold = 10;  // Threshold for how high of a quantity of a rival seller you don't want to compete with
-    const rivalsToLookAt = 10;
-    const minRivalSales = 300;
-    const minRivalAvailableItems = 250;
+function getSellerType(row) {
+    if (!row) return 'regular';
+
+    const sellerNameContainer = row.querySelector('.seller-name');
+    if (!sellerNameContainer) return 'regular';
+
+    const badgeElements = sellerNameContainer.querySelectorAll('[class*="badge"], [class*="seller"], i[class*="fa"], span[title*="seller"]');
+    let sellerType = 'regular';
+
+    for (const badge of badgeElements) {
+        const classes = (badge.className || '').toLowerCase();
+        const title = (badge.getAttribute('title') || badge.getAttribute('data-bs-original-title') || '').toLowerCase();
+        const text = (badge.textContent || '').toLowerCase();
+
+        if (classes.includes('professional') || title.includes('professional') || text.includes('professional')) {
+            sellerType = 'professional';
+            break;
+        }
+        if (classes.includes('powerseller') || classes.includes('power') || title.includes('powerseller') || title.includes('power') || text.includes('powerseller')) {
+            sellerType = 'powerseller';
+            break;
+        }
+    }
+
+    return sellerType;
+}
+
+async function calcMyPrice(mkmid, userName) {
+    const storageResult = await browser.storage.sync.get('priceAutofill');
+    const settings = storageResult.priceAutofill || {};
+
+    const minRivalSales = settings.minRivalSales ?? 300;
+    const minRivalAvailableItems = settings.minRivalAvailableItems ?? 250;
+    const priceSource = settings.priceSource ?? 'lowestRival';
+    const undercutMode = settings.undercutMode ?? 'fixed';
+    const undercutValue = Number(settings.undercutValue ?? 0.01);
+    const minimumPrice = Number(settings.minimumPrice ?? 0.05);
+    const includeCalculatedRivals = settings.includeCalculatedRivals ?? true;
+    const includePowersellers = settings.includePowersellers ?? true;
+    const includeProfessional = settings.includeProfessional ?? false;
 
     // offers
     articleRows = document.getElementById("table").getElementsByClassName("article-row");
     var rivalSellers = [];
-    for (var i = 0; i < articleRows.length && rivalSellers.length < rivalsToLookAt; i++) {
+    for (var i = 0; i < articleRows.length; i++) {
         row = articleRows[i];
         const sellerNameElement = row.querySelector(".seller-name a");
-        var sellerName = sellerNameElement.textContent.trim();
+        var sellerName = sellerNameElement.textContent.replace(/^🤺\s*/, '').trim();
         if (sellerName == userName) {
             continue;
         }
@@ -166,7 +200,7 @@ function calcMyPrice(mkmid, userName) {
         // Cache class names or use more specific queries:
         const priceContainer = row.querySelector(".price-container");
         const price = parseCurrencyStringToDouble(priceContainer.textContent.trim());
-        const quantity = row.querySelector(".col-offer .item-count").textContent.trim();
+        const quantity = Number.parseInt(row.querySelector(".col-offer .item-count").textContent.trim(), 10) || 0;
         const sellCountElement = row.querySelector(".col-sellerProductInfo .seller-extended .sell-count");
         let sellCountText = sellCountElement.getAttribute("data-bs-original-title");
         if (!sellCountText) {
@@ -175,10 +209,23 @@ function calcMyPrice(mkmid, userName) {
         if (sellCountText) {
             const numbers = sellCountText.match(/\d+/g);
             const [sales, availableItems] = numbers.map(Number);
+            const sellerType = getSellerType(row);
 
-            if (sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
+            // Check seller type filter
+            let includeThisSeller = false;
+            if (sellerType === 'professional' && includeProfessional) {
+                includeThisSeller = true;
+            } else if (sellerType === 'powerseller' && includePowersellers) {
+                includeThisSeller = true;
+            } else if (sellerType === 'regular' && includeCalculatedRivals && sales >= minRivalSales && availableItems >= minRivalAvailableItems) {
+                includeThisSeller = true;
+            }
+
+            if (includeThisSeller) {
                 rivalSellers.push({ quantity: quantity, price: price, sales: sales, availableItems: availableItems });
-                sellerNameElement.textContent = "🤺 " + sellerNameElement.textContent;
+                if (!sellerNameElement.textContent.trim().startsWith('🤺')) {
+                    sellerNameElement.textContent = "🤺 " + sellerNameElement.textContent;
+                }
             }
         } else {
             console.debug("couln't find sellCountData for ", sellerNameElement.textContent);
@@ -188,40 +235,71 @@ function calcMyPrice(mkmid, userName) {
     // Sort sellers by price in ascending order
     rivalSellers.sort((a, b) => a.price - b.price);
 
-    let desiredPrice = 0;
+    let rivalBasedPrice = 0;
     if (rivalSellers.length > 0) {
-        desiredPrice = rivalSellers[0].price - 0.01; // Start just below the lowest price
-
-        for (let i = 0; i < rivalSellers.length - 1; i++) {
-            let currentSeller = rivalSellers[i];
-            let nextSeller = rivalSellers[i + 1];
-
-            // Check for high quantity sellers and set price below theirs
-            if (currentSeller.quantity > maxQuantityThreshold) {
-                desiredPrice = currentSeller.price;
-                break;
-            }
-
-            // Calculate relative incline
-            let relativeIncline = (nextSeller.price - currentSeller.price) / currentSeller.price;
-            if (relativeIncline >= inclinePercentage) {
-                desiredPrice = nextSeller.price;
-                break;
-            }
-        }
+        rivalBasedPrice = rivalSellers[0].price;
     }
+
     const prices = pricedata.priceGuides[mkmid];
     var isFoil = url.searchParams.get('isFoil') == 'Y';
     const holoElement = false;
-    const trend = prices[`trend${isFoil ? '-foil' : holoElement ? '-holo' : ''}`];
+    const trend = Number(prices[`trend${isFoil ? '-foil' : holoElement ? '-holo' : ''}`]);
+    const pagePrices = createPriceDictionary();
+    const lowPrice = Number(pagePrices.from);
+    const avg7Price = Number(pagePrices.avg7);
+    const avg30Price = Number(pagePrices.avg30);
+    const avg1Price = Number(pagePrices.avg1);
 
-    desiredPrice = (desiredPrice - 0.01);
-    if (desiredPrice < 0.05) {
-        desiredPrice = 0.05;
+    let basePrice;
+    switch (priceSource) {
+        case 'low':
+            basePrice = Number.isFinite(lowPrice) ? lowPrice : trend;
+            break;
+        case 'avg7':
+            basePrice = Number.isFinite(avg7Price) ? avg7Price : trend;
+            break;
+        case 'avg30':
+            basePrice = Number.isFinite(avg30Price) ? avg30Price : trend;
+            break;
+        case 'avg1':
+            basePrice = Number.isFinite(avg1Price) ? avg1Price : trend;
+            break;
+        case 'avg':
+            basePrice = Number.isFinite(avg7Price)
+                ? avg7Price
+                : Number.isFinite(avg30Price)
+                    ? avg30Price
+                    : Number.isFinite(avg1Price)
+                        ? avg1Price
+                        : trend;
+            break;
+        case 'trend':
+            basePrice = trend;
+            break;
+        case 'current':
+        case 'lowestRival':
+        default:
+            if (rivalSellers.length > 0 && Number.isFinite(rivalBasedPrice)) {
+                basePrice = rivalBasedPrice;
+            } else {
+                basePrice = trend;
+            }
+            break;
     }
-    if (trend > desiredPrice) {
-        desiredPrice = trend;
+
+    const normalizedUndercut = Number.isFinite(undercutValue) ? undercutValue : 0;
+    let desiredPrice;
+    if (undercutMode === 'percent') {
+        desiredPrice = basePrice * (1 - (normalizedUndercut / 100));
+    } else {
+        desiredPrice = basePrice - normalizedUndercut;
     }
+
+    const normalizedMinimumPrice = Number.isFinite(minimumPrice) ? minimumPrice : 0.05;
+    if (desiredPrice < normalizedMinimumPrice) {
+        desiredPrice = normalizedMinimumPrice;
+    }
+
     return desiredPrice.toFixed(2);
 }
 
@@ -1203,12 +1281,45 @@ function getUserName() {
     [pricedata, productdata] = await getCardmarketData();
 
     const priceField = document.getElementById("price");
-    if (priceField && priceToggleInput.checked) {
-        var mkmId = document.querySelector('#FilterForm > input[name="idProduct"]').value;
-        const computedPrice = parseFloat(calcMyPrice(mkmId, userName));
+    const priceInputGroup = priceField ? (priceField.closest('.input-group') || priceField.parentElement) : null;
+    if (priceField && priceInputGroup) {
+        const settingsButton = document.createElement('button');
+        settingsButton.type = 'button';
+        settingsButton.className = 'btn btn-outline-secondary btn-sm settings-button';
+        settingsButton.title = 'Open Cardmarket Helper settings';
+        settingsButton.textContent = 'Settings';
+        settingsButton.addEventListener('click', () => {
+            const settingsUrl = browser.runtime.getURL('config/config.html');
+            window.open(settingsUrl, '_blank', 'noopener,noreferrer');
+        });
+        priceInputGroup.appendChild(settingsButton);
+    }
+
+    async function updateAutofillPrice() {
+        if (!priceField || !priceToggleInput.checked) {
+            return;
+        }
+
+        const mkmIdElement = document.querySelector('#FilterForm > input[name="idProduct"]');
+        if (!mkmIdElement || !mkmIdElement.value) {
+            return;
+        }
+
+        const computedPrice = parseFloat(await calcMyPrice(mkmIdElement.value, userName));
         myPrice = computedPrice;
         priceField.value = computedPrice.toFixed(2);
     }
+
+    await updateAutofillPrice();
+
+    browser.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'sync' && changes.priceAutofill) {
+            updateAutofillPrice().catch((error) => {
+                console.error('Error updating autofill price after settings change:', error);
+            });
+        }
+    });
+
     // Add loading indicator
     var loadingDiv = document.createElement("div");
     loadingDiv.textContent = "loading collection...";
