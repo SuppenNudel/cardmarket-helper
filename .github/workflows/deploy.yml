@@ -105,12 +105,14 @@ jobs:
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
           ADDON_ID: "{6b7ad442-dbee-4ef8-bc53-43af0e3de819}"
         run: |
-          npm install -g web-ext
+          npm install -g web-ext@8.6.0
+          web-ext --version
           LOG_FILE=$(mktemp)
 
           set +e
           web-ext sign \
             --channel=listed \
+            --amo-base-url="https://addons.mozilla.org/api/v5/" \
             --api-key="$AMO_JWT_ISSUER" \
             --api-secret="$AMO_JWT_SECRET" \
             --source-dir=. \
