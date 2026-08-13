@@ -154,7 +154,6 @@
                 "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/wantslist_export.js"
             ]
         },
@@ -163,7 +162,6 @@
                 "https://www.cardmarket.com/*/Offers/*"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/get-thumbnail.js",
                 "js/fetch-helper.js",
                 "js/offers.js"
