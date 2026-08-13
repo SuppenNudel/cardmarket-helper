@@ -4,8 +4,6 @@
     }
 
     const REPORT_BASE_URL = 'https://github.com/SuppenNudel/cardmarket-helper/issues/new';
-    const TOAST_ID = 'cmh-error-toast-root';
-    const INTERACTION_WINDOW_MS = 7000;
     const DEDUPE_WINDOW_MS = 15000;
 
     let lastInteractionAt = 0;
@@ -26,10 +24,6 @@
         for (const eventName of events) {
             window.addEventListener(eventName, () => rememberInteraction(eventName), true);
         }
-    }
-
-    function isLikelyUserInteractionError() {
-        return (now() - lastInteractionAt) <= INTERACTION_WINDOW_MS;
     }
 
     function toErrorDetails(value) {
@@ -87,10 +81,11 @@
             ? browser.runtime.getManifest()
             : { version: 'unknown' };
 
-        const title = `[Bug] ${contextLabel || 'User interaction error'}: ${errorDetails.message}`;
+        const title = `[Bug] Cardmarket Helper extension error during ${contextLabel || 'user interaction'}: ${errorDetails.message}`;
         const body = [
             '## What happened',
-            `A user-facing error occurred during: ${contextLabel || lastInteractionType}.`,
+            'This error was caused by the Cardmarket Helper extension code (not by cardmarket.com itself).',
+            `The error occurred during: ${contextLabel || lastInteractionType}.`,
             '',
             '## Error message',
             '```',
@@ -105,97 +100,63 @@
             '## Environment',
             `- Extension version: ${manifest.version || 'unknown'}`,
             `- Page URL: ${location.href}`,
+            `- Page title: ${document.title}`,
+            `- Last interaction type: ${lastInteractionType}`,
+            `- Timestamp: ${new Date().toISOString()}`,
             `- User Agent: ${navigator.userAgent}`
         ].join('\n');
 
-        const query = `title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+        const query = [
+            `title=${encodeURIComponent(title)}`,
+            `body=${encodeURIComponent(body)}`,
+            'labels=bug'
+        ].join('&');
         return `${REPORT_BASE_URL}?${query}`;
     }
 
-    function ensureToastRoot() {
-        let root = document.getElementById(TOAST_ID);
-        if (root) {
-            return root;
-        }
-
-        root = document.createElement('div');
-        root.id = TOAST_ID;
-        root.style.position = 'fixed';
-        root.style.top = '16px';
-        root.style.right = '16px';
-        root.style.zIndex = '2147483647';
-        root.style.maxWidth = '420px';
-        root.style.width = 'calc(100% - 24px)';
-        root.style.pointerEvents = 'none';
-        document.documentElement.appendChild(root);
-        return root;
+    function makeAnnouncement(text, version) {
     }
-
+    
     function showToast(errorDetails, contextLabel) {
-        const root = ensureToastRoot();
         const reportLink = buildReportLink(errorDetails, contextLabel);
 
-        const toast = document.createElement('div');
-        toast.style.pointerEvents = 'auto';
-        toast.style.background = '#fff6f3';
-        toast.style.border = '1px solid #e79a86';
-        toast.style.borderRadius = '10px';
-        toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.20)';
-        toast.style.padding = '12px';
-        toast.style.marginBottom = '10px';
-        toast.style.fontFamily = "'Segoe UI', 'Trebuchet MS', sans-serif";
-        toast.style.color = '#2f1a14';
-        toast.style.fontSize = '13px';
-        toast.style.lineHeight = '1.35';
+        const divContainer = document.createElement('div');
+        divContainer.role = 'alert';
+        divContainer.classList = 'alert systemMessage alert-danger alert-dismissible fade show';
+        divContainer.style.pointerEvents = 'auto';
+        divContainer.style.marginBottom = '10px';
 
-        const title = document.createElement('div');
-        title.textContent = 'Cardmarket Helper hit an error';
-        title.style.fontWeight = '700';
-        title.style.marginBottom = '6px';
+        const span = document.createElement('span');
+        span.classList = 'fonticon-beta-test alert-icon';
 
-        const message = document.createElement('div');
-        message.textContent = `${contextLabel || 'Action'} failed: ${errorDetails.message}`;
-        message.style.marginBottom = '8px';
-
-        const actions = document.createElement('div');
-        actions.style.display = 'flex';
-        actions.style.gap = '10px';
-        actions.style.alignItems = 'center';
-
-        const reportAnchor = document.createElement('a');
-        reportAnchor.href = reportLink;
-        reportAnchor.target = '_blank';
-        reportAnchor.rel = 'noopener noreferrer';
-        reportAnchor.textContent = 'Report this issue';
-        reportAnchor.style.color = '#0b57d0';
-        reportAnchor.style.fontWeight = '600';
-
-        const dismissButton = document.createElement('button');
-        dismissButton.type = 'button';
-        dismissButton.textContent = 'Dismiss';
-        dismissButton.style.border = '1px solid #d3b0a6';
-        dismissButton.style.background = '#fff';
-        dismissButton.style.borderRadius = '6px';
-        dismissButton.style.padding = '3px 8px';
-        dismissButton.style.cursor = 'pointer';
-        dismissButton.addEventListener('click', () => {
-            toast.remove();
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('data-bs-dismiss', 'alert');
+        button.ariaLabel = 'Close';
+        button.classList = 'btn-close';
+        button.addEventListener('click', () => {
+            divContainer.remove();
         });
 
-        actions.appendChild(reportAnchor);
-        actions.appendChild(dismissButton);
+        const divContent = document.createElement('div');
+        divContent.classList = 'alert-content';
 
-        toast.appendChild(title);
-        toast.appendChild(message);
-        toast.appendChild(actions);
+        const h4 = document.createElement('h4');
+        h4.classList = 'alert-heading';
+        h4.textContent = `Cardmarket Helper extension error: ${contextLabel || 'Action'} failed: ${errorDetails.message}`;
 
-        root.appendChild(toast);
+        const a = document.createElement('a');
+        a.href = reportLink;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'Report this issue ↗️';
 
-        setTimeout(() => {
-            if (toast.isConnected) {
-                toast.remove();
-            }
-        }, 15000);
+        divContent.append(h4, a);
+        divContainer.append(span, button, divContent);
+
+        
+        const alertContainer = document.getElementById("AlertContainer");
+        alertContainer.append(divContainer);
     }
 
     function notify(error, contextLabel) {
@@ -209,10 +170,6 @@
     }
 
     function handleCaughtError(error, contextLabel) {
-        if (!isLikelyUserInteractionError()) {
-            return;
-        }
-
         notify(error, contextLabel);
     }
 
@@ -231,10 +188,6 @@
 
     function installGlobalErrorListeners() {
         window.addEventListener('error', (event) => {
-            if (!isLikelyUserInteractionError()) {
-                return;
-            }
-
             if (!isExtensionScriptUrl(event.filename)) {
                 return;
             }
@@ -243,10 +196,6 @@
         });
 
         window.addEventListener('unhandledrejection', (event) => {
-            if (!isLikelyUserInteractionError()) {
-                return;
-            }
-
             const details = toErrorDetails(event.reason);
             if (!isLikelyExtensionError(details)) {
                 return;
@@ -256,23 +205,67 @@
         });
     }
 
+    function getConsoleErrorCandidate(args) {
+        const firstArg = args.length > 0 ? args[0] : null;
+        const errorArg = args.find((arg) => arg instanceof Error);
+        const tailArg = args.length > 0 ? args[args.length - 1] : null;
+        const candidate = errorArg || tailArg || firstArg;
+        const contextLabel = (typeof firstArg === 'string' && firstArg.length < 160)
+            ? firstArg
+            : lastInteractionType;
+
+        return { candidate, contextLabel };
+    }
+
+    function shouldNotifyFromWarn(args) {
+        if (args.some((arg) => arg instanceof Error)) {
+            return true;
+        }
+
+        const text = args
+            .map((arg) => {
+                if (typeof arg === 'string') {
+                    return arg;
+                }
+                if (arg instanceof Error) {
+                    return `${arg.message} ${arg.stack || ''}`;
+                }
+                return String(arg);
+            })
+            .join(' ')
+            .toLowerCase();
+
+        return /error|failed|exception|could not|cannot|unhandled|quota|denied|missing/.test(text);
+    }
+
     function installConsoleErrorHook() {
         const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
         console.error = function () {
             try {
-                if (isLikelyUserInteractionError()) {
-                    const args = Array.from(arguments);
-                    const likelyError = args.find((arg) => arg instanceof Error) || args[args.length - 1];
-                    const contextLabel = (typeof args[0] === 'string' && args[0].length < 120)
-                        ? args[0]
-                        : lastInteractionType;
-                    handleCaughtError(likelyError, contextLabel);
-                }
+                const args = Array.from(arguments);
+                const { candidate, contextLabel } = getConsoleErrorCandidate(args);
+                handleCaughtError(candidate, contextLabel);
             } catch (hookError) {
                 // Never break console behavior.
             }
 
             originalConsoleError.apply(console, arguments);
+        };
+
+        console.warn = function () {
+            try {
+                const args = Array.from(arguments);
+                if (shouldNotifyFromWarn(args)) {
+                    const { candidate, contextLabel } = getConsoleErrorCandidate(args);
+                    handleCaughtError(candidate, contextLabel);
+                }
+            } catch (hookError) {
+                // Never break console behavior.
+            }
+
+            originalConsoleWarn.apply(console, arguments);
         };
     }
 

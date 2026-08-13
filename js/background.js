@@ -14,7 +14,7 @@ const STORAGE_MIGRATION_FLAG = '__syncToLocalMigrationV1Done';
 const KEY_ACCESSORIES = 'accessories';
 const KEY_PRICEDATA_ACCESSORIES = 'pricedata-accessories';
 
-const CARD_GAMES = 
+const CARD_GAMES = {
     "Magic": 1,
     "Pokemon": 6,
     "YuGiOh": 3,
