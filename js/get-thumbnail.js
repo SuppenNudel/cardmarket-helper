@@ -91,15 +91,31 @@ function extractMkmId(imgTag) {
     return fileMatch ? fileMatch[1] : null;
 }
 
-async function showThumbnail(thumbnailIcon) {
-    let imgTag = thumbnailIcon.title;
-    if (!imgTag) {
-        imgTag = thumbnailIcon.ariaLabel;
+function getThumbnailImgTag(thumbnailIcon) {
+    if (!thumbnailIcon) {
+        return null;
     }
-    if (!imgTag) {
-        imgTag = thumbnailIcon.getAttribute("data-bs-title");
-    }
+
+    return thumbnailIcon.title
+        || thumbnailIcon.ariaLabel
+        || thumbnailIcon.getAttribute("data-bs-title")
+        || null;
+}
+
+function setThumbnailMkmId(thumbnailIcon) {
+    const imgTag = getThumbnailImgTag(thumbnailIcon);
     const mkmId = extractMkmId(imgTag);
+    if (!mkmId) {
+        return null;
+    }
+
+    thumbnailIcon.setAttribute("mkmId", mkmId);
+    return mkmId;
+}
+
+async function showThumbnail(thumbnailIcon) {
+    const imgTag = getThumbnailImgTag(thumbnailIcon);
+    const mkmId = setThumbnailMkmId(thumbnailIcon);
     const theImage = await changePreviewImage(thumbnailIcon, imgTag);
     if (mkmId) {
         theImage.setAttribute("mkmId", mkmId);
@@ -141,8 +157,12 @@ function restoreThumbnails() {
 (async function main() {
     console.log("get-thumbnail.js");
 
+    for (const thumbnailIcon of iterateThumbnails()) {
+        setThumbnailMkmId(thumbnailIcon);
+    }
+
     browser.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'sync' || !('thumbnail' in changes)) {
+        if (!('thumbnail' in changes)) {
             return;
         }
 

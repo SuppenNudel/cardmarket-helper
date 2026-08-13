@@ -82,11 +82,9 @@
             ],
             "exclude_matches": [
                 "https://www.cardmarket.com/*/Offers/Singles*",
-                "https://www.cardmarket.com/*/Magic/Wants/ShoppingWizard/Results*",
                 "https://www.cardmarket.com/*/Magic/Orders/*"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/get-thumbnail.js",
                 "js/show-thumbnail.js"
             ]
@@ -96,7 +94,6 @@
                 "https://www.cardmarket.com/*/Magic/*"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/fetch-helper.js",
                 "js/scryfall.js",
                 "lib/papaparse.min.js",
@@ -111,7 +108,6 @@
                 "https://www.cardmarket.com/*/Magic/Orders/*"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/order-pack-state.js",
                 "lib/papaparse.min.js",
                 "js/cardmarket-util.js",
@@ -126,7 +122,6 @@
                 "https://www.cardmarket.com/*/Orders/Sales/Paid"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/order-pack-state.js",
                 "lib/papaparse.min.js",
                 "js/get-thumbnail.js",
@@ -140,7 +135,6 @@
                 "https://www.cardmarket.com/*/Orders/Sales/Paid"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/sales-paid.js"
             ]
         },
@@ -149,7 +143,6 @@
                 "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/wantslist_import.js"
             ]
         },
@@ -184,7 +177,6 @@
                 "https://www.cardmarket.com/*/Magic/Stock/Offers/Singles*"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/mtgtop8-data.js",
                 "js/cardmarket-util.js",
                 "js/offers-singles-magic.js"
@@ -198,7 +190,6 @@
                 "https://www.cardmarket.com/*/Magic/Products/Singles/*"
             ],
             "js": [
-                "js/user-error-notifier.js",
                 "js/cardmarket-util.js",
                 "js/sell.js",
                 "js/sell-metric-icons.js"

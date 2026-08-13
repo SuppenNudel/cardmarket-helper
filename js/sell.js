@@ -1313,7 +1313,7 @@ function getUserName() {
     await updateAutofillPrice();
 
     browser.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName === 'sync' && changes.priceAutofill) {
+        if (changes.priceAutofill) {
             updateAutofillPrice().catch((error) => {
                 console.error('Error updating autofill price after settings change:', error);
             });
