@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.8.0.0] - 2026-08-13
+
 ## [2026.5.2.0] - 2026-05-19
 ### Added
 - Settings are now accessible from three entry points:
