@@ -2,9 +2,9 @@ function packedLoaded(orders) {
     const rows = document.querySelectorAll("#StatusTable .table-body > .row");
     for(const row of rows) {
         const colId = row.querySelectorAll(":scope > div")[1];
-        const orderId = colId.textContent;
+        const orderId = colId.textContent.trim();
         const order = orders[orderId];
-        if(order) {
+        if(order && order.timestamp) {
             const sellerNameElement = row.querySelector("span.seller-name > span:nth-of-type(2) > span");
             sellerNameElement.textContent += " - Packed";
         } else {

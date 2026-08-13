@@ -45,12 +45,15 @@ function updateStorage(orderId, timestamp) {
     browser.storage.local.get('orders').then(result => {
         let orders = result.orders || {}; // Get the current object or use an empty object if not found
 
-        // Modify the object
-        orders[orderId] = {
-            timestamp: timestamp,
-            orderId: orderId
-        }; // Add or update a property
-        // delete myObject.oldProperty; // Optionally, remove a property
+        // Packed -> store timestamp, Unpacked -> remove entry.
+        if (timestamp) {
+            orders[orderId] = {
+                timestamp: timestamp,
+                orderId: orderId
+            };
+        } else {
+            delete orders[orderId];
+        }
 
         // Save the updated object back to storage
         return browser.storage.local.set({ orders: orders });
