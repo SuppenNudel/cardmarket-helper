@@ -42,7 +42,7 @@ When loading this extension temporarily via `about:debugging`, Firefox MV3 treat
 
 ## ManaBox Viewer target (for Orders export)
 
-The **Open in ManaBox Viewer** button uses `config.manaboxViewerMode` from `browser.storage.sync`:
+The **Open in ManaBox Viewer** button uses `config.manaboxViewerMode` from `browser.storage.local`:
 
 - `local` (default): opens `http://localhost:8000/index.html`
 - `hosted`: opens `https://suppennudel.github.io/manabox-viewer/`

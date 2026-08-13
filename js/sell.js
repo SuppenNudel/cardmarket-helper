@@ -173,7 +173,7 @@ function getSellerType(row) {
 }
 
 async function calcMyPrice(mkmid, userName) {
-    const storageResult = await browser.storage.sync.get('priceAutofill');
+    const storageResult = await browser.storage.local.get('priceAutofill');
     const settings = storageResult.priceAutofill || {};
 
     const minRivalSales = settings.minRivalSales ?? 300;

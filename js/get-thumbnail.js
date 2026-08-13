@@ -19,7 +19,7 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
 
     // Retrieve data from local storage
     try {
-        var result = await browser.storage.sync.get(['thumbnail']);
+        var result = await browser.storage.local.get(['thumbnail']);
         // Code to handle successful retrieval of data
     } catch (error) {
         // Code to handle any errors that occurred during the retrieval

@@ -42,7 +42,7 @@ function updateTimeline(timestamp, index) {
 
 function updateStorage(orderId, timestamp) {
     // Retrieve the current object from storage
-    browser.storage.sync.get('orders').then(result => {
+    browser.storage.local.get('orders').then(result => {
         let orders = result.orders || {}; // Get the current object or use an empty object if not found
 
         // Modify the object
@@ -53,7 +53,7 @@ function updateStorage(orderId, timestamp) {
         // delete myObject.oldProperty; // Optionally, remove a property
 
         // Save the updated object back to storage
-        return browser.storage.sync.set({ orders: orders });
+        return browser.storage.local.set({ orders: orders });
     }).then(() => {
         updateTimeline(timestamp);
         updateButton(orderId, timestamp);
@@ -313,7 +313,7 @@ function addExportButton() {
     const isSalesPaidArticles = /\/Orders\/Sales\/Paid\/Articles/i.test(window.location.pathname);
     const isSales = document.querySelector('a[href$="Orders/Sales"]') !== null && !isSalesPaidArticles;
     if (isSales) {
-        browser.storage.sync.get('orders').then(result => {
+        browser.storage.local.get('orders').then(result => {
             let orders = result.orders || {}; // Get the current object or use an empty object if not found
             const h1 = document.querySelector("div.page-title-container h1");
             const orderIdMatch = h1 && h1.textContent.match(/#(\d+)/);

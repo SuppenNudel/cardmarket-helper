@@ -93,7 +93,7 @@ const ORDER_CONDITION_SHORT_TO_LABEL = {
 
 async function resolveManaBoxViewerTarget() {
     try {
-        const storageData = await browser.storage.sync.get("config");
+        const storageData = await browser.storage.local.get("config");
         const config = storageData && storageData.config ? storageData.config : {};
         const mode = config.manaboxViewerMode;
 

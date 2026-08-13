@@ -24,12 +24,12 @@ function addConfigButton() {
 async function initConfig() {
     const defaultValue = {};
     try {
-        let storageData = await browser.storage.sync.get(STORAGE_KEY);
+        let storageData = await browser.storage.local.get(STORAGE_KEY);
 
         // if key doesn't hold data yet
         if(!storageData[STORAGE_KEY] ||  Object.keys(storageData[STORAGE_KEY]).length === 0) {
             storageData[STORAGE_KEY] = defaultValue;
-            await browser.storage.sync.set({ [STORAGE_KEY]: storageData[STORAGE_KEY] });
+            await browser.storage.local.set({ [STORAGE_KEY]: storageData[STORAGE_KEY] });
         }
         return storageData[STORAGE_KEY];
     } catch (error) {
@@ -40,7 +40,7 @@ async function initConfig() {
 async function saveConfig(value) {
     try {
         const plainConfig = JSON.parse(JSON.stringify(value));
-        await browser.storage.sync.set({ [STORAGE_KEY]: plainConfig });
+        await browser.storage.local.set({ [STORAGE_KEY]: plainConfig });
     } catch (error) {
         console.error(`Error when saving control ${STORAGE_KEY}:`, error);
     }

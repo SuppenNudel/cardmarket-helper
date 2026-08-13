@@ -1,11 +1,11 @@
 async function initStorage(storageKey, defaultValue) {
     try {
-        let storageData = await browser.storage.sync.get(storageKey);
+        let storageData = await browser.storage.local.get(storageKey);
 
         // if key doesn't hold data yet
         if(!storageData[storageKey] ||  Object.keys(storageData[storageKey]).length === 0) {
             storageData[storageKey] = defaultValue;
-            await browser.storage.sync.set({ storageKey: storageData[storageKey] });
+            await browser.storage.local.set({ storageKey: storageData[storageKey] });
         }
         return storageData[storageKey];
     } catch (error) {
@@ -16,12 +16,12 @@ async function initStorage(storageKey, defaultValue) {
 async function initFormats() {
     try {
         // Retrieve the 'formats' object from storage.local
-        let storageData = await browser.storage.sync.get('formats');
+        let storageData = await browser.storage.local.get('formats');
 
         // If 'formats' object doesn't exist yet or is empty, initialize it with default values
         if (!storageData.formats || Object.keys(storageData.formats).length === 0) {
             storageData.formats = formatsDefault;
-            // await browser.storage.sync.set({ 'formats': storageData.formats });
+            // await browser.storage.local.set({ 'formats': storageData.formats });
         }
         return storageData.formats;
     } catch (error) {
@@ -31,24 +31,24 @@ async function initFormats() {
 
 function setupAnalyseToggle(format) {
     document.getElementById('mtgtop8-'+format).addEventListener("change", async (event) => {
-        let storageData = await browser.storage.sync.get('formats');
+        let storageData = await browser.storage.local.get('formats');
         storageData.formats[format].mtgtop8 = event.target.checked;
-        await browser.storage.sync.set({ 'formats': storageData.formats });
+        await browser.storage.local.set({ 'formats': storageData.formats });
     });
 }
 
 function setupHideToggle(format) {
     document.getElementById('hide-'+format).addEventListener("change", async (event) => {
-        let storageData = await browser.storage.sync.get('formats');
+        let storageData = await browser.storage.local.get('formats');
         storageData.formats[format].hideIfNotLegalIn = event.target.checked;
-        await browser.storage.sync.set({ 'formats': storageData.formats });
+        await browser.storage.local.set({ 'formats': storageData.formats });
     });
 }
 
 function setupControl(controlId, storageKey) {
     document.getElementById(controlId).addEventListener("change", async (event) => {
         const value = event.target.value;
-        await browser.storage.sync.set({ storageKey: value });
+        await browser.storage.local.set({ storageKey: value });
     });
 }
 
@@ -62,7 +62,7 @@ function setupThumbnailSize() {
         output.textContent = slider.value;
     }
 
-    browser.storage.sync.get('thumbnail').then(storageData => {
+    browser.storage.local.get('thumbnail').then(storageData => {
         const storedValue = Number(storageData.thumbnail);
         const hasCustomValue = Number.isFinite(storedValue) && storedValue > 0;
 
@@ -76,13 +76,13 @@ function setupThumbnailSize() {
 
     slider.oninput = async function() {
         output.textContent = this.value;
-        await browser.storage.sync.set({ 'thumbnail': this.value });
+        await browser.storage.local.set({ 'thumbnail': this.value });
     }
 
     thumbnailSwitch.onchange = async function(event) {
         const checked = event.target.checked;
         syncThumbnailUi(checked);
-        await browser.storage.sync.set({ 'thumbnail': checked ? slider.value : 0 });
+        await browser.storage.local.set({ 'thumbnail': checked ? slider.value : 0 });
     }
 }
 
@@ -109,7 +109,7 @@ function setupPriceAutofill() {
     const checkboxFields = ['includeCalculatedRivals', 'includePowersellers', 'includeProfessional'];
     const allFields = [...numericFields, ...selectFields, ...checkboxFields];
 
-    browser.storage.sync.get('priceAutofill').then(result => {
+    browser.storage.local.get('priceAutofill').then(result => {
         const stored = result.priceAutofill || {};
         for (const key of allFields) {
             const el = document.getElementById(`pa-${key}`);
@@ -128,7 +128,7 @@ function setupPriceAutofill() {
         if (!el) continue;
         
         el.addEventListener('change', async () => {
-            const result = await browser.storage.sync.get('priceAutofill');
+            const result = await browser.storage.local.get('priceAutofill');
             const current = result.priceAutofill || {};
             const value = checkboxFields.includes(key)
                 ? el.checked
@@ -136,7 +136,7 @@ function setupPriceAutofill() {
                     ? el.value
                     : Number(el.value);
             const updated = { ...PRICE_AUTOFILL_DEFAULTS, ...current, [key]: value };
-            await browser.storage.sync.set({ priceAutofill: updated });
+            await browser.storage.local.set({ priceAutofill: updated });
         });
     }
 }
