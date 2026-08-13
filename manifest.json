@@ -82,7 +82,8 @@
             ],
             "exclude_matches": [
                 "https://www.cardmarket.com/*/Offers/Singles*",
-                "https://www.cardmarket.com/*/Magic/Orders/*"
+                "https://www.cardmarket.com/*/Magic/Orders/*",
+                "https://www.cardmarket.com/*/*/Wants/ShoppingWizard/*"
             ],
             "js": [
                 "js/get-thumbnail.js",
@@ -142,6 +143,9 @@
             "matches": [
                 "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
             ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/*/Wants/ShoppingWizard/*"
+            ],
             "js": [
                 "js/wantslist_import.js"
             ]
@@ -151,7 +155,8 @@
                 "https://www.cardmarket.com/*/Magic/Wants/*"
             ],
             "exclude_matches": [
-                "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList"
+                "https://www.cardmarket.com/*/Magic/Wants/*/AddDeckList",
+                "https://www.cardmarket.com/*/*/Wants/ShoppingWizard/*"
             ],
             "js": [
                 "js/wantslist_export.js"

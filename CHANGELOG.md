@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
 ## [2026.8.0.0] - 2026-08-13
+### Added
+- Added error notifications with a link to create an issue
+- Added display of the cheapest printing of an offer for comparison: https://github.com/SuppenNudel/cardmarket-helper/issues/6
+
+### Fixed
+- “Mark as packed” now works for other TCGs as well
+
+### Changed
+- Switched from `storage.sync` to `storage.local` because sync was unreliable and caused quota exceeded errors
+
 
 ## [2026.5.2.0] - 2026-05-19
 ### Added
