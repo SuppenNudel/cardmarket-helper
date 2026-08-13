@@ -9,6 +9,7 @@ console.log('Background script loading...');
 
 const CACHE_DURATION_24H = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_DELAY = 100; // 100ms between requests (10 req/sec for Scryfall)
+const STORAGE_MIGRATION_FLAG = '__syncToLocalMigrationV1Done';
 
 const KEY_ACCESSORIES = 'accessories';
 const KEY_PRICEDATA_ACCESSORIES = 'pricedata-accessories';
@@ -202,6 +203,50 @@ async function checkPermissions() {
 }
 
 checkPermissions();
+
+// ============================================================================
+// One-Time Storage Migration (sync -> local)
+// ============================================================================
+
+async function migrateSyncStorageToLocalIfNeeded() {
+    try {
+        const migrationState = await browser.storage.local.get(STORAGE_MIGRATION_FLAG);
+        if (migrationState[STORAGE_MIGRATION_FLAG]) {
+            return;
+        }
+
+        const [syncData, localData] = await Promise.all([
+            browser.storage.sync.get(null),
+            browser.storage.local.get(null)
+        ]);
+
+        const entriesToMigrate = Object.entries(syncData || {}).filter(([key]) => {
+            if (key === STORAGE_MIGRATION_FLAG) {
+                return false;
+            }
+            return localData[key] === undefined;
+        });
+
+        if (entriesToMigrate.length > 0) {
+            const payload = Object.fromEntries(entriesToMigrate);
+            await browser.storage.local.set(payload);
+            console.log(`Background: Migrated ${entriesToMigrate.length} key(s) from storage.sync to storage.local`);
+        }
+
+        await browser.storage.local.set({
+            [STORAGE_MIGRATION_FLAG]: {
+                migratedAt: Date.now(),
+                migratedKeys: entriesToMigrate.length
+            }
+        });
+    } catch (error) {
+        // Keep startup resilient; migration should never break extension behavior.
+        console.warn('Background: sync-to-local migration skipped due to error:', error);
+    }
+}
+
+// Silent best-effort migration at startup.
+migrateSyncStorageToLocalIfNeeded();
 
 // ============================================================================
 // Data Handlers
