@@ -1,21 +1,18 @@
-async function waitFor(searchElement, selector, attribute, interval = 100, timeout = 5000) {
-    const startTime = Date.now();
+function getMkmIdFromRow(articleRow) {
+    const img = articleRow.querySelector("div.col-thumbnail img");
+    const thumbnailIcon = articleRow.querySelector("span.thumbnail-icon");
+    const attributeId = img?.getAttribute("mkmId") || thumbnailIcon?.getAttribute("mkmId");
+    if (attributeId) {
+        return Number(attributeId);
+    }
 
-    return new Promise((resolve, reject) => {
-        const timer = setInterval(() => {
-            const element = searchElement.querySelector(selector);
-            if (element && element.hasAttribute(attribute)) {
-                clearInterval(timer); // Stop polling
-                resolve(element); // Resolve the promise with the found element
-            }
-
-            // Stop after a certain timeout
-            if (Date.now() - startTime > timeout) {
-                clearInterval(timer);
-                reject(new Error(`Attribute "${attribute}" not found on element "${selector}" within ${timeout}ms`));
-            }
-        }, interval);
-    });
+    const source = img?.src
+        || thumbnailIcon?.title
+        || thumbnailIcon?.getAttribute("aria-label")
+        || thumbnailIcon?.getAttribute("data-bs-title")
+        || "";
+    const match = source.match(/\/(\d+)\.[^\/.?]+(?:\?|$)/);
+    return match ? Number(match[1]) : null;
 }
 
 function replaceTextInNode(node, placeholder, value) {
@@ -47,8 +44,12 @@ async function initFields(productDataPromise) {
 
     const tasks = Array.from(articleRows).map(async (articleRow) => {
         const articleId = articleRow.id;
-        const image = await waitFor(articleRow, "div.col-thumbnail img", "mkmId");
-        const mkmId = Number(image.getAttribute("mkmId"));
+        const mkmId = getMkmIdFromRow(articleRow);
+        if (!mkmId) {
+            console.warn(`Skipping article row ${articleId}: Cardmarket product ID not found`);
+            return;
+        }
+
         const productData = await productDataPromise;
         const mkmProduct = productData.products[mkmId];
         const cardname = mkmProduct.name.replaceAll("\"\"", "\"");
