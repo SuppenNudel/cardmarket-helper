@@ -39,7 +39,13 @@ async function getCachedCardmarketData(key) {
             throw new Error(response.error || 'Unknown error from background script');
         }
     } catch (error) {
-        console.error(`Error getting cached data for ${key}:`, error);
+        // Log transient network errors as warnings, not errors, to avoid alarming users
+        const isNetworkError = error.message && error.message.includes('NetworkError');
+        if (isNetworkError) {
+            console.warn(`Network issue fetching ${key} (will retry next load):`, error.message);
+        } else {
+            console.error(`Error getting cached data for ${key}:`, error);
+        }
         return null;
     }
 }

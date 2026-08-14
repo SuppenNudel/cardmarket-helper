@@ -517,6 +517,11 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         return;
     }
     pricePromise.then(result => {
+        if (!result || !result.priceGuides) {
+            // Price data unavailable (network error or missing cache)
+            return;
+        }
+        
         const marketData = result;
         const prices = getPricesByMkmId(marketData.priceGuides, mkmid);
 
