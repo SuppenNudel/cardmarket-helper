@@ -101,24 +101,51 @@ function getComparableMetrics(priceGuide) {
     return comparable;
 }
 
+function getProductGroupingKey(product) {
+    if (!product) {
+        return null;
+    }
+
+    // For singles, use idMetacard (groups all printings of the same card)
+    if (product.idMetacard != null) {
+        return String(product.idMetacard);
+    }
+
+    // For non-singles and accessories, group by name + expansion
+    const name = String(product.enName || product.name || product.localizedName || '');
+    const expansion = String(product.expansionName || product.setName || product.expansion || '');
+    if (name && expansion) {
+        return `${name}::${expansion}`;
+    }
+    if (name) {
+        return name;
+    }
+
+    return null;
+}
+
 function buildCheapestMetacardPriceIndex(priceGuides, productsById) {
     const cheapestByMetacard = {};
 
     for (const [idProduct, product] of Object.entries(productsById)) {
-        if (!product || product.idMetacard == null) {
+        if (!product) {
             continue;
         }
 
-        const metacardId = String(product.idMetacard);
+        const groupingKey = getProductGroupingKey(product);
+        if (!groupingKey) {
+            continue;
+        }
+
         const productPriceGuide = priceGuides[idProduct];
         const comparableMetrics = getComparableMetrics(productPriceGuide);
         if (!comparableMetrics) {
             continue;
         }
 
-        const currentCheapest = cheapestByMetacard[metacardId];
+        const currentCheapest = cheapestByMetacard[groupingKey];
         if (!currentCheapest || comparableMetrics.low < currentCheapest.low) {
-            cheapestByMetacard[metacardId] = {
+            cheapestByMetacard[groupingKey] = {
                 low: comparableMetrics.low,
                 avg: comparableMetrics.avg,
                 trend: comparableMetrics.trend,
@@ -522,20 +549,10 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         priceContainer.style.textAlign = "right";
     
         const currentProduct = marketData.productsById ? marketData.productsById[String(mkmid)] : null;
-        const metacardId = currentProduct && currentProduct.idMetacard != null ? String(currentProduct.idMetacard) : null;
-        const cheapestMetaPrice = metacardId ? marketData.cheapestByMetacard[metacardId] : null;
-        const isCurrentPrintingCheapest = cheapestMetaPrice && String(cheapestMetaPrice.idProduct) === String(mkmid);
-        const cheapestProduct = cheapestMetaPrice && marketData.productsById
-            ? marketData.productsById[String(cheapestMetaPrice.idProduct)]
-            : null;
-        const cheapestProductSetName = getProductSetName(cheapestProduct)
-            ? String(getProductSetName(cheapestProduct))
-            : null;
-        const cheapestProductUrl = cheapestMetaPrice ? buildProductUrlById(cheapestMetaPrice.idProduct) : null;
+        const isNonSingle = !currentProduct || !currentProduct.idMetacard;
 
         const metricsWrapper = document.createElement("div");
         metricsWrapper.style.display = "grid";
-        metricsWrapper.style.gridTemplateColumns = "max-content max-content";
         metricsWrapper.style.columnGap = "10px";
         metricsWrapper.style.rowGap = "2px";
         metricsWrapper.style.marginTop = "4px";
@@ -543,6 +560,14 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         metricsWrapper.style.justifyContent = "end";
         metricsWrapper.style.alignSelf = "flex-end";
         metricsWrapper.style.textAlign = "left";
+
+        // For non-singles, only show single column; for singles, show two columns
+        if (isNonSingle) {
+            metricsWrapper.style.gridTemplateColumns = "max-content";
+        } else {
+            metricsWrapper.style.gridTemplateColumns = "max-content max-content";
+        }
+
         priceContainer.appendChild(metricsWrapper);
 
         const exactHeader = document.createElement("div");
@@ -551,42 +576,9 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         exactHeader.style.fontSize = "0.8em";
         metricsWrapper.appendChild(exactHeader);
 
-        const cheapestHeader = document.createElement("div");
-        cheapestHeader.style.fontWeight = "600";
-        cheapestHeader.style.fontSize = "0.8em";
-
-        const cheapestHeaderLabel = cheapestProductSetName
-            ? `Cheapest\n${cheapestProductSetName}`
-            : "Cheapest";
-
-        if (cheapestProductUrl && !isCurrentPrintingCheapest) {
-            const cheapestLink = document.createElement("a");
-            cheapestLink.href = cheapestProductUrl;
-            cheapestLink.target = "_blank";
-            cheapestLink.rel = "noopener noreferrer";
-            cheapestLink.textContent = cheapestHeaderLabel;
-            cheapestLink.style.whiteSpace = "pre-line";
-            cheapestLink.style.lineHeight = "1.2";
-            if (cheapestProductSetName) {
-                attachImmediateTooltip(cheapestLink, cheapestProductSetName);
-            }
-            cheapestHeader.appendChild(cheapestLink);
-        } else {
-            cheapestHeader.textContent = cheapestHeaderLabel;
-            cheapestHeader.style.whiteSpace = "pre-line";
-            cheapestHeader.style.lineHeight = "1.2";
-            if (cheapestProductSetName) {
-                attachImmediateTooltip(cheapestHeader, cheapestProductSetName);
-            }
-        }
-        metricsWrapper.appendChild(cheapestHeader);
-
         const exactLines = document.createElement("div");
-        const cheapestLines = document.createElement("div");
         exactLines.style.fontSize = "0.9em";
-        cheapestLines.style.fontSize = "0.9em";
         exactLines.style.textAlign = "left";
-        cheapestLines.style.textAlign = "left";
 
         function appendMetricLine(container, icon, value, color) {
             const line = document.createElement("div");
@@ -606,24 +598,73 @@ function checkPriceWithCardmarket(articleRow, mkmid, pricePromise) {
         appendMetricLine(exactLines, "↔️", avg, avg ? getColorBasedOnPercentageRange(avg, offer) : null);
         appendMetricLine(exactLines, "📈", trend, trend ? getColorBasedOnPercentageRange(trend, offer) : null);
 
-        if (isCurrentPrintingCheapest) {
-            const samePrintingLine = document.createElement("div");
-            samePrintingLine.innerText = "this printing";
-            samePrintingLine.style.color = "gray";
-            samePrintingLine.style.fontStyle = "italic";
-            cheapestLines.appendChild(samePrintingLine);
-        } else {
-            const cheapestLow = cheapestMetaPrice && typeof cheapestMetaPrice.low === 'number' ? cheapestMetaPrice.low : null;
-            const cheapestAvg = cheapestMetaPrice && typeof cheapestMetaPrice.avg === 'number' ? cheapestMetaPrice.avg : null;
-            const cheapestTrend = cheapestMetaPrice && typeof cheapestMetaPrice.trend === 'number' ? cheapestMetaPrice.trend : null;
-
-            appendMetricLine(cheapestLines, "⬇️", cheapestLow, cheapestLow ? getColorForLowPrice(cheapestLow, offer) : null);
-            appendMetricLine(cheapestLines, "↔️", cheapestAvg, cheapestAvg ? getColorBasedOnPercentageRange(cheapestAvg, offer) : null);
-            appendMetricLine(cheapestLines, "📈", cheapestTrend, cheapestTrend ? getColorBasedOnPercentageRange(cheapestTrend, offer) : null);
-        }
-
         metricsWrapper.appendChild(exactLines);
-        metricsWrapper.appendChild(cheapestLines);
+
+        // Only add cheapest column for singles
+        if (!isNonSingle) {
+            const metacardId = currentProduct ? getProductGroupingKey(currentProduct) : null;
+            const cheapestMetaPrice = metacardId ? marketData.cheapestByMetacard[metacardId] : null;
+            const isCurrentPrintingCheapest = cheapestMetaPrice && String(cheapestMetaPrice.idProduct) === String(mkmid);
+            const cheapestProduct = cheapestMetaPrice && marketData.productsById
+                ? marketData.productsById[String(cheapestMetaPrice.idProduct)]
+                : null;
+            const cheapestProductSetName = getProductSetName(cheapestProduct)
+                ? String(getProductSetName(cheapestProduct))
+                : null;
+            const cheapestProductUrl = cheapestMetaPrice ? buildProductUrlById(cheapestMetaPrice.idProduct) : null;
+
+            const cheapestHeader = document.createElement("div");
+            cheapestHeader.style.fontWeight = "600";
+            cheapestHeader.style.fontSize = "0.8em";
+
+            const cheapestHeaderLabel = cheapestProductSetName
+                ? `Cheapest\n${cheapestProductSetName}`
+                : "Cheapest";
+
+            if (cheapestProductUrl && !isCurrentPrintingCheapest) {
+                const cheapestLink = document.createElement("a");
+                cheapestLink.href = cheapestProductUrl;
+                cheapestLink.target = "_blank";
+                cheapestLink.rel = "noopener noreferrer";
+                cheapestLink.textContent = cheapestHeaderLabel;
+                cheapestLink.style.whiteSpace = "pre-line";
+                cheapestLink.style.lineHeight = "1.2";
+                if (cheapestProductSetName) {
+                    attachImmediateTooltip(cheapestLink, cheapestProductSetName);
+                }
+                cheapestHeader.appendChild(cheapestLink);
+            } else {
+                cheapestHeader.textContent = cheapestHeaderLabel;
+                cheapestHeader.style.whiteSpace = "pre-line";
+                cheapestHeader.style.lineHeight = "1.2";
+                if (cheapestProductSetName) {
+                    attachImmediateTooltip(cheapestHeader, cheapestProductSetName);
+                }
+            }
+            metricsWrapper.appendChild(cheapestHeader);
+
+            const cheapestLines = document.createElement("div");
+            cheapestLines.style.fontSize = "0.9em";
+            cheapestLines.style.textAlign = "left";
+
+            if (isCurrentPrintingCheapest) {
+                const samePrintingLine = document.createElement("div");
+                samePrintingLine.innerText = "this printing";
+                samePrintingLine.style.color = "gray";
+                samePrintingLine.style.fontStyle = "italic";
+                cheapestLines.appendChild(samePrintingLine);
+            } else {
+                const cheapestLow = cheapestMetaPrice && typeof cheapestMetaPrice.low === 'number' ? cheapestMetaPrice.low : null;
+                const cheapestAvg = cheapestMetaPrice && typeof cheapestMetaPrice.avg === 'number' ? cheapestMetaPrice.avg : null;
+                const cheapestTrend = cheapestMetaPrice && typeof cheapestMetaPrice.trend === 'number' ? cheapestMetaPrice.trend : null;
+
+                appendMetricLine(cheapestLines, "⬇️", cheapestLow, cheapestLow ? getColorForLowPrice(cheapestLow, offer) : null);
+                appendMetricLine(cheapestLines, "↔️", cheapestAvg, cheapestAvg ? getColorBasedOnPercentageRange(cheapestAvg, offer) : null);
+                appendMetricLine(cheapestLines, "📈", cheapestTrend, cheapestTrend ? getColorBasedOnPercentageRange(cheapestTrend, offer) : null);
+            }
+
+            metricsWrapper.appendChild(cheapestLines);
+        }
     });
     
 }

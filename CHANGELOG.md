@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.8.0.1] - 2026-08-14
+### Fixed
+- Cheapest printing feature removed for non-single products
+
 ## [2026.8.0.0] - 2026-08-13
 ### Added
 - Added error notifications with a link to create an issue
