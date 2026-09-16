@@ -249,6 +249,143 @@ async function migrateSyncStorageToLocalIfNeeded() {
 migrateSyncStorageToLocalIfNeeded();
 
 // ============================================================================
+// Orders (Packed State) Sync - storage.sync <-> storage.local
+// ============================================================================
+// Each packed order gets its own "packed_<orderId>" key (value = timestamp),
+// instead of one big "orders" object. storage.sync enforces an 8KB-per-item
+// quota, so a single combined key caps out at ~145 orders; per-key storage is
+// instead bounded by the 100KB total / 512 item quota (~500+ orders).
+// Only these small keys are synced; everything else stays in storage.local.
+
+const PACKED_KEY_PREFIX = 'packed_';
+const PACKED_KEY_SPLIT_MIGRATION_FLAG = '__packedKeySplitMigrationV1Done';
+// Orders are shipped well within this window; anything older is stale and safe to drop.
+const PACKED_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+
+function isPackedKey(key) {
+    return typeof key === 'string' && key.startsWith(PACKED_KEY_PREFIX);
+}
+
+async function migratePackedOrdersToPerKeyIfNeeded() {
+    try {
+        const migrationState = await browser.storage.local.get(PACKED_KEY_SPLIT_MIGRATION_FLAG);
+        if (migrationState[PACKED_KEY_SPLIT_MIGRATION_FLAG]) {
+            return;
+        }
+
+        const [localResult, syncResult] = await Promise.all([
+            browser.storage.local.get('orders'),
+            browser.storage.sync.get('orders')
+        ]);
+
+        const legacyOrders = { ...(syncResult.orders || {}), ...(localResult.orders || {}) };
+        const payload = {};
+        for (const [orderId, entry] of Object.entries(legacyOrders)) {
+            if (entry && entry.timestamp) {
+                payload[PACKED_KEY_PREFIX + orderId] = entry.timestamp;
+            }
+        }
+
+        if (Object.keys(payload).length > 0) {
+            await Promise.all([
+                browser.storage.local.set(payload),
+                browser.storage.sync.set(payload)
+            ]);
+            console.log(`Background: Migrated ${Object.keys(payload).length} packed order(s) to per-key storage`);
+        }
+
+        await Promise.all([
+            browser.storage.local.remove('orders'),
+            browser.storage.sync.remove('orders'),
+            browser.storage.local.set({ [PACKED_KEY_SPLIT_MIGRATION_FLAG]: true })
+        ]);
+    } catch (error) {
+        console.warn('Background: packed orders key-split migration skipped due to error:', error);
+    }
+}
+
+async function reconcileOrdersWithSync() {
+    try {
+        const [localData, syncData] = await Promise.all([
+            browser.storage.local.get(null),
+            browser.storage.sync.get(null)
+        ]);
+
+        const now = Date.now();
+        const localSet = {};
+        const syncSet = {};
+        const localRemove = [];
+        const syncRemove = [];
+
+        const allKeys = new Set([
+            ...Object.keys(localData).filter(isPackedKey),
+            ...Object.keys(syncData).filter(isPackedKey)
+        ]);
+
+        for (const key of allKeys) {
+            const localValue = localData[key];
+            const syncValue = syncData[key];
+            const newest = Math.max(localValue || 0, syncValue || 0);
+
+            if (now - newest > PACKED_MAX_AGE_MS) {
+                // Order is well past shipping, packed marker is no longer needed.
+                if (localValue !== undefined) localRemove.push(key);
+                if (syncValue !== undefined) syncRemove.push(key);
+                continue;
+            }
+
+            if (localValue !== newest) localSet[key] = newest;
+            if (syncValue !== newest) syncSet[key] = newest;
+        }
+
+        await Promise.all([
+            Object.keys(localSet).length > 0 ? browser.storage.local.set(localSet) : null,
+            Object.keys(syncSet).length > 0 ? browser.storage.sync.set(syncSet) : null,
+            localRemove.length > 0 ? browser.storage.local.remove(localRemove) : null,
+            syncRemove.length > 0 ? browser.storage.sync.remove(syncRemove) : null
+        ]);
+    } catch (error) {
+        console.warn('Background: orders sync reconciliation failed:', error);
+    }
+}
+
+async function mirrorPackedKey(targetArea, key, newValue) {
+    try {
+        const current = await targetArea.get(key);
+        // Skip redundant writes so mirroring both directions can't loop forever.
+        if (current[key] === newValue) {
+            return;
+        }
+        if (newValue === undefined) {
+            await targetArea.remove(key);
+        } else {
+            await targetArea.set({ [key]: newValue });
+        }
+    } catch (error) {
+        console.warn(`Background: failed to mirror packed key ${key}:`, error);
+    }
+}
+
+browser.storage.onChanged.addListener((changes, area) => {
+    const packedChanges = Object.entries(changes).filter(([key]) => isPackedKey(key));
+    if (packedChanges.length === 0) {
+        return;
+    }
+    const targetArea = area === 'local' ? browser.storage.sync : (area === 'sync' ? browser.storage.local : null);
+    if (!targetArea) {
+        return;
+    }
+    for (const [key, change] of packedChanges) {
+        mirrorPackedKey(targetArea, key, change.newValue);
+    }
+});
+
+(async function initPackedOrdersSync() {
+    await migratePackedOrdersToPerKeyIfNeeded();
+    await reconcileOrdersWithSync();
+})();
+
+// ============================================================================
 // Data Handlers
 // ============================================================================
 

@@ -1,10 +1,12 @@
-function packedLoaded(orders) {
+// Must match PACKED_KEY_PREFIX in background.js.
+const PACKED_KEY_PREFIX = 'packed_';
+
+function packedLoaded(packedOrderIds) {
     const rows = document.querySelectorAll("#StatusTable .table-body > .row");
     for(const row of rows) {
         const colId = row.querySelectorAll(":scope > div")[1];
         const orderId = colId.textContent.trim();
-        const order = orders[orderId];
-        if(order && order.timestamp) {
+        if(packedOrderIds.has(orderId)) {
             const sellerNameElement = row.querySelector("span.seller-name > span:nth-of-type(2) > span");
             sellerNameElement.textContent += " - Packed";
         } else {
@@ -15,9 +17,13 @@ function packedLoaded(orders) {
 
 (async function main() {
     console.log("sales-paid.js");
-    browser.storage.local.get('orders').then(result => {
-        let orders = result.orders || {}; // Get the current object or use an empty object if not found
-        packedLoaded(orders);
+    browser.storage.local.get(null).then(result => {
+        const packedOrderIds = new Set(
+            Object.keys(result)
+                .filter(key => key.startsWith(PACKED_KEY_PREFIX) && result[key])
+                .map(key => key.slice(PACKED_KEY_PREFIX.length))
+        );
+        packedLoaded(packedOrderIds);
     }).catch(error => {
         console.error('Error updating object:', error);
     });
