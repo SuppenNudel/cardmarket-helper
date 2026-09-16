@@ -1,3 +1,10 @@
+// Must match PACKED_KEY_PREFIX in background.js.
+const PACKED_KEY_PREFIX = 'packed_';
+
+function packedKey(orderId) {
+    return PACKED_KEY_PREFIX + orderId;
+}
+
 function updatePackedButton(orderId, timestamp) {
     const button = document.getElementById("packedButton");
     if (!button) {
@@ -70,24 +77,33 @@ function updatePackedTimeline(timestamp) {
 }
 
 function updatePackedStorage(orderId, timestamp) {
-    browser.storage.local.get('orders').then(result => {
-        const orders = result.orders || {};
+    const key = packedKey(orderId);
+    const storagePromise = timestamp
+        ? browser.storage.local.set({ [key]: timestamp })
+        : browser.storage.local.remove(key);
 
-        if (timestamp) {
-            orders[orderId] = {
-                timestamp: timestamp,
-                orderId: orderId
-            };
-        } else {
-            delete orders[orderId];
-        }
-
-        return browser.storage.local.set({ orders: orders });
-    }).then(() => {
+    storagePromise.then(() => {
         updatePackedTimeline(timestamp);
         updatePackedButton(orderId, timestamp);
     }).catch(error => {
         console.error('Error updating packed state:', error);
+    });
+}
+
+function clearPackedStorage(orderId) {
+    return browser.storage.local.remove(packedKey(orderId)).catch(error => {
+        console.error('Error clearing packed state:', error);
+    });
+}
+
+function addShipmentConfirmListener(orderId) {
+    // Form action looks like "/<lang>/Magic/PostGetAction/Shipment_ConfirmShipment".
+    const shipmentConfirmForms = document.querySelectorAll('form[action*="/PostGetAction/Shipment_ConfirmShipment"]');
+    shipmentConfirmForms.forEach(form => {
+        form.addEventListener('submit', () => {
+            // Once shipped, the packed marker has served its purpose.
+            clearPackedStorage(orderId);
+        });
     });
 }
 
@@ -169,10 +185,10 @@ function getOrderIdFromPage() {
         return;
     }
 
-    browser.storage.local.get('orders').then(result => {
-        const orders = result.orders || {};
-        const order = orders[orderId];
-        const timestamp = order ? order.timestamp : null;
+    addShipmentConfirmListener(orderId);
+
+    browser.storage.local.get(packedKey(orderId)).then(result => {
+        const timestamp = result[packedKey(orderId)] || null;
 
         addPackedButton(orderId, timestamp);
         addPackedTimeline(timestamp);
