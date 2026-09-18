@@ -13,6 +13,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 
 ### Fixed
 - Order details and Sales/Paid rows now update immediately when synchronized packed state changes
+- Marking an order as packed now schedules its automatic Google Drive sync
 
 ### Added
 - Optional Google Drive sync using hidden Drive `appDataFolder` files for settings, packed order state, and collection data

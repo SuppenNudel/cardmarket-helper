@@ -137,8 +137,13 @@ async function updateSyncMeta(changes) {
         if (isDriveSettingsKey(key)) {
             meta.settingsUpdatedAt[key] = changedAt;
             changed = true;
-        } else if (isDrivePackedKey(key) && change.newValue === undefined) {
-            meta.packedDeletedAt[getPackedOrderId(key)] = changedAt;
+        } else if (isDrivePackedKey(key)) {
+            const orderId = getPackedOrderId(key);
+            if (change.newValue === undefined) {
+                meta.packedDeletedAt[orderId] = changedAt;
+            } else {
+                delete meta.packedDeletedAt[orderId];
+            }
             changed = true;
         } else if (isDriveCollectionKey(key)) {
             meta.collectionUpdatedAt = changedAt;
@@ -321,6 +326,11 @@ async function applyMergedState(merged) {
             await browser.storage.local.remove(removeKeys);
         }
 
+        console.log('Google Drive packed state applied:', {
+            set: Object.keys(setPayload).filter(isDrivePackedKey),
+            removed: removeKeys.filter(isDrivePackedKey)
+        });
+
         const meta = await getSyncMeta();
         meta.settingsUpdatedAt = {};
         for (const [key, entry] of Object.entries(merged.settings.items || {})) {
@@ -441,6 +451,13 @@ async function syncNow() {
             packed: mergePacked(localState.packed, remoteState.packed),
             collection: mergeCollection(localState.collection, remoteState.collection)
         };
+        console.log('Google Drive packed state merged:', {
+            local: Object.keys(localState.packed.orders || {}),
+            remote: Object.keys(remoteState.packed && remoteState.packed.orders || {}),
+            remoteDeleted: Object.keys(remoteState.packed && remoteState.packed.deletedAt || {}),
+            merged: Object.keys(merged.packed.orders || {}),
+            mergedDeleted: Object.keys(merged.packed.deletedAt || {})
+        });
         await applyMergedState(merged);
         await pushMergedState(merged);
         const config = await setSyncConfig({ lastSyncAt: nowMs(), lastError: null });
