@@ -29,7 +29,7 @@
             font-family: "Segoe UI", "Trebuchet MS", "Helvetica Neue", sans-serif;
             background: radial-gradient(circle at 15% 15%, #ffffff 0%, var(--bg-start) 45%, var(--bg-end) 100%);
             color: var(--text-main);
-            padding: 24px 16px;
+            padding: 0 16px 16px;
             display: flex;
             justify-content: center;
             align-items: flex-start;
@@ -244,7 +244,64 @@
             background: #ffffff;
         }
 
+        .drive-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .action-button {
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+            font-weight: 700;
+            padding: 8px 12px;
+        }
+
+        .action-button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+        }
+
+        .action-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .drive-status {
+            margin-top: 10px;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            line-height: 1.4;
+        }
+
+        .drive-code-panel {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #b7d9f8;
+            border-radius: 8px;
+            background: var(--accent-soft);
+        }
+
+        .drive-code-panel.is-visible {
+            display: block;
+        }
+
+        .drive-code-panel a {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
         @media (max-width: 600px) {
+            body {
+                padding: 0 8px 12px;
+            }
+
             .settings-content {
                 padding: 16px;
             }
@@ -256,6 +313,7 @@
             .setting-fields-grid {
                 grid-template-columns: 1fr 1fr;
             }
+
         }
     </style>
 </head>
@@ -347,6 +405,20 @@
                         </span>
                     </label>
                 </div>
+            </div>
+
+            <div class="setting-row">
+                <p class="setting-section-title">Google Drive Sync</p>
+                <p class="drive-status">Connecting sends OAuth credentials through the Cardmarket Helper authentication service. Settings, packed order IDs and timestamps, and the imported collection are stored in your hidden Google Drive app data. Declining leaves all data on this device.</p>
+                <div class="drive-actions">
+                    <button id="drive-connect" class="action-button primary" type="button">Connect</button>
+                    <button id="drive-sync-now" class="action-button" type="button">Sync now</button>
+                    <button id="drive-disconnect" class="action-button" type="button">Disconnect</button>
+                </div>
+                <div id="drive-auth-panel" class="drive-code-panel">
+                    <a id="drive-auth-link" href="#" target="_blank" rel="noreferrer">Continue Google authorization</a>
+                </div>
+                <div id="drive-status" class="drive-status">Google Drive sync is not connected.</div>
             </div>
 
             <p class="settings-note">Changes are saved automatically.</p>

@@ -141,7 +141,155 @@ function setupPriceAutofill() {
     }
 }
 
+async function sendDriveSyncAction(action, payload = {}) {
+    const response = await browser.runtime.sendMessage({ action, ...payload });
+    if (!response || !response.success) {
+        throw new Error(response && response.error || `Action failed: ${action}`);
+    }
+    return response.data;
+}
+
+function formatSyncTime(timestamp) {
+    if (!timestamp) {
+        return 'Never synced';
+    }
+    return `Last synced ${new Date(timestamp).toLocaleString()}`;
+}
+
+function setupGoogleDriveSync() {
+    const connectButton = document.getElementById('drive-connect');
+    const syncNowButton = document.getElementById('drive-sync-now');
+    const disconnectButton = document.getElementById('drive-disconnect');
+    const authPanel = document.getElementById('drive-auth-panel');
+    const authLink = document.getElementById('drive-auth-link');
+    const statusElement = document.getElementById('drive-status');
+    let pollTimer = null;
+    let lastStatus = null;
+
+    if (!connectButton || !syncNowButton || !disconnectButton || !authPanel || !authLink || !statusElement) {
+        return;
+    }
+
+    function setBusy(isBusy) {
+        if (isBusy) {
+            connectButton.disabled = true;
+            syncNowButton.disabled = true;
+            disconnectButton.disabled = true;
+        } else if (lastStatus) {
+            renderStatus(lastStatus);
+        }
+    }
+
+    function renderStatus(status) {
+        lastStatus = status;
+        authPanel.classList.toggle('is-visible', Boolean(status.pendingAuth));
+        if (status.pendingAuth) {
+            authLink.href = status.pendingAuth.authorizationUrl;
+        }
+
+        connectButton.disabled = status.isConnected;
+        syncNowButton.disabled = !status.isConnected;
+        disconnectButton.disabled = !status.isConnected && !status.pendingAuth;
+
+        if (status.pendingAuth) {
+            statusElement.textContent = 'Waiting for Google authorization.';
+        } else if (status.isConnected) {
+            statusElement.textContent = `Connected using hidden Drive app data. ${formatSyncTime(status.lastSyncAt)}.`;
+        } else {
+            statusElement.textContent = 'Google Drive sync is not connected.';
+        }
+
+        if (status.lastError) {
+            statusElement.textContent += ` Error: ${status.lastError}`;
+        }
+    }
+
+    async function refreshStatus() {
+        const status = await sendDriveSyncAction('googleDriveSyncGetStatus');
+        renderStatus(status);
+        return status;
+    }
+
+    function stopPolling() {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+
+    function startPolling(intervalSeconds) {
+        stopPolling();
+        pollTimer = setInterval(async () => {
+            try {
+                const status = await sendDriveSyncAction('googleDriveSyncPollAuth');
+                renderStatus(status);
+                if (status.isConnected || !status.pendingAuth) {
+                    stopPolling();
+                    await refreshStatus();
+                }
+            } catch (error) {
+                stopPolling();
+                statusElement.textContent = error.message;
+            }
+        }, Math.max(intervalSeconds || 5, 5) * 1000);
+    }
+
+    connectButton.addEventListener('click', async () => {
+        setBusy(true);
+        try {
+            const status = await sendDriveSyncAction('googleDriveSyncStartAuth');
+            renderStatus(status);
+            if (status.pendingAuth && status.pendingAuth.authorizationUrl) {
+                if (browser.tabs && browser.tabs.create) {
+                    await browser.tabs.create({ url: status.pendingAuth.authorizationUrl });
+                } else {
+                    window.open(status.pendingAuth.authorizationUrl, '_blank', 'noopener,noreferrer');
+                }
+                startPolling(status.pendingAuth.interval);
+            }
+        } catch (error) {
+            statusElement.textContent = error.message;
+        } finally {
+            setBusy(false);
+        }
+    });
+
+    syncNowButton.addEventListener('click', async () => {
+        setBusy(true);
+        try {
+            const status = await sendDriveSyncAction('googleDriveSyncNow');
+            renderStatus(status);
+        } catch (error) {
+            statusElement.textContent = error.message;
+        } finally {
+            setBusy(false);
+            await refreshStatus();
+        }
+    });
+
+    disconnectButton.addEventListener('click', async () => {
+        setBusy(true);
+        try {
+            stopPolling();
+            const status = await sendDriveSyncAction('googleDriveSyncDisconnect');
+            renderStatus(status);
+        } catch (error) {
+            statusElement.textContent = error.message;
+        } finally {
+            setBusy(false);
+            await refreshStatus();
+        }
+    });
+
+    refreshStatus().then(status => {
+        if (status.pendingAuth) {
+            startPolling(status.pendingAuth.interval);
+        }
+    }).catch(error => {
+        statusElement.textContent = error.message;
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     setupThumbnailSize();
     setupPriceAutofill();
+    setupGoogleDriveSync();
 });

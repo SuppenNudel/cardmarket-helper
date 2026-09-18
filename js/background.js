@@ -537,6 +537,26 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 case 'getInstallType':
                     result = await browser.management.getSelf().then(info => info.installType);
                     break;
+
+                case 'googleDriveSyncGetStatus':
+                    result = await GoogleDriveSync.getStatus();
+                    break;
+
+                case 'googleDriveSyncStartAuth':
+                    result = await GoogleDriveSync.startAuth();
+                    break;
+
+                case 'googleDriveSyncPollAuth':
+                    result = await GoogleDriveSync.pollAuth();
+                    break;
+
+                case 'googleDriveSyncNow':
+                    result = await GoogleDriveSync.syncNow();
+                    break;
+
+                case 'googleDriveSyncDisconnect':
+                    result = await GoogleDriveSync.disconnect();
+                    break;
                     
                 default:
                     throw new Error(`Unknown action: ${request.action}`);

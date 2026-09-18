@@ -20,11 +20,17 @@
             "data_collection_permissions": {
                 "required": [
                     "none"
+                ],
+                "optional": [
+                    "authenticationInfo",
+                    "technicalAndInteraction",
+                    "websiteContent"
                 ]
             }
         }
     },
     "permissions": [
+        "alarms",
         "storage"
     ],
     "options_ui": {
@@ -34,11 +40,14 @@
     },
     "host_permissions": [
         "https://api.scryfall.com/*",
+        "https://cardmarket-helper.rohm-cedric.workers.dev/*",
         "https://downloads.s3.cardmarket.com/*",
+        "https://www.googleapis.com/*",
         "https://raw.githubusercontent.com/*"
     ],
     "background": {
         "scripts": [
+            "js/google-drive-sync.js",
             "js/background.js"
         ]
     },

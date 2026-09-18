@@ -1,8 +1,0 @@
-.deployignore
-deploy.py
-doc
-.gitignore
-LICENSE
-readme.md
-.git
-*.zip
