@@ -11,6 +11,9 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 - Each packed order is stored under its own key instead of one combined object, avoiding `storage.sync`'s 8KB-per-item quota
 - The packed marker is automatically cleared once an order's shipment is confirmed, and stale markers (90+ days old) are pruned automatically
 
+### Fixed
+- Order details and Sales/Paid rows now update immediately when synchronized packed state changes
+
 ### Added
 - Optional Google Drive sync using hidden Drive `appDataFolder` files for settings, packed order state, and collection data
 - Cloudflare Worker OAuth broker so users can connect on desktop and Android without entering or receiving client credentials

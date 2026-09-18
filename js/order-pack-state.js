@@ -187,6 +187,19 @@ function getOrderIdFromPage() {
 
     addShipmentConfirmListener(orderId);
 
+    browser.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local') {
+            return;
+        }
+        const change = changes[packedKey(orderId)];
+        if (!change) {
+            return;
+        }
+        const timestamp = change.newValue || null;
+        updatePackedButton(orderId, timestamp);
+        updatePackedTimeline(timestamp);
+    });
+
     browser.storage.local.get(packedKey(orderId)).then(result => {
         const timestamp = result[packedKey(orderId)] || null;
 
