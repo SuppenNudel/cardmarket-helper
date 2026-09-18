@@ -5,20 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.9.1.0] - 2026-09-08
+### Added
+- Optional Google Drive sync using hidden Drive `appDataFolder` files for settings, packed order state, and collection data
+- Cloudflare Worker OAuth broker so users can connect on desktop and Android without entering or receiving client credentials
+
 ## [2026.9.0.0] - 2026-09-16
 ### Changed
 - Only the "marked as packed" order data is synced via `storage.sync` again; everything else stays in `storage.local`
 - Each packed order is stored under its own key instead of one combined object, avoiding `storage.sync`'s 8KB-per-item quota
 - The packed marker is automatically cleared once an order's shipment is confirmed, and stale markers (90+ days old) are pruned automatically
-
-### Fixed
-- Order details and Sales/Paid rows now update immediately when synchronized packed state changes
-- Marking an order as packed now schedules its automatic Google Drive sync
-
-### Added
-- Optional Google Drive sync using hidden Drive `appDataFolder` files for settings, packed order state, and collection data
-- Cloudflare Worker OAuth broker so users can connect on desktop and Android without entering or receiving client credentials
-- Per-endpoint OAuth Worker rate limits and deployment observability
 
 ## [2026.8.0.3] - 2026-08-14
 ### Fixed
