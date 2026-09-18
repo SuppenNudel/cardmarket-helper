@@ -1,0 +1,11 @@
+.deployignore
+deploy.py
+worker.js
+cloudflare/
+client_secret_*.json
+doc
+.gitignore
+LICENSE
+readme.md
+.git
+*.zip

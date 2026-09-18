@@ -18,6 +18,7 @@ and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATUR
 ### Added
 - Optional Google Drive sync using hidden Drive `appDataFolder` files for settings, packed order state, and collection data
 - Cloudflare Worker OAuth broker so users can connect on desktop and Android without entering or receiving client credentials
+- Per-endpoint OAuth Worker rate limits and deployment observability
 
 ## [2026.8.0.3] - 2026-08-14
 ### Fixed

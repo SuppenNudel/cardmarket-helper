@@ -27,9 +27,18 @@ function validateEnvironment(env) {
   if (!env.GOOGLE_CLIENT_ID) missing.push("GOOGLE_CLIENT_ID");
   if (!env.GOOGLE_CLIENT_SECRET) missing.push("GOOGLE_CLIENT_SECRET");
   if (!env.OAUTH_SESSIONS) missing.push("OAUTH_SESSIONS KV binding");
+  if (!env.AUTH_RATE_LIMITER) missing.push("AUTH_RATE_LIMITER binding");
+  if (!env.STATUS_RATE_LIMITER) missing.push("STATUS_RATE_LIMITER binding");
+  if (!env.REFRESH_RATE_LIMITER) missing.push("REFRESH_RATE_LIMITER binding");
   if (missing.length > 0) {
     throw new Error(`Worker OAuth environment is missing: ${missing.join(", ")}.`);
   }
+}
+
+async function enforceRateLimit(limiter, request, bucket) {
+  const clientAddress = request.headers.get("CF-Connecting-IP") || "unknown";
+  const { success } = await limiter.limit({ key: `${bucket}:${clientAddress}` });
+  return success ? null : jsonResponse({ error: "Too many requests. Try again shortly." }, 429);
 }
 
 async function prepareAuthorization(request, env) {
@@ -191,18 +200,28 @@ export default {
       validateEnvironment(env);
       const url = new URL(request.url);
       if (url.pathname === "/session" && request.method === "POST") {
+        const limited = await enforceRateLimit(env.AUTH_RATE_LIMITER, request, "session");
+        if (limited) return limited;
         return prepareAuthorization(request, env);
       }
       if (url.pathname === "/auth" && request.method === "GET") {
+        const limited = await enforceRateLimit(env.AUTH_RATE_LIMITER, request, "auth");
+        if (limited) return limited;
         return startAuthorization(url, env);
       }
       if (url.pathname === "/callback" && request.method === "GET") {
+        const limited = await enforceRateLimit(env.AUTH_RATE_LIMITER, request, "callback");
+        if (limited) return limited;
         return handleCallback(url, env);
       }
       if (url.pathname === "/status" && request.method === "GET") {
+        const limited = await enforceRateLimit(env.STATUS_RATE_LIMITER, request, "status");
+        if (limited) return limited;
         return getAuthorizationStatus(url, env);
       }
       if (url.pathname === "/refresh" && request.method === "POST") {
+        const limited = await enforceRateLimit(env.REFRESH_RATE_LIMITER, request, "refresh");
+        if (limited) return limited;
         return refreshAccessToken(request, env);
       }
       return new Response("Not Found", { status: 404 });
