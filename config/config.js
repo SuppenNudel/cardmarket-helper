@@ -210,6 +210,14 @@ function setupGoogleDriveSync() {
         return status;
     }
 
+    browser.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.googleDriveSync) {
+            refreshStatus().catch(error => {
+                statusElement.textContent = error.message;
+            });
+        }
+    });
+
     function stopPolling() {
         clearInterval(pollTimer);
         pollTimer = null;

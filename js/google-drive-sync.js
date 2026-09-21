@@ -11,6 +11,8 @@ const DRIVE_STORAGE_MODE_HIDDEN = 'appDataFolder';
 const DRIVE_DEBOUNCE_MS = 30000;
 const DRIVE_SYNC_ALARM_NAME = 'googleDriveSyncPeriodic';
 const DRIVE_SYNC_ALARM_PERIOD_MINUTES = 15;
+const DRIVE_AUTH_ALARM_NAME = 'googleDriveAuthPolling';
+const DRIVE_AUTH_ALARM_PERIOD_MINUTES = 1;
 const DRIVE_SYNC_FILES = {
     settings: 'settings.json',
     packed: 'packed-orders.json',
@@ -532,6 +534,18 @@ async function pollAuth() {
     return sanitizeSyncConfig(next);
 }
 
+async function pollPendingAuthInBackground() {
+    const config = await getSyncConfig();
+    if (!config.pendingAuth) {
+        return;
+    }
+    try {
+        await pollAuth();
+    } catch (error) {
+        console.warn('Google Drive background authorization polling failed:', error);
+    }
+}
+
 const GoogleDriveSync = {
     async getStatus() {
         return sanitizeSyncConfig(await getSyncConfig());
@@ -566,11 +580,14 @@ browser.storage.onChanged.addListener((changes, area) => {
 
 if (browser.alarms) {
     browser.alarms.create(DRIVE_SYNC_ALARM_NAME, { periodInMinutes: DRIVE_SYNC_ALARM_PERIOD_MINUTES });
+    browser.alarms.create(DRIVE_AUTH_ALARM_NAME, { periodInMinutes: DRIVE_AUTH_ALARM_PERIOD_MINUTES });
     browser.alarms.onAlarm.addListener(alarm => {
         if (alarm.name === DRIVE_SYNC_ALARM_NAME) {
             GoogleDriveSync.syncNow().catch(error => {
                 console.warn('Periodic Google Drive sync failed:', error);
             });
+        } else if (alarm.name === DRIVE_AUTH_ALARM_NAME) {
+            pollPendingAuthInBackground();
         }
     });
 }
