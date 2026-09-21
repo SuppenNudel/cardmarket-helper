@@ -84,6 +84,7 @@ async function parseCsvAndSave(file, fileContent) {
             filename: file.name,
             fileModifiedTime: fileModifiedTime
         });
+        console.log('Collection saved locally; Google Drive sync will be scheduled by the background script.');
         location.reload();
     } catch (error) {
         console.error('Error in parseCsvAndSave:', error);

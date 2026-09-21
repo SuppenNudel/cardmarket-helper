@@ -3,7 +3,12 @@ function collectionLoaded(collection) {
     const locationHeader = document.createElement("th");
     locationHeader.textContent = "Collection Location";
     const headerRow = document.querySelector("table.product-table thead tr");
-    headerRow.insertBefore(locationHeader, headerRow.querySelector("th.price"));
+    const priceHeader = headerRow && headerRow.querySelector("th.price");
+    if (!headerRow || !priceHeader) {
+        showThumbnails();
+        return;
+    }
+    headerRow.insertBefore(locationHeader, priceHeader);
     for (const product of products) {
         const collectionInfo = document.createElement("td");
         collectionInfo.style = "width: 250px; text-align: left;";

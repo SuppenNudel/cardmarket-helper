@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.9.1.2] - 2026-09-21
+### Added
+- Imported collection data is synchronized through `collection.json` in hidden Drive app data
+
+### Fixed
+- `can't access property "insertBefore", headerRow is null` error on orders page
+
 ## [2026.9.1.1] - 2026-09-21
+### Fixed
 - Google OAuth completion is now polled by the background script, so Android does not depend on the settings tab remaining active
 
 ## [2026.9.1.0] - 2026-09-18

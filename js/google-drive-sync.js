@@ -332,6 +332,12 @@ async function applyMergedState(merged) {
             set: Object.keys(setPayload).filter(isDrivePackedKey),
             removed: removeKeys.filter(isDrivePackedKey)
         });
+        if (merged.collection) {
+            console.log('Google Drive collection state applied:', {
+                filename: merged.collection.filename,
+                updatedAt: merged.collection.updatedAt
+            });
+        }
 
         const meta = await getSyncMeta();
         meta.settingsUpdatedAt = {};
@@ -459,6 +465,12 @@ async function syncNow() {
             remoteDeleted: Object.keys(remoteState.packed && remoteState.packed.deletedAt || {}),
             merged: Object.keys(merged.packed.orders || {}),
             mergedDeleted: Object.keys(merged.packed.deletedAt || {})
+        });
+        console.log('Google Drive collection state merged:', {
+            local: Boolean(localState.collection),
+            remote: Boolean(remoteState.collection),
+            selected: merged.collection ? 'present' : 'none',
+            updatedAt: merged.collection && merged.collection.updatedAt
         });
         await applyMergedState(merged);
         await pushMergedState(merged);
