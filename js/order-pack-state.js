@@ -96,12 +96,31 @@ function clearPackedStorage(orderId) {
     });
 }
 
+function removePackedUI() {
+    const button = document.getElementById("packedButton");
+    if (button) {
+        button.parentElement.remove();
+    }
+
+    const shippingAddressBody = document.querySelector('#collapsibleShippingAddress .shipping-address');
+    if (shippingAddressBody) {
+        shippingAddressBody.style.float = '';
+    }
+
+    const timelineElement = document.getElementById("timelinePackedElement");
+    if (timelineElement) {
+        timelineElement.remove();
+    }
+}
+
+function getShipmentConfirmForms() {
+    return document.querySelectorAll('form[action*="/PostGetAction/Shipment_ConfirmShipment"]');
+}
+
 function addShipmentConfirmListener(orderId) {
-    // Form action looks like "/<lang>/Magic/PostGetAction/Shipment_ConfirmShipment".
-    const shipmentConfirmForms = document.querySelectorAll('form[action*="/PostGetAction/Shipment_ConfirmShipment"]');
-    shipmentConfirmForms.forEach(form => {
+    getShipmentConfirmForms().forEach(form => {
         form.addEventListener('submit', () => {
-            // Once shipped, the packed marker has served its purpose.
+            removePackedUI();
             clearPackedStorage(orderId);
         });
     });
@@ -182,6 +201,12 @@ function getOrderIdFromPage() {
 
     const orderId = getOrderIdFromPage();
     if (!orderId) {
+        return;
+    }
+
+    if (getShipmentConfirmForms().length === 0) {
+        removePackedUI();
+        clearPackedStorage(orderId);
         return;
     }
 
