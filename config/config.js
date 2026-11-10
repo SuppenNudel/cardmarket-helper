@@ -86,6 +86,29 @@ function setupThumbnailSize() {
     }
 }
 
+function setupEnabledFormats() {
+    const formatInputs = [...document.querySelectorAll('input[name="enabled-format"]')];
+    const defaultFormats = formatInputs.map(input => input.value);
+
+    browser.storage.local.get('enabledFormats').then(storageData => {
+        const enabledFormats = Array.isArray(storageData.enabledFormats)
+            ? storageData.enabledFormats
+            : defaultFormats;
+        for (const input of formatInputs) {
+            input.checked = enabledFormats.includes(input.value);
+        }
+    });
+
+    for (const input of formatInputs) {
+        input.addEventListener('change', async () => {
+            const enabledFormats = formatInputs
+                .filter(formatInput => formatInput.checked)
+                .map(formatInput => formatInput.value);
+            await browser.storage.local.set({ enabledFormats });
+        });
+    }
+}
+
 const PRICE_AUTOFILL_DEFAULTS = {
     minRivalSales: 300,
     minRivalAvailableItems: 250,
@@ -297,6 +320,7 @@ function setupGoogleDriveSync() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    setupEnabledFormats();
     setupThumbnailSize();
     setupPriceAutofill();
     setupGoogleDriveSync();

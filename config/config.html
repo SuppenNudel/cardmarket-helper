@@ -35,6 +35,10 @@
             align-items: flex-start;
         }
 
+        body > main {
+            padding-top: 0;
+        }
+
         .settings-card {
             width: min(720px, 100%);
             background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
@@ -179,6 +183,19 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 10px;
+        }
+
+        .format-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px 12px;
+        }
+
+        .format-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
         }
 
         .field-group {
@@ -326,6 +343,17 @@
         </header>
 
         <section class="settings-content">
+            <div class="setting-row">
+                <p class="setting-section-title">Magic formats</p>
+                <div class="format-selector-grid">
+                    <label class="format-selector"><input type="checkbox" name="enabled-format" value="Standard"> Standard</label>
+                    <label class="format-selector"><input type="checkbox" name="enabled-format" value="Pioneer"> Pioneer</label>
+                    <label class="format-selector"><input type="checkbox" name="enabled-format" value="Modern"> Modern</label>
+                    <label class="format-selector"><input type="checkbox" name="enabled-format" value="Legacy"> Legacy</label>
+                    <label class="format-selector"><input type="checkbox" name="enabled-format" value="Pauper"> Pauper</label>
+                </div>
+            </div>
+
             <div class="setting-row">
                 <label class="setting-label label-with-icon" for="thumbnail-range">
                     <span class="setting-icon fonticon fonticon-camera" aria-hidden="true"></span>

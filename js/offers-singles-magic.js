@@ -563,6 +563,7 @@ function toggleFormatFilter(toggleButton, what, elementToToggle) {
 }
 
 async function addFilters(formats) {
+    document.querySelector(".cm-helper-format-filter")?.remove();
     const filterTarget = getFilterContainer();
     if (!filterTarget) {
         console.error("Format filter container not found");
@@ -570,7 +571,7 @@ async function addFilters(formats) {
     }
 
     const div = document.createElement("div");
-    div.className = "row g-2 mb-2";
+    div.className = "row g-2 mb-2 cm-helper-format-filter";
     const col = document.createElement("div");
     col.className = "col-12";
     div.appendChild(col);
@@ -824,7 +825,12 @@ let config;
 (async function main() {
     console.log("offers-singles-magic.js");
     try {
-        const formats = getFormats();
+        const allFormats = getFormats();
+        const { enabledFormats } = await browser.storage.local.get('enabledFormats');
+        const enabledFormatNames = new Set(
+            Array.isArray(enabledFormats) ? enabledFormats : allFormats.map(format => format.name)
+        );
+        let formats = allFormats.filter(format => enabledFormatNames.has(format.name));
         const configData = await initConfig();
         
         const productDataPromise = getCachedCardmarketData(KEY_PRODUCTDATA);
@@ -841,7 +847,9 @@ let config;
             });
         });
 
-        await addFilters(formats);
+        if (formats.length > 0) {
+            await addFilters(formats);
+        }
 
         fieldsPromise.then(fields => {
             const cardNamesSet = new Set(
@@ -887,6 +895,36 @@ let config;
                 fillCollectionInfoFields(fields, collection);
             }).catch(error => {
                 console.error("Error filling collection info:", error);
+            });
+
+            browser.storage.onChanged.addListener(async (changes, areaName) => {
+                if (areaName !== "local" || !changes.enabledFormats) {
+                    return;
+                }
+
+                const nextEnabledFormats = changes.enabledFormats.newValue;
+                const nextEnabledFormatNames = new Set(
+                    Array.isArray(nextEnabledFormats) ? nextEnabledFormats : allFormats.map(format => format.name)
+                );
+                formats = allFormats.filter(format => nextEnabledFormatNames.has(format.name));
+
+                if (formats.length > 0) {
+                    await addFilters(formats);
+                } else {
+                    document.querySelector(".cm-helper-format-filter")?.remove();
+                }
+
+                for (const field of Object.values(fields)) {
+                    field.formatInfoDiv.replaceChildren();
+                }
+                initFormatInfoFields(fields, formats);
+
+                const cards = await scryfallCards;
+                if (cards && cards.length > 0) {
+                    await fillFormatInfoFields(fields, formats, cardNamesSet, cards);
+                } else {
+                    updateHideOrShow(fields, formats);
+                }
             });
         }).catch(error => {
             console.error("Error initializing fields:", error);
