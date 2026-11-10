@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.11.0.0] - 2026-11-10
+### Added
+- Configurable Magic formats for the format filters on Offers pages
+- LOW, AVG, and TREND price statistics on wants lists and Shopping Wizard results, including exact-printing and cheapest-printing comparisons with color-coded prices and a link to the cheapest printing
+
+### Changed
+- Thumbnail and offer information are applied to rows that Cardmarket inserts dynamically
+
+### Fixed
+- Packed-order indicators and saved packed state are cleared when an order is shipped
+- Shopping Wizard result cards and footer stay correctly laid out as thumbnails and price statistics expand the results
+
 ## [2026.9.1.2] - 2026-09-21
 ### Added
 - Imported collection data is synchronized through `collection.json` in hidden Drive app data
