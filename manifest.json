@@ -161,6 +161,30 @@
         },
         {
             "matches": [
+                "https://www.cardmarket.com/*/*/Wants/*"
+            ],
+            "exclude_matches": [
+                "https://www.cardmarket.com/*/*/Wants/*/AddDeckList",
+                "https://www.cardmarket.com/*/*/Wants/ShoppingWizard/*"
+            ],
+            "js": [
+                "js/price-guide-utils.js",
+                "js/wants-shopping-prices.js"
+            ]
+        },
+        {
+            "matches": [
+                "https://www.cardmarket.com/*/*/Wants/ShoppingWizard/*"
+            ],
+            "js": [
+                "js/get-thumbnail.js",
+                "js/show-thumbnail.js",
+                "js/price-guide-utils.js",
+                "js/wants-shopping-prices.js"
+            ]
+        },
+        {
+            "matches": [
                 "https://www.cardmarket.com/*/Magic/Wants/*"
             ],
             "exclude_matches": [
@@ -178,6 +202,7 @@
             "js": [
                 "js/get-thumbnail.js",
                 "js/fetch-helper.js",
+                "js/price-guide-utils.js",
                 "js/offers.js"
             ]
         },

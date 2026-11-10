@@ -7,11 +7,17 @@ const KEY_ACCESSORIES = 'accessories';
 const KEY_PRICEDATA_ACCESSORIES = 'pricedata-accessories';
 
 function getGame() {
-    const gameHref = document.querySelector('#brand-gamesDD > a');
-    if (!gameHref || !gameHref.href) {
-        throw new Error("Could not determine game from page - game dropdown not found");
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 1 && /^[a-z]{2}$/i.test(pathParts[0])) {
+        return pathParts[1];
     }
-    const parts = gameHref.href.split('/');
+
+    const gameHref = document.querySelector('#brand-gamesDD > a[href], #brand-gamesDD a[href]');
+    if (!gameHref || !gameHref.href) {
+        throw new Error("Could not determine game from page - game dropdown and URL are missing it");
+    }
+
+    const parts = new URL(gameHref.href, window.location.origin).pathname.split('/').filter(Boolean);
     const game = parts.pop();
     if (!game) {
         throw new Error("Could not extract game name from URL");
