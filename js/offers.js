@@ -728,56 +728,58 @@ function forceOfferCommentIcon(articleRow) {
     mobileIcon.classList.remove('d-lg-none');
 }
 
+function getArticleRowsInNode(node) {
+    if (!(node instanceof HTMLElement)) {
+        return [];
+    }
+
+    const rows = [];
+    if (node.matches('.article-row')) {
+        rows.push(node);
+    }
+    rows.push(...node.querySelectorAll('.article-row'));
+    return rows;
+}
+
 function observeArticleRowModifications(table) {
+    const trackModifications = isOwnStockOffersPage();
     const knownArticleIds = new Set(
         Array.from(table.getElementsByClassName('article-row'))
             .map(row => extractArticleId(row.id))
             .filter(Boolean)
     );
 
-    // Store old row data during removal so we can compare on addition
     const removedRowData = new Map();
 
-    // Ignore mutations caused by our own initial DOM enrichment
-    let initializing = true;
-    setTimeout(() => { initializing = false; }, 2000);
-
     const observer = new MutationObserver((mutations) => {
-        if (initializing) {
-            return;
-        }
-
         for (const mutation of mutations) {
-            // First pass: capture old row data during removal
             for (const node of mutation.removedNodes) {
-                if (!(node instanceof HTMLElement)) continue;
-                const id = extractArticleId(node.id);
-                if (id && knownArticleIds.has(id)) {
-                    const oldData = extractArticleRowData(node);
-                    removedRowData.set(id, oldData);
+                for (const row of getArticleRowsInNode(node)) {
+                    const id = extractArticleId(row.id);
+                    if (trackModifications && id && knownArticleIds.has(id)) {
+                        removedRowData.set(id, extractArticleRowData(row));
+                    }
                 }
             }
 
-            // Second pass: detect new rows and compare with removed data
             for (const node of mutation.addedNodes) {
-                if (!(node instanceof HTMLElement)) continue;
-                const id = extractArticleId(node.id);
-                if (id && removedRowData.has(id)) {
-                    const oldData = removedRowData.get(id);
-                    const newData = extractArticleRowData(node);
-                    const changeData = detectRowChanges(oldData, newData);
-                    
-                    const now = new Date().toISOString();
-                    Promise.all([
-                        saveArticleLastModified(id, now),
-                        changeData ? saveArticleModificationData(id, changeData) : Promise.resolve()
-                    ])
-                        .then(() => {
-                            updateContentOfCard(node, pricePromise);
-                        })
-                        .catch(err => console.error('Error handling row modification:', err));
-                    
-                    removedRowData.delete(id);
+                for (const row of getArticleRowsInNode(node)) {
+                    const id = extractArticleId(row.id);
+                    if (trackModifications && id && removedRowData.has(id)) {
+                        const oldData = removedRowData.get(id);
+                        const newData = extractArticleRowData(row);
+                        const changeData = detectRowChanges(oldData, newData);
+
+                        removedRowData.delete(id);
+                        Promise.all([
+                            saveArticleLastModified(id, new Date().toISOString()),
+                            changeData ? saveArticleModificationData(id, changeData) : Promise.resolve()
+                        ])
+                            .then(() => updateContentOfCard(row, pricePromise))
+                            .catch(err => console.error('Error handling row modification:', err));
+                    } else {
+                        updateContentOfCard(row, pricePromise);
+                    }
                 }
             }
         }
@@ -805,9 +807,7 @@ function updateContent() {
         updateContentOfCard(articleRow, pricePromise);
     }
 
-    if (isOwnStockOffersPage()) {
-        observeArticleRowModifications(table);
-    }
+    observeArticleRowModifications(table);
 }
 
 (async function main() {

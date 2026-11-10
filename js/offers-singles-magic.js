@@ -37,9 +37,9 @@ function removeDiacritics(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-async function initFields(productDataPromise) {
+async function initFields(productDataPromise, rows = null) {
     const table = document.getElementById("UserOffersTable");
-    const articleRows = table.getElementsByClassName("article-row");
+    const articleRows = rows || table.getElementsByClassName("article-row");
     const articles = {};
 
     const tasks = Array.from(articleRows).map(async (articleRow) => {
@@ -52,13 +52,23 @@ async function initFields(productDataPromise) {
 
         const productData = await productDataPromise;
         const mkmProduct = productData.products[mkmId];
+        if (!mkmProduct) {
+            console.warn(`Skipping article row ${articleId}: product data not found for Cardmarket ID ${mkmId}`);
+            return;
+        }
         const cardname = mkmProduct.name.replaceAll("\"\"", "\"");
 
         const cardNameElement = articleRow.getElementsByClassName("col-seller")[0];
+        if (!cardNameElement) {
+            return;
+        }
+
+        articleRow.querySelectorAll('.cm-helper-offer-info').forEach(element => element.remove());
         cardNameElement.style.display = "-webkit-box";
 
         // Create table for format info and collection info
         const infoTable = document.createElement("table");
+        infoTable.classList.add('cm-helper-offer-info');
         infoTable.style.display = "inline";
         const infoRow = document.createElement("tr");
 
@@ -91,6 +101,35 @@ async function initFields(productDataPromise) {
     await Promise.all(tasks);
 
     return articles;
+}
+
+function observeMagicOfferRows(table, fields, onRowAdded) {
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (!(node instanceof HTMLElement)) {
+                    continue;
+                }
+
+                const rows = [];
+                if (node.matches('.article-row')) {
+                    rows.push(node);
+                }
+                rows.push(...node.querySelectorAll('.article-row'));
+
+                for (const row of rows) {
+                    if (fields[row.id]?.row === row) {
+                        continue;
+                    }
+                    onRowAdded(row).catch(error => {
+                        console.error(`Error re-enriching offer row ${row.id}:`, error);
+                    });
+                }
+            }
+        }
+    });
+
+    observer.observe(table, { childList: true, subtree: true });
 }
 
 function sumUp(collectionCardList) {
@@ -809,6 +848,25 @@ let config;
                 Object.values(fields).flatMap(field => [field.cardname.replace("//", "/"), field.cardname.split(/ \/?\/ /)[0]])
             );
             const scryfallCards = scryfallCardsCollection(cardNamesSet);
+            const offersTable = document.getElementById("UserOffersTable");
+
+            observeMagicOfferRows(offersTable, fields, async articleRow => {
+                const rowFields = await initFields(productDataPromise, [articleRow]);
+                const field = rowFields[articleRow.id];
+                if (!field || !offersTable.contains(articleRow)) {
+                    return;
+                }
+
+                fields[articleRow.id] = field;
+                initFormatInfoFields(rowFields, formats);
+                initCollectionInfoFields(rowFields);
+
+                const [cards, collection] = await Promise.all([scryfallCards, collectionPromise]);
+                if (cards && cards.length > 0) {
+                    await fillFormatInfoFields(fields, formats, cardNamesSet, cards);
+                }
+                await fillCollectionInfoFields(rowFields, collection);
+            });
             
             scryfallCards.then(scryfallCards => {
                 if (!scryfallCards || scryfallCards.length === 0) {
