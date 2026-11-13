@@ -49,152 +49,92 @@ The **Open in ManaBox Viewer** button uses `config.manaboxViewerMode` from `brow
 
 ## Inspirations
 
-Some Features of this addon have been inspired by existing addons. So I wanted to credeit them here:
+Some features of this add-on were inspired by existing add-ons. They are credited here:
 
 ### [Better Cardmarket MTG unofficial](https://chromewebstore.google.com/detail/better-cardmarket-mtg-uno/fplghokcfgbdedalpmbmjlafpagclbef)
-- [IMPLEMENTED] Kleine preview Bilder statt Kamera-Icon
+- [IMPLEMENTED] Replace camera icons with preview images
 
 ### [Carmarket Format Filter](https://chromewebstore.google.com/detail/cardmarket-format-filter/okfobifncpmjgnccfacmfkdnkhjbiglp)
 - [Source Code](https://github.com/Aeolic/cardmarket-filter)
-- [IMPLEMENTED] Format Filter
+- [IMPLEMENTED] Format filtering support
 
 ### [Cardmarket Companion](https://chromewebstore.google.com/detail/cardmarket-companion/mpbncolfefkegmaccdejhngjcjkjoaep)
-- [IMPLEMENTED] Angebote auslesen und Preisfeld ausfüllen
+- [IMPLEMENTED] Offer parsing and price autofill
+
+## Current Features
+
+### Thumbnail previews
+
+Instead of the camera icon, Cardmarket Helper replaces card thumbnails with the actual card image. This works across the site wherever Cardmarket shows a product thumbnail and can be toggled and resized in the extension settings.
+
+### ManaBox collection import
+
+Import a ManaBox CSV and let the add-on load it into the current Cardmarket page automatically. This is especially useful on Singles pages, where the extension can compare your collection against the card you are currently viewing.
+
+You can export your collection from ManaBox via the top-right menu → Export and then save the CSV wherever you prefer. The add-on also supports opening the exported data in the ManaBox Viewer.
+
+### Singles page helpers
+
+When you have imported your collection, the extension adds a table of your owned printings for the card you are currently viewing on the Singles page.
+
+It also supports:
+- Auto-filling quantity, language, condition, foil, and price fields
+- Comparing against LOW, AVG1, AVG7, AVG30, TREND, and rival offers
+- Highlighting the best price and the most relevant printing
+- Showing whether the card is already listed in your collection data
+- Adding condition and language indicators for faster listing decisions
+
+### Offers and price comparison
+
+The add-on enriches offer rows with price information and comparison metrics, including:
+- LOW price
+- AVG price
+- TREND price
+- Cheapest printing link for matching products
+- Color-coded comparison against the current seller price
+- Optional format legality filtering for Magic offers
+
+### Wants lists and Shopping Wizard
+
+The extension improves wants lists and Shopping Wizard results by showing market statistics directly in the results, including cheapest-printing comparisons and direct links to the best available printing.
+
+It also supports exporting the current wants list as CSV.
+
+Note: Cardmarket's page layouts change frequently, so the screenshots in older release notes may not match the current interface exactly. The feature list above reflects the current extension behavior and is intentionally kept up to date with the implemented functionality.
+
+### Order tracking and packed-state reminders
+
+On sales orders, the extension can mark an order as packed and remember the state so it remains visible later. The packed status is turned into a timeline indicator and can be cleared when the shipment is confirmed.
+
+### Google Drive sync
+
+Cardmarket Helper can optionally sync the following data through Google Drive app data:
+- Extension settings
+- Marked-as-packed order state
+- Imported ManaBox collection data
+- Sync metadata for multi-device use
+
+This is optional and can be enabled from the extension settings. The privacy policy and terms are in the [google](google) folder.
+
+### Settings and customization
+
+The settings page lets you configure:
+- Thumbnail enable/disable and size
+- Magic format filters used for legality checks
+- Price autofill source and undercut strategy
+- Rival definition thresholds
+- Which seller types should be considered during price calculation
+- Google Drive connection status
+
+## Release Notes
+
+See the full change history in [CHANGELOG.md](CHANGELOG.md).
+
+## Historical notes
+
+The project still contains some older notes and ideas that are not part of the current user-facing workflow. Those are kept mainly for historical context and are not required for normal use.
 
 ## Findings
 
 ### [Cardmarket Companion](https://chromewebstore.google.com/detail/cardmarket-companion/mpbncolfefkegmaccdejhngjcjkjoaep)
 - Add-on with similar features
-
-
-## Legacy Idea Documentation
-### Improvements
-- make a request to outside if a cardmarket id wasn't found on scryfall (to automate)
-
-- offers-singles
-    - when determining ownership of same card different printing, use oracle_id of scryfall instead of cardname
-    - Staple Stempel
-        - Commander: edhrec
-        - Pioneer: Eigenanalyse von mtgtop8 oder thegathering.gg
-
-- sell
-    - redirect currently disabled
-
-### Bugs
-- when putting something in the shopping cart, the camera icon reappears
-
-### Figure out
-- some cars on mkm have the same id but there are multiple entries in scryfall
-    - Example Coastal Tower 8ED -> normal / foil
-
-    - check if there is a foil version of the card in the same set with the same collector number
-
-- some cards have the same id on scryfall but multiple on mkm
-    - Example Mystical Archive Abundant Harvest - normal / foil and etched
- 
- # Features (needs updating)
-
- ## Display Thumbnails
-
-![Before](doc/Thumbnail_Before.png)
-
-Before
-
-Instead of the camera icon, the card's image get's displayed directly.
-
-This change is made everywhere on cardmarket where you would see those photo camera icons, even on non-Magic pages)
-
-⚠️ Temporarily Disabled as of 1.9.0: Since 1.1.0: In the settings menu you can adjust the size of the Thumbnail and toggle this feature on/off
-
-
-![After](doc/Thumbnail_After.png)
-
-After
-
-## Upload ManaBox collection
-
-![Untitled](doc/Upload_ManaBox.png)
-
-When you select your ManaBox file, its content gets loaded and the page automatically gets reloaded in order to fill out the page with all the necessary info.
-
-ℹ️ There will be a pop-up alert with “<filename>: undefined”. This is unwanted behavior but does not impact functionality.
-
-<img src="doc/ManaBox_Export.png" width="200">
-
-To export your collection from ManaBox go into the top right menu and select “Export” (you need to confirm the following popup with another click on “Export”)
-
-Then select where the export should go to. I always use Google Drive.
-
-# Singles Page (Sell your cards)
-
-### Printings of the current card that you own
-
-When on a "Singles" page, and you have loaded your ManaBox collection, a table gets created which displays which printings of the card you are currently looking at you own.
-
-### Go To (does not work currently 17. September 2025 )
-
-If you click on this link you will get redirected to the cardmarket Singles page of this card.
-
-### Fill Metrics
-
-Click the “FILL” button to fill out the form.
-
-If Condition is “MINT” a ❓gets displayed. This is to indicate that the condition of the card hasn’t been personally checked yet. A card should not be listed as MINT anyways in 99.9% of the cases.
-
-Already listed should indicate if the card has been already put up for sale. It uses the “Misprint” metric of ManaBox (you need to update this in ManaBox yourself)
-
-The “Price” field of the form gets filled out automatically by comparing the current LOW, TREND, AVG1, AVG7, AVG30 prices and the top few offers by other people.
-
-Next to the “Purchase price” a stock market emoji is shown depending on if it is higher or lower than the automatically determined price from above.
-
-![Untitled](doc/Products_Singles.png)
-
-## Offers Singles
-
-![image.png](doc/Offers_Singles.png)
-
-### Metrics
-
-| EDHREC Rank
-(currently not enabled 17. September 2025) | The Ranking on [edhrec.com](http://edhrec.com)
-Source: scryfall.com |
-| --- | --- |
-| Formats | Percentage of decks that used this card in the past 2 months in that format. In brackets is the average quantity of the card in the decks that use this card
-In front of the slash is the data for the main board, behind is the data for sideboard.
-Source: mtgtop8.com/topcards |
-| Bottom Row | On the right it shows how many copies of any of the printings of the card you own in any language
-and how many of any language you own for this specific printing (including foil and non-foil) |
-
-### Format Filter
-
-You can hide cards on a seller’s offer page
-
-![image.png](doc/1.10.0_Format_Filter.png)
-
-<details>
-<summary>Version until before 1.9.0</summary>
-⚠️ Disabled as of 1.9.0: You can modify which formats to analyze by going into the extension settings (left column)
-
-![Untitled](doc/Format_Filter_Outdated.png)
-
-With the right column you can let the extension hide rows if the card is not legal in one of the selected formats.
-
-This function is turned of if no format is selected.
-</details>
-
-### Prices
-
-⬇️ cardmarket low price
-
-↔️ cardmarket average price
-
-📈 cardmarket trend price
-
-The coloring is dependend on the ratio between the offered price respective low/average/trend price
-Within 10% it’s orange, if the offering is cheaper than that it is green, if it is more expensie it is red
-
-## Export Wants-List (since 1.2.0)
-
-![Wants-List_Export.png](doc/Wants-List_Export.png)
-
-With a click on the “Export as .csv”-Button you can export your currently shown Wants-List as a csv file.
