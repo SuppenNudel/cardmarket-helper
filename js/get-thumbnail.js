@@ -1,3 +1,5 @@
+const originalThumbnailContents = new WeakMap();
+
 function showThumbnails() {
     const gen = iterateThumbnails();
     while(true) {
@@ -35,14 +37,15 @@ async function changePreviewImage(thumbnailIcon, imgTag) {
     theImage.width = imageWidth;
 
     if (thumbnailEnabled) {
-        // Save the original icon markup once so it can be restored if the setting is disabled later.
-        if (!thumbnailIcon.dataset.originalHtml) {
-            thumbnailIcon.dataset.originalHtml = thumbnailIcon.innerHTML;
+        if (!originalThumbnailContents.has(thumbnailIcon)) {
+            originalThumbnailContents.set(
+                thumbnailIcon,
+                Array.from(thumbnailIcon.childNodes, (node) => node.cloneNode(true))
+            );
         }
 
         // Replace only the camera icon inside the thumbnailIcon span, keeping tooltip functionality
-        thumbnailIcon.innerHTML = '';
-        thumbnailIcon.appendChild(theImage);
+        thumbnailIcon.replaceChildren(theImage);
 
         // Override Cardmarket's icon sizing so the wrapper grows with the injected image.
         thumbnailIcon.classList.remove('is-24x24');
@@ -125,11 +128,12 @@ async function showThumbnail(thumbnailIcon) {
 
 function restoreThumbnails() {
     for (const thumbnailIcon of document.querySelectorAll('span.thumbnail-icon')) {
-        if (!thumbnailIcon.dataset.originalHtml) {
+        const originalContents = originalThumbnailContents.get(thumbnailIcon);
+        if (!originalContents) {
             continue;
         }
 
-        thumbnailIcon.innerHTML = thumbnailIcon.dataset.originalHtml;
+        thumbnailIcon.replaceChildren(...originalContents.map((node) => node.cloneNode(true)));
 
         // Reset injected styles.
         thumbnailIcon.classList.add('is-24x24');

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project uses [Calendar Versioning](https://calver.org/) (YYYY.MM.FEATURE.PATCH).
 
+## [2026.11.0.1] - 2026-11-13
+### Changed
+- Removed the unsupported `options_ui.browser_style` manifest property for Manifest V3
+- Restore thumbnail icons using DOM nodes instead of assigning dynamic HTML
+
 ## [2026.11.0.0] - 2026-11-10
 ### Added
 - Configurable Magic formats for the format filters on Offers pages
