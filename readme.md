@@ -65,66 +65,61 @@ Some features of this add-on were inspired by existing add-ons. They are credite
 
 ### Thumbnail previews
 
-Instead of the camera icon, Cardmarket Helper replaces card thumbnails with the actual card image. This works across the site wherever Cardmarket shows a product thumbnail and can be toggled and resized in the extension settings.
+The add-on replaces the placeholder camera icon with the actual card image on product rows and other Cardmarket views where thumbnails are shown.
 
-### ManaBox collection import
+![Before thumbnail previews](doc/current-thumbnail-before.png)
+![Thumbnail preview](doc/current-thumbnail-preview.png)
 
-Import a ManaBox CSV and let the add-on load it into the current Cardmarket page automatically. This is especially useful on Singles pages, where the extension can compare your collection against the card you are currently viewing.
+### ManaBox collection import and singles page helpers
 
-You can export your collection from ManaBox via the top-right menu → Export and then save the CSV wherever you prefer. The add-on also supports opening the exported data in the ManaBox Viewer.
+Import a ManaBox CSV and the extension loads the collection into the current page. On Magic Singles pages, this enables a collection-aware overview that shows which printings you own and helps automate the listing form.
 
-### Singles page helpers
+![Owned printing in the Singles collection table](doc/current-singles-collection-row.png)
+![Singles form autofill](doc/current-singles-form.png)
 
-When you have imported your collection, the extension adds a table of your owned printings for the card you are currently viewing on the Singles page.
+The form helper supports:
+- filling quantity, language, condition, and foil state
+- auto-populating purchase price and sell price guidance
+- comparing the current card against LOW, AVG, and TREND market data
+- showing ownership and listing state for your printings
+- adding condition and language indicators for faster decisions
 
-It also supports:
-- Auto-filling quantity, language, condition, foil, and price fields
-- Comparing against LOW, AVG1, AVG7, AVG30, TREND, and rival offers
-- Highlighting the best price and the most relevant printing
-- Showing whether the card is already listed in your collection data
-- Adding condition and language indicators for faster listing decisions
+ManaBox Viewer export controls are also available on supported order exports:
+
+![ManaBox Viewer export controls](doc/current-manabox-viewer-export.png)
 
 ### Offers and price comparison
 
-The add-on enriches offer rows with price information and comparison metrics, including:
-- LOW price
-- AVG price
-- TREND price
-- Cheapest printing link for matching products
-- Color-coded comparison against the current seller price
-- Optional format legality filtering for Magic offers
+Offer rows are enhanced with price comparisons and printing-specific metrics. The extension shows the current offer in relation to the relevant printing and highlights the cheapest available option.
+
+![Offers page](doc/current-offers-page.png)
+![Format legality, collection counts, and printing price comparisons](doc/current-offers-format-filter.png)
+![Offer rows with collection and legality details](doc/current-offers-collection-data.png)
+
+The price comparison includes:
+- LOW, AVG, and TREND values
+- cheapest-printing comparison
+- colored price warnings based on the relative offer price
+- optional Magic format filtering for legal/illegal offers
 
 ### Wants lists and Shopping Wizard
 
-The extension improves wants lists and Shopping Wizard results by showing market statistics directly in the results, including cheapest-printing comparisons and direct links to the best available printing.
+The extension adds price statistics to wants list items and Shopping Wizard results, including printing comparison and cheapest-printing context.
 
-It also supports exporting the current wants list as CSV.
-
-Note: Cardmarket's page layouts change frequently, so the screenshots in older release notes may not match the current interface exactly. The feature list above reflects the current extension behavior and is intentionally kept up to date with the implemented functionality.
+![Wants list results](doc/current-wants-list.png)
 
 ### Order tracking and packed-state reminders
 
-On sales orders, the extension can mark an order as packed and remember the state so it remains visible later. The packed status is turned into a timeline indicator and can be cleared when the shipment is confirmed.
+On sales order pages, the extension can mark an order as packed and show that state in the order timeline. It can be cleared again later as needed.
 
-### Google Drive sync
+![Packed order state](doc/current-packed-order.png)
+![Unpacked order state](doc/current-packed-order-unpacked.png)
 
-Cardmarket Helper can optionally sync the following data through Google Drive app data:
-- Extension settings
-- Marked-as-packed order state
-- Imported ManaBox collection data
-- Sync metadata for multi-device use
+### Settings and Google Drive sync
 
-This is optional and can be enabled from the extension settings. The privacy policy and terms are in the [google](google) folder.
+The settings screen lets you configure thumbnail size, Magic format filters, price autofill behavior, and Google Drive sync.
 
-### Settings and customization
-
-The settings page lets you configure:
-- Thumbnail enable/disable and size
-- Magic format filters used for legality checks
-- Price autofill source and undercut strategy
-- Rival definition thresholds
-- Which seller types should be considered during price calculation
-- Google Drive connection status
+![Settings](doc/current-settings.png)
 
 ## Release Notes
 
