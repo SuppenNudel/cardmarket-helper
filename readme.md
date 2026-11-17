@@ -1,6 +1,7 @@
 # Cardmarket Helper
 
-[Install from Firefox Add-ons](https://addons.mozilla.org/en/firefox/addon/cardmarket-helper/)
+<a href="https://addons.mozilla.org/en/firefox/addon/cardmarket-helper/"><img src="https://img.shields.io/badge/Firefox%20Add--ons-Install-FF7139?logo=firefoxbrowser" alt="Firefox Add-ons"></a>
+<a href="https://github.com/SuppenNudel/cardmarket-helper/releases/latest"><img src="https://img.shields.io/github/v/release/SuppenNudel/cardmarket-helper?color=2563eb" alt="Latest Release"></a>
 
 Cardmarket Helper adds card previews, collection-aware listing assistance, price comparisons, and order reminders to Cardmarket.
 
